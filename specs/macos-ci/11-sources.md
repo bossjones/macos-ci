@@ -7,8 +7,11 @@ Every URL fetched (or attempted) across the research pass, grouped by bucket, ea
 |---|---|
 | `[meaty]` | Substantial, directly-cited content |
 | `[thin]` | A stub, index, or TOC page — useful mainly as a pointer |
-| `[404]` | Genuinely dead. Exactly one URL qualifies |
 | `[cited-as-exclusion]` | Read only to establish what it does **not** support; never cited as evidence |
+
+**Every source URL in this research is live.** Probed with
+`curl -sS -o /dev/null -w '%{http_code}' -L`: 47/47 return `200`. There is no `[404]` grade because
+nothing is dead — see the retraction below for the URL that was wrongly believed to be.
 
 **Every URL below is a live markdown link on purpose.** `just link-check` runs
 [lychee](https://github.com/lycheeverse/lychee) over this file; a bare-backtick URL would be invisible to
@@ -82,6 +85,8 @@ it, which is how the mistake in the retraction section below survived a full cro
 
 | URL | Grade | What it gave us |
 |---|---|---|
+| [settings-apple/settings-apple/](https://docs.getutm.app/settings-apple/settings-apple/) | `[meaty]` | The Settings (Apple) index. Source of a load-bearing ADR claim: *"Apple Virtualization backend supports only virtualization and is less mature than QEMU. It is the only way to run macOS virtualized on Apple Silicon."* TOC = Boot, Devices, Drive, Information, Sharing, System, Virtualization |
+| [settings-qemu/settings-qemu/](https://docs.getutm.app/settings-qemu/settings-qemu/) | `[thin]` | The Settings (QEMU) index; contrast-only |
 | [settings-apple/boot/](https://docs.getutm.app/settings-apple/boot/) | `[thin]` | OS selection, IPSW field — [07](07-utm-settings-appendix.md) |
 | [settings-apple/drive/](https://docs.getutm.app/settings-apple/drive/) | `[thin]` | Drive fields incl. macOS 26+ ASIF format — [07](07-utm-settings-appendix.md) |
 | [settings-apple/system/](https://docs.getutm.app/settings-apple/system/) | `[thin]` | CPU/memory fields — [07](07-utm-settings-appendix.md) |
@@ -100,17 +105,26 @@ it, which is how the mistake in the retraction section below survived a full cro
 ## Retraction — the G10 prune list was wrong
 
 The research brief carried a ground truth **G10** instructing every agent that four URLs were 404 and
-must not be fetched or cited. **Three of the four are live.** Verified with
+must not be fetched or cited. **Not one of them was a dead page.** Verified with
 `curl -sS -o /dev/null -w '%{http_code}' -L`:
 
 | URL | G10 claimed | Actual |
 |---|---|---|
-| [settings-apple/devices/](https://docs.getutm.app/settings-apple/devices/) | 404 | **404** — the only true entry. Real path is `.../devices/devices/` |
 | [settings-qemu/devices/devices/](https://docs.getutm.app/settings-qemu/devices/devices/) | 404 | **200** |
 | [settings-qemu/drive/drive/](https://docs.getutm.app/settings-qemu/drive/drive/) | 404 | **200** |
 | [guest-support/sharing/sharing/](https://docs.getutm.app/guest-support/sharing/sharing/) | 404 | **200** |
+| `docs.getutm.app/settings-apple/devices/` | 404 | 404 — **but this path never existed.** Not a link, hence not linked here |
 
-Two things made this durable:
+That fourth entry is the interesting one. It does return 404, but it is not a page that died — it is a
+**malformed path that was never in the source list**. The Settings (Apple) section is served at
+[settings-apple/settings-apple/](https://docs.getutm.app/settings-apple/settings-apple/), and its Devices
+child at [settings-apple/devices/devices/](https://docs.getutm.app/settings-apple/devices/devices/). The
+`404` was manufactured by requesting a URL nobody had ever published, and its "deadness" was then
+generalized onto three live URLs sitting next to it in the list.
+
+Every one of the 47 URLs actually supplied for this research returns `200`.
+
+Two things made the error durable:
 
 1. **The instruction was self-sealing.** "Do not fetch, do not cite" guaranteed no agent could ever
    surface evidence against it. The lead's cross-check ledger marked G10 `verified` — but verifying a
@@ -148,10 +162,29 @@ The two bootstrap one-liners quoted verbatim in [09](09-dotfiles-under-test.md) 
 | [tonyyo11 — Prepping for Learning Terraform (Oct 2025)](https://tonyyo11.github.io/posts/October-Learning-Terraform/) | `[cited-as-exclusion]` | Uses Terraform to manage **Jamf Pro resources**, not VMs. Establishes **G2**: it is not evidence of VM-as-code for either tool. Referenced only in [10](10-tart-vs-utm-adr.md) to preempt the misreading |
 | [motionbug — Baking Up Your Perfect Jamf Pro Test VM](https://motionbug.com/the-cookbook-baking-up-your-perfect-jamf-pro-test-vm/) | `[cited-as-exclusion]` | A Jamf-Pro-flavored VM cookbook. Same trap as above: adjacent tooling, not a VM-as-code story for tart or UTM |
 
-## Known gaps — pages in neither the brief nor the source list
+## Coverage — measured, not estimated
 
-The docs nav exposes pages no agent was pointed at. None are load-bearing for the harness, but they exist
-and are unread: `settings-apple/{display,network,port-forwarding,serial}`,
-`settings-qemu/{display,network,port-forwarding,serial,sound}`, `settings-qemu/drive/resize-and-compress`,
-`guest-support/{linux,windows,clipboard,directory,usb}`, `remote/utm-server`, and the `guides/*` per-guest
-walkthroughs. Tracked in `.team/macos-ci.backlog.md`.
+`docs.getutm.app` publishes **78 pages**. Enumerated from its own search index, not from the nav:
+
+```bash
+curl -fsSL https://docs.getutm.app/assets/js/search-data.json |
+  python3 -c 'import json,sys; print(*sorted({v["relUrl"].split("#")[0] for v in json.load(sys.stdin).values()}), sep="\n")'
+```
+
+**36 of 78 are cited above.** The 42 uncited pages, grouped — none load-bearing for this harness, but
+they exist and are unread, so no reader should infer they were judged and dismissed:
+
+| Group | Pages |
+|---|---|
+| Apple-backend device children | `settings-apple/devices/{display,network,serial}` |
+| QEMU-backend device children | `settings-qemu/devices/{display,serial,sound}`, `.../network/{network,port-forwarding}`, `settings-qemu/drive/resize-and-compress` |
+| Non-macOS guest support | `guest-support/{linux,windows}`, `guest-support/sharing/{clipboard,directory,usb}` |
+| Per-guest walkthroughs | `guides/{classic-windows,debian,fedora,kali,ubuntu,windows,windows-10}`, `guide/windows` |
+| iOS | `installation/ios`, `preferences/ios` |
+| Remote / UTM server | `remote/`, `remote/server/` |
+| Section landing pages | `advanced/advanced`, `basics/basics`, `installation/installation`, `preferences/preferences`, `scripting/scripting`, `guest-support/guest-support`, `advanced/scripting` |
+| Release notes | `updates/updates`, `updates/v4.0` … `updates/v4.7` |
+
+`guest-support/sharing/{clipboard,directory,usb}` are the only ones with plausible future relevance —
+they document the SPICE WebDAV / VirtFS directory-sharing backends. Tracked in
+`.team/macos-ci.backlog.md`.

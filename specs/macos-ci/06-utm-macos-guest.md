@@ -211,10 +211,16 @@ along, at a URL absent from the research brief — see the retraction note in
 `settings-apple/boot`, `settings-apple/drive`, `settings-apple/system`, `settings-apple/information`, and
 `settings-apple/sharing` are summarized in the thin appendix, `07-utm-settings-appendix.md`, rather than
 duplicated in this file. Everything this spec states about Apple-backend device behavior (clipboard in
-§8, dynamic resolution in §7, serial in §6, device toggles in §9) is sourced from a live page.
-[settings-apple/devices/](https://docs.getutm.app/settings-apple/devices/) genuinely 404s; its real path
-is [settings-apple/devices/devices/](https://docs.getutm.app/settings-apple/devices/devices/), a thin
-index page covering only how to add/remove Display, Network, and Serial devices.
+§8, dynamic resolution in §7, serial in §6, device toggles in §9) is sourced from a live page. The whole
+section is indexed at
+[settings-apple/settings-apple/](https://docs.getutm.app/settings-apple/settings-apple/), whose own
+summary is worth quoting: *"Apple Virtualization backend supports only virtualization and is less mature
+than QEMU. It is the only way to run macOS virtualized on Apple Silicon."*
+
+The path `docs.getutm.app/settings-apple/devices/` 404s, but it is a **malformed URL that was never
+published** — not a dead page. The Devices page lives at
+[settings-apple/devices/devices/](https://docs.getutm.app/settings-apple/devices/devices/), a thin index
+covering only how to add/remove Display, Network, and Serial devices.
 
 ## 10. Out of scope
 

@@ -100,12 +100,12 @@ exclude = [
     # Common example domains
     '^https?://example\.com',
     '^https?://example\.org',
-    # Cited *because* it is dead. This is the one genuinely-404 URL in the UTM
-    # docs (real path: .../settings-apple/devices/devices/). Specs 06, 07 and 11
-    # link it deliberately to document the G10 retraction; see
-    # specs/macos-ci/11-sources.md#retraction--the-g10-prune-list-was-wrong
-    '^https://docs\.getutm\.app/settings-apple/devices/$',
 ]
+
+# NOTE: no URL exclusions for docs.getutm.app. Every source URL in this repo is
+# live (47/47 return 200). The one 404 path discussed in the specs
+# (settings-apple/devices/) is written as inline code, not a link, because it was
+# never a published page — see specs/macos-ci/11-sources.md, "Retraction".
 
 # Exclude paths from getting checked. The values are treated as regular expressions
 exclude_path = [

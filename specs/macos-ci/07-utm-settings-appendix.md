@@ -8,6 +8,7 @@ behavior) — this file is an index, not a restatement.
 
 | Page | What it covers | Relevant elsewhere |
 |---|---|---|
+| [settings-apple (index)](https://docs.getutm.app/settings-apple/settings-apple/) | Section index. States the backend's own positioning: "supports only virtualization and is less mature than QEMU… the only way to run macOS virtualized on Apple Silicon" | [10](10-tart-vs-utm-adr.md) |
 | [boot](https://docs.getutm.app/settings-apple/boot/) | OS selection (macOS 12+ / Linux only); bootloader; Linux-only kernel/ramdisk/boot-args fields; macOS-only IPSW install image field | `06` §1 (IPSW) |
 | [drive](https://docs.getutm.app/settings-apple/drive/) | Create/removable/NVMe-interface/import/delete/boot-order/size for drives; macOS 26+ adds Apple Sparse Image format | `06` §5 (`apple drive configuration`) |
 | [system](https://docs.getutm.app/settings-apple/system/) | Just CPU core count (0 = host default) and memory size | `06` §5 |
@@ -32,11 +33,14 @@ behavior) — this file is an index, not a restatement.
 |---|---|---|
 | [preferences/macos](https://docs.getutm.app/preferences/macos/) | UTM.app-wide preferences: keep-running/dock-icon/menu-bar-icon behavior, screenshot privacy, renderer/sound backend, input-capture behavior (QEMU-only sections marked as such in the source), host-network management, drive-image locking, and the **UTM server** remote-access settings (auto-start, WAN access, listen port, password) | `05` §4 (dock-icon hiding for headless) |
 
-## Dead links — one, not four
+## Dead links — none
 
-Only [settings-apple/devices/](https://docs.getutm.app/settings-apple/devices/) 404s, and it 404s because
-the path is wrong: the page lives at
-[settings-apple/devices/devices/](https://docs.getutm.app/settings-apple/devices/devices/) (HTTP 200).
+Every UTM docs URL used by this research returns HTTP 200.
+
+The path `docs.getutm.app/settings-apple/devices/` does 404, but it was never a published page — it is a
+malformed URL. The real Devices page is
+[settings-apple/devices/devices/](https://docs.getutm.app/settings-apple/devices/devices/), under the
+[settings-apple/settings-apple/](https://docs.getutm.app/settings-apple/settings-apple/) index.
 
 The research brief's **G10** listed three further URLs as 404 and forbade fetching them. All three are
 live. They were pruned on a false premise and are now indexed above and in `11-sources.md`:
