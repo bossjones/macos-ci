@@ -35,7 +35,7 @@ Current global state: **DONE** — all 6 agents green, `specs/macos-ci.md` revie
 | G7 — advanced/rosetta is Linux guests only, not macOS | 06, 10 | ✅ verified |
 | G8 — tart headless keychain req; nested virt M3/M4+Linux only | 01 | ✅ verified |
 | G9 — neither dotfiles repo uses Ansible (chezmoi / shell+Brewfile) | 09, 08(e) | ✅ verified |
-| G10 — 4 dead docs.getutm.app URLs pruned, not cited | 07, 11 | ✅ verified |
+| G10 — 4 dead docs.getutm.app URLs pruned, not cited | 07, 11 | ❌ **RETRACTED** — 3 of the 4 are live (HTTP 200). The ground truth was false and self-sealing: "do not fetch" meant no agent could disprove it, so this ✅ only ever recorded that nobody looked. See [11-sources.md](../specs/macos-ci/11-sources.md#retraction--the-g10-prune-list-was-wrong) |
 | G11 — non-interactive chezmoi already solved upstream (stdinIsATTY) | 09, 08(b) | ✅ verified |
 
 ## Conflicts resolved during this run

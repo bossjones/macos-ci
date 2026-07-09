@@ -11,7 +11,7 @@ the QEMU guest agent and do not work on Apple-backend macOS guests). Ground trut
 govern every design choice below; see [09-dotfiles-under-test.md](./09-dotfiles-under-test.md) for
 what is actually being installed and asserted.
 
-Per the [HOUSE STANCE](../macos-ci.md#tart-vs-utm), **tart is primary** for this harness. UTM only
+Per the [HOUSE STANCE](10-tart-vs-utm-adr.md#decision), **tart is primary** for this harness. UTM only
 enters at teardown-comparison time (d) to explain why it is *not* used here.
 
 ## (a) Golden image vs. from-scratch per test
@@ -183,7 +183,7 @@ which require the Apple Virtualization.framework backend (G5). There is no UTM-n
 disposable macOS guest; the closest approximation would be scripting create → snapshot → restore →
 delete via AppleScript/`utmctl` (per [05](./05-utm-automation.md)) by hand, which is strictly more
 moving parts than `tart clone` + `tart delete` for the same outcome. This is a direct, concrete
-instance of the [HOUSE STANCE](../macos-ci.md#tart-vs-utm)'s general "tart primary, UTM escape hatch"
+instance of the [HOUSE STANCE](10-tart-vs-utm-adr.md#decision)'s general "tart primary, UTM escape hatch"
 rule, not an abstract preference — G5 forces it specifically here.
 
 ## (e) Decision: Ansible — reject it

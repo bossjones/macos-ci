@@ -566,3 +566,7 @@ clusters/*/.flags.auto.tfvars.json
 
 **/.claude/data
 **/logs
+
+# lychee link checker
+.lychee-report.md
+.lycheecache

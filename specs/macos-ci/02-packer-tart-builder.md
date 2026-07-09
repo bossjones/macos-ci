@@ -196,7 +196,7 @@ requires Python — installed transitively via Xcode Command Line Tools. Update 
 
 This is a **different repo's** choice to use Ansible for OS-update provisioning during image *build*. It
 is not evidence for or against Ansible in *this* repo's dotfiles-install *test harness* — that decision
-is made independently in [08-dotfiles-test-harness.md](08-dotfiles-test-harness.md#e-ansible-decision)
+is made independently in [08-dotfiles-test-harness.md](08-dotfiles-test-harness.md#e-decision-ansible--reject-it)
 per G9.
 
 **Config toggles:** exposed via a `.pkr.hcl.env` file:

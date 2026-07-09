@@ -47,7 +47,7 @@ AppleScript/JXA plus the `utm://` URL scheme, both of which are lifecycle-only f
 | 08 | `08-dotfiles-test-harness.md` | harness | The harness design: golden image, non-interactive chezmoi run, assertions, teardown, Ansible rejection |
 | 09 | `09-dotfiles-under-test.md` | harness | What's actually installed; the chezmoi template contract (G11); reused assertion vocabulary |
 | 10 | `10-tart-vs-utm-adr.md` | synth | The ADR recording the house stance |
-| 11 | `11-sources.md` | synth | Every source URL, grouped, graded meaty/thin/404-pruned |
+| 11 | `11-sources.md` | synth | Every source URL, grouped, graded meaty/thin/404/cited-as-exclusion. Checked by `just link-check` |
 
 Suggested reading order for a newcomer: **00 → 10 → 01 → 02 → 08 → 09 → 03 → 04 → 05 → 06 → 07 → 11.**
 Start with the decision (why Tart), then the primitives it composes (01/02), then the harness that

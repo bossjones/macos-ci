@@ -176,16 +176,45 @@ Note this "Install Guest Tools" package is **not** the QEMU guest agent from `05
 SPICE-clipboard-only agent, scoped to clipboard sync, and does not unlock AppleScript guest-exec or file
 I/O. Don't conflate the two when reading "guest tools" elsewhere in the docs.
 
-## 9. Settings pages not covered here
+## 9. Apple-backend virtualization device toggles
+
+Source: [settings-apple/virtualization](https://docs.getutm.app/settings-apple/virtualization/). Each
+toggle is gated on a **guest** macOS version; the label in the source page is the minimum guest release.
+
+| Toggle | Gate | What the source says |
+|---|---|---|
+| Balloon Device | — | Lets a guest with supported drivers request RAM from the host more intelligently. "Highly recommended." |
+| Entropy Device | — | Used by supported guests for cryptographic tasks. |
+| Sound | macOS 12+ | Sound for macOS guests, or macOS 13+ Linux guests booting from UEFI. |
+| Keyboard | macOS 12+ | Keyboard for macOS guests, or macOS 13+ Linux guests booting from UEFI. |
+| Pointer | macOS 12+ | Pointer for macOS guests, or macOS 13+ Linux guests booting from UEFI. |
+| Trackpad | macOS 13+ | Emulates a trackpad; **requires a Ventura or higher guest**. Enables trackpad gestures. |
+| Rosetta | macOS 13+ | Defers to [advanced/rosetta](https://docs.getutm.app/advanced/rosetta/) — **Linux guests only (G7)**, see below. |
+| Clipboard Sharing | — | The source's own note is about **Linux** guests: install `spice-vdagent` on a UEFI-booting Linux guest. |
+
+Two traps on this page, both of which invite a misreading:
+
+- **Rosetta appears in the Apple-backend settings list but is not a macOS-guest feature.** The page
+  itself only links out to `advanced/rosetta`, which scopes Rosetta to running x86_64 ELF binaries in
+  **Linux** guests (**G7**). Its presence here means "the Apple backend exposes this toggle," not "macOS
+  guests can use it."
+- **The "Clipboard Sharing" toggle on this page and macOS-guest clipboard sharing are different
+  things.** The page's prose covers the Linux/`spice-vdagent` path. The macOS-guest clipboard procedure
+  (macOS 15+ host *and* guest, Install Guest Tools) is in §8 above, sourced from `guest-support/macos`.
+
+This section supersedes an earlier claim that these toggles were undocumented. They were documented all
+along, at a URL absent from the research brief — see the retraction note in
+[11-sources.md](11-sources.md#retraction--the-g10-prune-list-was-wrong).
+
+## 9a. Settings pages not covered here
 
 `settings-apple/boot`, `settings-apple/drive`, `settings-apple/system`, `settings-apple/information`, and
 `settings-apple/sharing` are summarized in the thin appendix, `07-utm-settings-appendix.md`, rather than
-duplicated in this file. One documented gap worth flagging: **`settings-apple/devices/` 404s (G10, do not
-fetch/cite)** — that would have been the page documenting balloon/entropy/sound/keyboard/pointer/trackpad
-device toggles for the Apple backend. Everything this spec states about Apple-backend device behavior
-(clipboard in §8, dynamic resolution in §7, serial in §6) is instead sourced from the pages that *do*
-exist; anything not covered by those pages is a genuine documentation gap, not an omission on this spec's
-part.
+duplicated in this file. Everything this spec states about Apple-backend device behavior (clipboard in
+§8, dynamic resolution in §7, serial in §6, device toggles in §9) is sourced from a live page.
+[settings-apple/devices/](https://docs.getutm.app/settings-apple/devices/) genuinely 404s; its real path
+is [settings-apple/devices/devices/](https://docs.getutm.app/settings-apple/devices/devices/), a thin
+index page covering only how to add/remove Display, Network, and Serial devices.
 
 ## 10. Out of scope
 
