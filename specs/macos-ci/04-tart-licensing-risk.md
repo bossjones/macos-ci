@@ -98,6 +98,39 @@ Recommendation, sized to this repo's actual stated scope (personal dotfiles CI, 
   personal/internal tooling and does not resemble that fact pattern, but it is worth stating explicitly
   as a boundary not to cross.
 
+## 4b. Open question: the project moved to the `openai` GitHub org
+
+Discovered while sourcing [01](01-tart-core.md)'s guest-agent section, **not yet reflected in the risk
+analysis above.** Recorded here rather than resolved, because it changes *who* the counterparty is:
+
+- `github.com/cirruslabs/tart` now redirects to **`github.com/openai/tart`** (same repo: created
+  2022-02-01, ~6k stars, actively pushed). `cirruslabs/tart-guest-agent` likewise redirects to
+  `openai/tart-guest-agent`.
+- That repo's `LICENSE` is the **Functional Source License 1.1 with an Apache 2.0 future license
+  (`FSL-1.1-ALv2`)**, and its notice reads `Copyright 2022-2026 OpenAI`.
+- Meanwhile [tart.run/licensing/](https://tart.run/licensing/) is **unchanged**: it still says "Fair
+  Source License", still quotes the 100-CPU-core Free Tier, and still directs purchasers and support to
+  `licensing@cirruslabs.org` / `support@cirruslabs.org`.
+
+None of that contradicts §1 on its face — FSL is one of the licenses under the Fair Source umbrella, and
+the 100-core Free Tier is a separate tier grant, not a clause of the FSL text (the FSL contains no
+mention of CPU cores). But three things this file asserts now rest on a shakier footing than when it was
+written, and each needs re-confirming before the **G4** sign-off is treated as current:
+
+1. §3's enforcement precedent is a *Cirrus Labs* action. Who holds and enforces the copyright now?
+2. §2's tier table and the `licensing@cirruslabs.org` contact may be stale relative to the code's owner.
+3. `FSL-1.1-ALv2` grants an automatic conversion to Apache 2.0 two years after each version's release —
+   a term §1 does not mention at all, and one that *reduces* long-run exposure.
+
+Nothing in [§4](#4-what-keeps-this-repo-under-the-threshold) changes: a single-workstation, sub-100-core,
+non-"server installation" use stays inside the Free Tier under either reading. **Do not treat this
+subsection as a re-derivation of the risk posture.** Re-verify:
+
+```bash
+curl -fsSL https://api.github.com/repos/cirruslabs/tart | python3 -c 'import json,sys; print(json.load(sys.stdin)["full_name"])'
+curl -fsSL https://raw.githubusercontent.com/openai/tart/main/LICENSE | head -8
+```
+
 ## 5. Consequence for the house stance
 
 This accepted-risk section is a direct cost of the **TART IS PRIMARY** decision recorded in the ADR

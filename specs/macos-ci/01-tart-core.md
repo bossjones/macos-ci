@@ -48,6 +48,18 @@ i.e. macOS 12 through 26, matching the ground-truth range. Each ships in three v
 access.
 — [tart.run/quick-start/](https://tart.run/quick-start/)
 
+That is not just a docs assertion; it is visible in the Packer templates that build these images.
+[`templates/vanilla-tahoe.pkr.hcl:20-21`](https://github.com/cirruslabs/macos-image-templates/blob/main/templates/vanilla-tahoe.pkr.hcl)
+sets `ssh_password = "admin"` and `ssh_username = "admin"`, and the same file's `boot_command` walks the
+macOS setup assistant to enable **Remote Login** (stock `sshd`, password auth accepted). Two further
+properties of every `vanilla-*` image follow from that same template's provisioner and matter downstream:
+
+- **Passwordless sudo** for `admin` (`admin ALL=(ALL) NOPASSWD: ALL` dropped into `/etc/sudoers.d/`),
+  which is why an unattended Homebrew or `chezmoi` run inside the guest never blocks on a password.
+- **Auto-login** for `admin` (`autoLoginUser` + a pre-seeded `/etc/kcpassword`). This is directly
+  relevant to the macOS 15+ keychain requirement (**G8**) below: the prebuilt images boot into a real
+  GUI login session, which is the condition under which `login.keychain` is unlocked.
+
 ```bash
 tart clone ghcr.io/cirruslabs/macos-sequoia-xcode:latest my-vm
 tart run my-vm
@@ -87,6 +99,37 @@ tart clone registry.io/org/name:tag local-name    # pull + materialize as a loca
   guests can exhibit DUID-EN DHCP identifier issues.
 
 — [tart.run/faq/](https://tart.run/faq/)
+
+`tart ip` takes **three** resolvers, not two: `tart ip <vm> --resolver <dhcp|arp|agent>`, defaulting to
+`dhcp` (`tart ip --help`). The third, `agent`, asks the Tart guest agent for the address rather than
+inferring it from the host's DHCP lease file or ARP table — see below.
+
+## The Tart guest agent
+
+Tart ships a guest agent, [`tart-guest-agent`](https://github.com/openai/tart-guest-agent), and **the
+prebuilt `base` and `xcode` images preinstall it**: `templates/base.pkr.hcl:167` runs
+`brew install cirruslabs/cli/tart-guest-agent` and installs it twice, as a `LaunchDaemon`
+(`org.cirruslabs.tart-guest-daemon`) and as a `LaunchAgent` (`org.cirruslabs.tart-guest-agent`).
+— [`templates/base.pkr.hcl`](https://github.com/cirruslabs/macos-image-templates/blob/main/templates/base.pkr.hcl)
+
+The agent's canonical repo is now `openai/tart-guest-agent`; `tart run --help` and the Homebrew formula
+still spell it `cirruslabs/...`, which redirects. `cirruslabs/tart` itself likewise redirects to
+`openai/tart`. **This has licensing implications that [04](04-tart-licensing-risk.md) does not yet
+account for** — see the open question recorded there.
+
+It backs two capabilities referenced elsewhere in these specs:
+
+- `tart ip <vm> --resolver=agent`, the third resolver above.
+- Clipboard sharing, which `tart run --help` states "requires spice-vdagent package on Linux and
+  `https://github.com/cirruslabs/tart-guest-agent` on macOS".
+
+This is the structural asymmetry with the UTM lane. A UTM **Apple-backend** macOS guest cannot run the
+QEMU guest agent that `utmctl exec` / `file` / `ip-address` require, so those verbs are unavailable there
+(see [05 §4](05-utm-automation.md) and the ADR in [10](10-tart-vs-utm-adr.md)). Tart's guest agent is a
+real, shipped, preinstalled component — the capability UTM's macOS guests structurally lack.
+
+Note the `vanilla` variant does **not** include it; the agent is added by `base.pkr.hcl`, which is
+layered on top of `vanilla`.
 
 ## Disk resize (recovery-partition path)
 

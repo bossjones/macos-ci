@@ -291,7 +291,11 @@ Error behaviour worth encoding in a wrapper: `utmctl status <unknown-vm>` prints
 | `usb list` / `connect` / `disconnect` | USB Devices Suite (§2.4) | **No** — QEMU backend only |
 
 `utmctl file` describes itself as "Guest agent file operations" in its own help text, which is the
-clearest self-admission of the §2.2 gate.
+clearest self-admission of the §2.2 gate. The release notes that introduced these three commands say the
+same thing — [updates/v4.2](https://docs.getutm.app/updates/v4.2/): the new read/write-file,
+execute-command and list-IP commands are "accessible from the scripting interface as well as the command
+line interface (utmctl)" and **"require QEMU guest agent to be installed."** That single sentence is the
+whole of §4: one surface, one gate, two front-ends.
 
 The consequence for a harness: **`utmctl` cannot report a macOS guest's IP address.** `ip-address` is
 `query ip`, and `query ip` needs the guest agent. There is no UTM-lane equivalent of `tart ip`; the IP

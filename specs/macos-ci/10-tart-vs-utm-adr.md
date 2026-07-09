@@ -34,7 +34,9 @@ Beyond the shared absence of IaC, the two tools diverge sharply on what *is* aut
   `ip-address` subcommands parse but cannot work against a macOS guest ([05](05-utm-automation.md)§4.3).
   A concrete cost: `utmctl ip-address` is guest-agent-gated, so **the UTM lane has no equivalent of
   `tart ip`** — a harness cannot even learn its macOS guest's address without a serial console or a
-  pre-agreed static one.
+  pre-agreed static one. The asymmetry is sharper than "Tart happens to ship a `tart ip` verb": Tart has
+  a real guest agent, preinstalled in the prebuilt `base`/`xcode` images, which is the very component an
+  Apple-backend UTM macOS guest structurally cannot have ([01](01-tart-core.md#the-tart-guest-agent)).
 - **Disposable/ephemeral VMs**: Tart's `clone` + `delete` gives an instant, byte-identical, throwaway
   VM per test run. UTM's disposable ("run without saving") mode is **QEMU-backend only** — it does
   not work for macOS guests (**G5**), which require the Apple backend. There is no UTM-native

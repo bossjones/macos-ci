@@ -36,6 +36,17 @@ force `asdf` into every image, including `mise` runs, and none of it is required
 It is invoked only by the optional `asdf` matrix leg, behind a `--with-prereq-installer` flag. See
 [09-dotfiles-under-test.md](./09-dotfiles-under-test.md#what-zsh-dotfiles-cannot-bootstrap-on-macos).
 
+**Open question: `-base` is not a clean slate.** [12](./12-tooling-and-agent-loop.md) pins the OCI lane
+at `ghcr.io/cirruslabs/macos-*-base:latest`, and the Packer template that builds those images —
+[`templates/base.pkr.hcl`](https://github.com/cirruslabs/macos-image-templates/blob/main/templates/base.pkr.hcl)
+— preinstalls Homebrew, **`mise`**, `rbenv`, and `node@24`. That overlaps the software under test: the
+claims ledger records that `zsh-dotfiles` installs `mise` itself on macOS. So a `-base` run does not
+exercise the dotfiles' own `mise` install path from a cold start; it exercises it against an
+already-present `mise`. The `-vanilla` variant (same family, no preinstalled software) would be the
+cold-start substrate. Whether that fidelity is worth re-adding the Homebrew/Xcode-CLT bootstrap cost
+this section just argued away is exactly the scoping decision named above — **it is recorded here as
+open, and deliberately not resolved; `macos-versions.toml` is unchanged.**
+
 Design:
 
 1. **Build once** — a Packer build (per [02](./02-packer-tart-builder.md)'s field reference) whose
@@ -93,6 +104,11 @@ mode. There is no such flag; the absence of a TTY *is* the mechanism.
    <!-- UNVERIFIED: exact `--dir` mount syntax — cross-check against 01-tart-core.md. -->
 4. `ssh admin@<ip> '<command>'` (default creds `admin`/`admin` on the ghcr.io prebuilt images per
    [01](./01-tart-core.md), G8) with **no `-t`** — this is the step that makes `stdinIsATTY` false.
+   Two documented alternatives exist for this step, neither of which changes the TTY semantics that
+   make it work — see [03](./03-tart-ci-and-orchard.md#running-scripts-in-a-vm-cirrus-run-vs-plain-ssh):
+   `cirrus run` is the path Tart's own docs recommend for executing scripts and retrieving artifacts,
+   and `sshpass -p admin ssh …` is the password-auth fallback those docs name. This harness stays on
+   plain key-based `ssh` so it depends on neither.
    The command is the exact non-TTY invocation upstream already validated:
 
    ```sh

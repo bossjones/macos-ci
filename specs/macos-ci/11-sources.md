@@ -68,7 +68,9 @@ suffix on doc pages (404), and a few guessed content/registry API paths (all 404
 
 | URL | Grade | What it gave us |
 |---|---|---|
-| [tart.run/integrations/cirrus-cli/](https://tart.run/integrations/cirrus-cli/) | `[meaty]` | `.cirrus.yml` macOS-task syntax, local/cloud parity, artifact extraction (`--artifacts-dir`) — [03](03-tart-ci-and-orchard.md) |
+| [tart.run/integrations/cirrus-cli/](https://tart.run/integrations/cirrus-cli/) | `[meaty]` | `.cirrus.yml` macOS-task syntax, local/cloud parity, artifact extraction (`--artifacts-dir`) — [03](03-tart-ci-and-orchard.md). **Does not contain the "we recommend Cirrus CLI" sentence, nor `sshpass`** — those are on [tart.run/quick-start/](https://tart.run/quick-start/), and conflating the two is guarded by a `must_fail` control claim |
+| [tart.run/quick-start/#ssh-access](https://tart.run/quick-start/#ssh-access) | `[meaty]` | The upstream recommendation to use Cirrus CLI for running scripts / retrieving artifacts in a Tart VM, **and** the `sshpass -p admin ssh …` + `tart ip` fallback it names (incl. `brew install cirruslabs/cli/sshpass` and the `< script.sh` stdin form) — [03](03-tart-ci-and-orchard.md) |
+| [github.com/cirruslabs/cirrus-cli](https://github.com/cirruslabs/cirrus-cli) | `[thin]` | The tool's own repo. Install and `.cirrus.yml` reference; the Tart-specific framing lives on the two `tart.run` pages above — [03](03-tart-ci-and-orchard.md) |
 | [tart.run/orchard/quick-start/](https://tart.run/orchard/quick-start/) | `[meaty]` | Controller/worker architecture, `orchard dev`, core VM commands, SSH/VNC proxy, worker license tiers by env var — [03](03-tart-ci-and-orchard.md), [04](04-tart-licensing-risk.md) |
 
 ## Tart / Orchard licensing (G4)
@@ -178,8 +180,9 @@ guards against a repeat.
 |---|---|---|
 | `/Users/bossjones/dev/bossjones/zsh-dotfiles` | `[meaty]` | `.chezmoiroot`, `.chezmoiversion`, `home/.chezmoi.yaml.tmpl` (the `stdinIsATTY` non-interactive contract), `scripts/smoke-test-docker.sh` (canonical non-TTY invocation + assertion vocabulary), `test_dotfiles.py`, `CLAUDE.md`, `.github/workflows/tests.yml` — [08](08-dotfiles-test-harness.md), [09](09-dotfiles-under-test.md) |
 | `/Users/bossjones/dev/bossjones/zsh-dotfiles-prep` | `[meaty]` | `bin/zsh-dotfiles-prereq-installer`, `Brewfile`, `Makefile`, `TESTING.md`/`DEBUG.md`, `Dockerfile-{centos-9,debian-12,ubuntu-2204}` (the existing Linux coverage this repo has no macOS equivalent of) — [09](09-dotfiles-under-test.md) |
-| `/Users/bossjones/dev/cirruslabs/packer-plugin-tart` | | |
-| `/Users/bossjones/dev/motionbug/macad.uk2025` | | |
+| `/Users/bossjones/dev/cirruslabs/packer-plugin-tart` | `[meaty]` | The builder's own source tree, at `c10d611`. **`.web-docs/components/builder/tart/README.md` is the file HashiCorp renders as the `/packer/integrations/...` field reference cited in [02](02-packer-tart-builder.md)** — that page is absent from HashiCorp's sitemap, so this tree, not the CMS, is its ground truth (see [Verifying Packer docs URLs](#verifying-packer-docs-urls)). `builder/tart/builder.hcl2spec.go` is the generated config schema behind that reference; `step_run.go`, `step_clone_vm.go`, `step_disk_resize.go` are the build steps; `vnc.go` is the VNC/boot-command machinery behind [12](12-tooling-and-agent-loop.md)'s `gui.py`. Also `docs/builders/tart.mdx`, `example/`, `.cirrus.yml` |
+| `/Users/bossjones/dev/cirruslabs/macos-image-templates` | `[meaty]` | The Packer templates that build every `ghcr.io/cirruslabs/macos-*` image, at `cd2d1c6`. **Ground truth for what is actually inside the prebuilt images**, where the prose docs only assert it. `templates/vanilla-tahoe.pkr.hcl` sets `ssh_password`/`ssh_username = "admin"` (the G8 default creds), enables Remote Login (which is what makes the `sshpass` path in [03](03-tart-ci-and-orchard.md) work at all), and enables passwordless sudo + auto-login (the latter bears on the macOS 15+ keychain requirement). `templates/base.pkr.hcl` preinstalls the **Tart guest agent** (`brew install cirruslabs/cli/tart-guest-agent`, as both LaunchDaemon and LaunchAgent — the component backing `tart ip --resolver=agent`, see [01](01-tart-core.md#the-tart-guest-agent)) *and* Homebrew, `mise`, `rbenv`, `node@24` — which is why `-base` is not a cold-start substrate for the dotfiles under test ([08](08-dotfiles-test-harness.md)). `README.md` documents the `vanilla → base → xcode → runner` layering |
+| `/Users/bossjones/dev/motionbug/macad.uk2025` | `[meaty]` | "Silicon Sandbox: Mastering Mac virtualisation for Jamf workflows" (macad.uk 2025), at `270dc24`. `packer-templates/apple-tart-tahoe.pkr.hcl` is a complete `tart-cli` IPSW-lane template for macOS 26: `from_ipsw`, `recovery_partition = "keep"` (kept so `softwareupdate` still works), `create_grace_time`, and a fully variable-ised account/MDM-enrollment config. Its Setup Assistant `boot_command` — opening `"<wait60s><spacebar>"` — is a **second independent instance** of the brittle keystroke automation [12](12-tooling-and-agent-loop.md) flags via `markkenny/macos-virtualisation`, and evidence the fragility is inherent to the approach, not one author's typo |
 
 The two bootstrap one-liners quoted verbatim in [09](09-dotfiles-under-test.md) (G9):
 
@@ -205,20 +208,43 @@ curl -fsSL https://docs.getutm.app/assets/js/search-data.json |
   python3 -c 'import json,sys; print(*sorted({v["relUrl"].split("#")[0] for v in json.load(sys.stdin).values()}), sep="\n")'
 ```
 
-**36 of 78 are cited above.** The 42 uncited pages, grouped — none load-bearing for this harness, but
+**39 of 78 are cited above.** The 39 uncited pages, grouped — none load-bearing for this harness, but
 they exist and are unread, so no reader should infer they were judged and dismissed:
 
 | Group | Pages |
 |---|---|
 | Apple-backend device children | `settings-apple/devices/{display,network,serial}` |
 | QEMU-backend device children | `settings-qemu/devices/{display,serial,sound}`, `.../network/{network,port-forwarding}`, `settings-qemu/drive/resize-and-compress` |
-| Non-macOS guest support | `guest-support/{linux,windows}`, `guest-support/sharing/{clipboard,directory,usb}` |
+| Non-macOS guest support | `guest-support/{linux,windows}`, `guest-support/sharing/{clipboard,directory}` |
 | Per-guest walkthroughs | `guides/{classic-windows,debian,fedora,kali,ubuntu,windows,windows-10}`, `guide/windows` |
 | iOS | `installation/ios`, `preferences/ios` |
 | Remote / UTM server | `remote/`, `remote/server/` |
-| Section landing pages | `advanced/advanced`, `basics/basics`, `installation/installation`, `preferences/preferences`, `scripting/scripting`, `guest-support/guest-support`, `advanced/scripting` |
-| Release notes | `updates/updates`, `updates/v4.0` … `updates/v4.7` |
+| Section landing pages | `advanced/advanced`, `basics/basics`, `installation/installation`, `preferences/preferences`, `guest-support/guest-support`, `advanced/scripting` |
+| Release notes | `updates/updates`, `updates/v4.0`, `v4.1`, `v4.3`, `v4.4`, `v4.5`, `v4.6`, `v4.7` |
 
-`guest-support/sharing/{clipboard,directory,usb}` are the only ones with plausible future relevance —
-they document the SPICE WebDAV / VirtFS directory-sharing backends. Tracked in
-`.team/macos-ci.backlog.md`.
+`guest-support/sharing/{clipboard,directory}` are the only ones with plausible future relevance — they
+document the SPICE WebDAV / VirtFS directory-sharing backends. Tracked in `.team/macos-ci.backlog.md`.
+
+Three pages moved out of this list when `utmctl` was documented in [05](05-utm-automation.md) §4:
+`scripting/scripting` (the CLI's wrapper nature), `guest-support/sharing/usb` (USB is QEMU-only), and
+`updates/v4.2` (the release notes that introduced the guest-agent-gated commands). Recount rather than
+adjust by hand:
+
+```bash
+python3 - <<'EOF'
+import json, re, urllib.request, pathlib
+
+norm = lambda u: u.split("#")[0].rstrip("/") or "/"   # the site root is a real page ("What is UTM?")
+
+idx = urllib.request.Request("https://docs.getutm.app/assets/js/search-data.json",
+                             headers={"User-Agent": "coverage/1.0"})
+pages = {norm(v["relUrl"])
+         for v in json.loads(urllib.request.urlopen(idx, timeout=20).read()).values()}
+cited = {norm(m.group(1))
+         for f in list(pathlib.Path("specs").rglob("*.md")) + [pathlib.Path("CLAUDE.md")]
+         for m in re.finditer(r"https://docs\.getutm\.app(/[^)\s\"'>|]*)", f.read_text())} & pages
+
+print(f"{len(cited)} of {len(pages)} cited")
+for p in sorted(pages - cited): print("  uncited:", p)
+EOF
+```
