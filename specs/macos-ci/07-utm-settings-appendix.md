@@ -31,7 +31,7 @@ behavior) — this file is an index, not a restatement.
 
 | Page | What it covers | Relevant elsewhere |
 |---|---|---|
-| [preferences/macos](https://docs.getutm.app/preferences/macos/) | UTM.app-wide preferences: keep-running/dock-icon/menu-bar-icon behavior, screenshot privacy, renderer/sound backend, input-capture behavior (QEMU-only sections marked as such in the source), host-network management, drive-image locking, and the **UTM server** remote-access settings (auto-start, WAN access, listen port, password) | `05` §4 (dock-icon hiding for headless) |
+| [preferences/macos](https://docs.getutm.app/preferences/macos/) | UTM.app-wide preferences: keep-running/dock-icon/menu-bar-icon behavior, screenshot privacy, renderer/sound backend, input-capture behavior (QEMU-only sections marked as such in the source), host-network management, drive-image locking, and the **UTM server** remote-access settings (auto-start, WAN access, listen port, password) | `05` §5 (dock-icon hiding for headless) |
 
 ## Dead links — none
 

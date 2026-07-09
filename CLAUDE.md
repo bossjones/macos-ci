@@ -18,7 +18,12 @@ Settled facts that keep getting re-litigated — don't re-derive them:
 - **`packer-plugin-tart` is tart-only.** There is no UTM Packer builder.
 - **UTM's disposable mode is QEMU-backend only**, so it never applies to a macOS guest.
 - **UTM's AppleScript guest-exec and file-I/O require the QEMU guest agent**, which Apple-backend macOS
-  guests do not have. UTM's macOS-guest automation surface is lifecycle-only.
+  guests do not have. UTM's macOS-guest automation surface is lifecycle plus host-side serial.
+- **`utmctl` is a wrapper around that AppleScript interface, not a second automation surface.** UTM's own
+  docs say so. `exec`/`file`/`ip-address` are the Guest Suite and need the QEMU guest agent;
+  `start --disposable` and `usb` parse but are QEMU-backend-only. **A flag in `--help` proves it parses,
+  not that it works.** `utmctl` cannot report a macOS guest's IP — there is no UTM-lane `tart ip`.
+  See `05` §4.
 - **Tart is Fair Source, not open source**, and is actively enforced. Free below 100 CPU cores.
 - **Non-interactive chezmoi is already solved upstream** via `stdinIsATTY`. See `09` §"template contract".
 
@@ -95,11 +100,26 @@ just verify-claims-json # same, for an agent to read instead of scraping prose
 
 Evidence kinds: `file-contains`, `file-line` (catches hallucinated `file:line` citations), `absent`
 (negative claims), `cli-help` (proves a flag exists), `doc-index` (proves a doc page exists, via the
-search index above — this is what would have caught the fabricated `settings-apple/devices/` URL).
+search index above — this is what would have caught the fabricated `settings-apple/devices/` URL), and
+`doc-contains` (proves a page *says* a given sentence).
 
-One claim carries `"must_fail": true` and asserts that fabricated URL. It is a control: if it ever
-starts passing, the oracle has broken and every `doc-index` claim is unreliable. A verifier nobody
-verifies is just a second thing to trust.
+**`cli-help` is unsound for backend questions, and `doc-contains` is the antidote.** `utmctl start
+--help` advertises `--disposable` on a host that can only run Apple-backend macOS guests, while
+[advanced/disposable](https://docs.getutm.app/advanced/disposable/) states "Disposable mode is only
+supported on QEMU backend." A flag in `--help` proves the argument parser accepts it — nothing more. So
+the ledger pairs each such `cli-help` claim with the `doc-contains` claim that settles the question, and
+names the refutation in the `claim` prose. `doc-index` proves a page exists; `doc-contains` proves it
+says it.
+
+Two `must_fail` control claims guard the two doc oracles: one asserts the fabricated
+`settings-apple/devices/` URL (`doc-index`), one asserts that the disposable page claims Apple-backend
+support (`doc-contains`). If either ever starts passing, that oracle has broken and every claim of its
+kind is unreliable. A verifier nobody verifies is just a second thing to trust.
+
+Two failure prefixes are never inverted by `must_fail`, because neither is evidence about the claim:
+`UNREACHABLE:` (network down, binary missing) and `STRUCTURE:` (a `doc-contains` page is absent from the
+index). The latter keeps "the page vanished" distinguishable from "the sentence vanished", and stops a
+control from silently "passing" because its page 404'd.
 
 Exit codes: `0` verified · `2` a claim failed · `3` evidence unreachable · `4` usage.
 

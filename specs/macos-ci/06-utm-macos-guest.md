@@ -35,7 +35,7 @@ the dedicated pages below. This is the master gap list for macOS guests:
 | Save states (suspend-to-disk) | Fixed in macOS 14+ | guest-support/macos |
 | **Disposable ("run without saving") mode** | **Never — QEMU backend only (G5)** | [advanced/disposable](https://docs.getutm.app/advanced/disposable/): "Disposable mode is only supported on QEMU backend." |
 | **Multiple graphical displays** | **Never** on Apple backend | [advanced/multiple-displays](https://docs.getutm.app/advanced/multiple-displays/): "macOS Apple backend (macOS guests) does not support multiple graphical displays." |
-| Scripted guest file I/O / command exec | Never documented | `05-utm-automation.md` §2.2 — requires QEMU guest agent |
+| Scripted guest file I/O / command exec | Never documented | `05-utm-automation.md` §2.2 — requires QEMU guest agent. **`utmctl exec` / `file` / `ip-address` are these same primitives under a CLI skin (`05` §4.2); finding them in `--help` is not a counterexample.** |
 | Scripted keystrokes / mouse (AppleScript Input Automation Suite) | Never — QEMU backend only | `05-utm-automation.md` §2.6 |
 
 Two of these are GROUND TRUTHS worth restating plainly because they kill obvious-seeming designs for this
@@ -54,8 +54,9 @@ macOS-guest support and is not covered further in this file.
 
 ## 3. Shared directories — the real automation channel
 
-Since UTM's own AppleScript guest-exec doesn't reach a macOS guest (`05` §2.2), shared directories +
-network access are what a macOS-guest automation harness actually has to work with.
+Since UTM's own AppleScript guest-exec doesn't reach a macOS guest (`05` §2.2) — and neither does
+`utmctl exec`, which is a wrapper around it (`05` §4.1) — shared directories + network access are what a
+macOS-guest automation harness actually has to work with.
 
 ### 3.1 VirtioFS (macOS 13+ host *and* guest)
 
@@ -148,8 +149,12 @@ $ screen /dev/ttys006
 ```
 
 (device path is whatever `get address of first serial port of vm` returns — `05` §3, "Status /
-information" snippet). This is the same serial device that headless mode (`05` §4) requires you to keep
+information" snippet). This is the same serial device that headless mode (`05` §5) requires you to keep
 configured in a non-"Built-in Terminal" mode so you retain a way to talk to a display-less macOS guest.
+
+`utmctl attach <vm> [--index N]` is the CLI path to this same serial console (`05` §4.2). It reads the
+*host* end of the port, so — unlike `utmctl exec` / `file` / `ip-address` — it needs no guest agent, and
+is the **only** guest-facing channel `utmctl` offers an Apple-backend macOS guest.
 
 ## 7. Dynamic resolution (macOS 14+ guest)
 

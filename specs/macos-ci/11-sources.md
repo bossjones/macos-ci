@@ -178,6 +178,8 @@ guards against a repeat.
 |---|---|---|
 | `/Users/bossjones/dev/bossjones/zsh-dotfiles` | `[meaty]` | `.chezmoiroot`, `.chezmoiversion`, `home/.chezmoi.yaml.tmpl` (the `stdinIsATTY` non-interactive contract), `scripts/smoke-test-docker.sh` (canonical non-TTY invocation + assertion vocabulary), `test_dotfiles.py`, `CLAUDE.md`, `.github/workflows/tests.yml` — [08](08-dotfiles-test-harness.md), [09](09-dotfiles-under-test.md) |
 | `/Users/bossjones/dev/bossjones/zsh-dotfiles-prep` | `[meaty]` | `bin/zsh-dotfiles-prereq-installer`, `Brewfile`, `Makefile`, `TESTING.md`/`DEBUG.md`, `Dockerfile-{centos-9,debian-12,ubuntu-2204}` (the existing Linux coverage this repo has no macOS equivalent of) — [09](09-dotfiles-under-test.md) |
+| `/Users/bossjones/dev/cirruslabs/packer-plugin-tart` | | |
+| `/Users/bossjones/dev/motionbug/macad.uk2025` | | |
 
 The two bootstrap one-liners quoted verbatim in [09](09-dotfiles-under-test.md) (G9):
 

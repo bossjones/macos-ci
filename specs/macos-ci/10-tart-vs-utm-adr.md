@@ -27,8 +27,14 @@ Beyond the shared absence of IaC, the two tools diverge sharply on what *is* aut
 - **Guest automation**: Tart's guest interaction is SSH over `--dir` shared mounts — always available.
   UTM's AppleScript Guest Suite (file I/O, command exec) and Input Automation Suite (keystrokes/mouse)
   both require the **QEMU guest agent**, which does not exist for the Apple-backend macOS guest this
-  repo needs ([05](05-utm-automation.md)§2.2/§2.6). UTM's AppleScript surface for a macOS guest is
-  therefore **lifecycle-only** (start/stop/suspend/duplicate/configure), not guest-exec.
+  repo needs ([05](05-utm-automation.md)§2.2/§2.6). UTM's automation surface for a macOS guest is
+  therefore **lifecycle plus host-side serial** (start/stop/suspend/duplicate/configure, plus reading a
+  serial port), not guest-exec. **The `utmctl` CLI does not change this** — the docs call it "a wrapper
+  around the AppleScript interface," so it inherits every gate above; its `exec`, `file` and
+  `ip-address` subcommands parse but cannot work against a macOS guest ([05](05-utm-automation.md)§4.3).
+  A concrete cost: `utmctl ip-address` is guest-agent-gated, so **the UTM lane has no equivalent of
+  `tart ip`** — a harness cannot even learn its macOS guest's address without a serial console or a
+  pre-agreed static one.
 - **Disposable/ephemeral VMs**: Tart's `clone` + `delete` gives an instant, byte-identical, throwaway
   VM per test run. UTM's disposable ("run without saving") mode is **QEMU-backend only** — it does
   not work for macOS guests (**G5**), which require the Apple backend. There is no UTM-native

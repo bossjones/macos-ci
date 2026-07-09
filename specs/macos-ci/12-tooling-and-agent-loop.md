@@ -44,6 +44,7 @@ src/macos_ci/
   cli.py                            # typer entrypoint -> `macos-ci` console script
   config.py       _config_core.py   # load/validate macos-versions.toml
   tart.py         _tart_core.py     # argv builders, `tart list --format json`, VNC URL parse
+  utm.py          _utm_core.py      # utmctl argv builders, `utmctl list` table parse (escape hatch)
   doctor.py       _doctor_core.py   # requirement table, version compare, verdict
   harness.py      _harness_core.py  # run-id, artifact paths, chezmoi argv, seed-config render
   vm_debug.py     _triage_core.py   # log sweep; failure-signature matching
@@ -76,8 +77,43 @@ def test_parse_vnc_url():
 A cheap guard keeps the boundary honest — if any `_core` grows an I/O import, this fails:
 
 ```bash
-uv run python -c "import macos_ci._tart_core, macos_ci._doctor_core, macos_ci._gui_core"
+uv run python -c "import macos_ci._tart_core, macos_ci._utm_core, macos_ci._doctor_core, macos_ci._gui_core"
 ```
+
+### `utm.py` / `_utm_core.py` — the escape-hatch lane
+
+Tart drives CI ([10](10-tart-vs-utm-adr.md)); UTM is the interactive escape hatch. The package still
+wants a thin `utmctl` binding, for the debugging lens described under *Log sources* below.
+
+`_utm_core.py` is stdlib-only and does exactly two things.
+
+**1. Build argv and parse output.** `utmctl list` emits a `UUID / Status / Name` table; `status` values
+are the AppleScript enum from [05](05-utm-automation.md) §2.1
+(`stopped|starting|started|pausing|paused|resuming|stopping`). `utmctl status <unknown>` prints
+`Error: Virtual machine not found.` and exits `1`.
+
+**2. Refuse the traps, in code.** `utmctl` is a wrapper around AppleScript ([05](05-utm-automation.md)
+§4.1), so `exec` / `file` / `ip-address` need the QEMU guest agent, and `start --disposable` / `usb` are
+QEMU-backend-only. All five nonetheless appear in `utmctl --help` on a machine that can only run
+Apple-backend macOS guests. Encoding the gate as a raised exception means nobody re-derives backend
+support from `--help` output:
+
+```python
+class AppleBackendUnsupported(ValueError):
+    """A utmctl verb that parses but cannot work against an Apple-backend guest."""
+
+build_argv("status", vm)              # -> ["utmctl", "status", "<vm>"]
+build_argv("attach", vm)              # -> ["utmctl", "attach", "<vm>"]   (serial; no guest agent)
+build_argv("exec", vm, cmd="ls")      # -> raises AppleBackendUnsupported(
+                                      #      "utmctl exec is AppleScript Guest Suite `execute`; it needs
+                                      #       the QEMU guest agent. https://docs.getutm.app/scripting/reference/")
+build_argv("start", vm, disposable=True)   # -> raises AppleBackendUnsupported(
+                                           #      "disposable mode is QEMU-backend only")
+```
+
+Because this is a pure function, it is testable in the tier above: **no VM, no UTM.app, and no `utmctl`
+binary**. The tests assert on the constructed argv and on the raised exception. The trap is thereby
+tested rather than merely documented.
 
 ## `macos-versions.toml` — declarative image selection
 
@@ -442,6 +478,20 @@ Where a Linux cluster has `journalctl` and `cloud-init status`, a macOS guest ha
 | chezmoi apply | `artifacts/<run-id>/apply.log` (captured host-side) |
 | Unified log | `log show --predicate '...' --last 30m` |
 | launchd | `launchctl print system/<label>` |
+
+For a VM in the **UTM lane**, `utmctl` is the debugging lens ([05](05-utm-automation.md) §4):
+
+| Probe | Command | Note |
+|---|---|---|
+| Lifecycle state | `utmctl list`, `utmctl status <vm>` | Authoritative. The AppleScript status enum. |
+| Serial console | `utmctl attach <vm>` | The only guest-facing channel that needs no guest agent. |
+| Guest IP | `utmctl ip-address <vm>` | **Does not work on a macOS guest.** |
+
+That last row is the one to internalise. `ip-address` is the guest-agent-gated AppleScript `query ip`,
+so **the UTM lane has no equivalent of `tart ip`**: a harness cannot discover its macOS guest's address
+at all, and must fall back to a pre-agreed static address or scrape it off the serial console. `utmctl`
+also presumes UTM.app is running, hence a GUI login session. Both are concrete reasons the ADR keeps
+tart as the CI driver.
 
 ### Seed failure signatures
 

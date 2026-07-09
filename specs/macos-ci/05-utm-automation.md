@@ -14,13 +14,15 @@ re-applying. UTM maintainer `osy` replied (Apr 27, 2022): **"There are plans for
 that's still a long way off."** ([issue #3718](https://github.com/utmapp/UTM/issues/3718) is the tracked
 IaC-support request; still open as of this writing.)
 
-So today, UTM automation means one of two things:
+So today, UTM automation means one of three things — and the first two are the *same* surface:
 
-1. **AppleScript/JXA**, via `osascript`/`utmctl`-style scripting against the `UTM` scripting dictionary
-   ([scripting/reference](https://docs.getutm.app/scripting/reference/)), or
-2. The **`utm://` URL scheme** ([advanced/remote-control](https://docs.getutm.app/advanced/remote-control/)),
+1. **AppleScript/JXA**, via `osascript` against the `UTM` scripting dictionary
+   ([scripting/reference](https://docs.getutm.app/scripting/reference/)) — §2.
+2. **The `utmctl` CLI** — §4. Not an independent surface: the docs describe it as "a wrapper around the
+   AppleScript interface," so it can do strictly no more than (1), and inherits every backend gate.
+3. The **`utm://` URL scheme** ([advanced/remote-control](https://docs.getutm.app/advanced/remote-control/)),
    which is coarser (start/stop/pause/resume/sendText/click/downloadVM) but scriptable from Shortcuts,
-   Automator, or a plain `open "utm://..."` shell call.
+   Automator, or a plain `open "utm://..."` shell call — §6.
 
 There is **no Packer builder for UTM** — `packer-plugin-tart` (covered in `01`/`02`) is Tart-only. This
 repo's UTM lane therefore cannot use the golden-image-via-Packer pattern the Tart lane uses; UTM VMs are
@@ -105,7 +107,7 @@ change a running VM's shared-directory registry entry without going through Conf
 `input scan code` / `input keystroke` / `input mouse click` — the suite header states plainly:
 **"Only supported on QEMU backend."** Same consequence as 2.2: this cannot be used to drive a macOS
 Apple-backend guest's UI programmatically. (The `utm://sendText` and `utm://click` URL-scheme actions —
-§4 below — carry no equivalent written restriction in
+§6 below — carry no equivalent written restriction in
 [advanced/remote-control](https://docs.getutm.app/advanced/remote-control/); whether they work against
 an Apple-backend macOS guest is <!-- UNVERIFIED --> from the docs alone.)
 
@@ -236,7 +238,108 @@ tell application "UTM"
 end tell
 ```
 
-## 4. Headless operation
+## 4. The `utmctl` CLI
+
+### 4.1 It is a wrapper, not a second automation surface
+
+UTM ships a CLI at `/Applications/UTM.app/Contents/MacOS/utmctl`, conventionally installed as:
+
+```bash
+sudo ln -sf /Applications/UTM.app/Contents/MacOS/utmctl /usr/local/bin/utmctl
+# or, if UTM is installed elsewhere, add its directory to PATH:
+echo "/path/to/UTM.app/Contents/MacOS" | sudo tee /etc/paths.d/10-utm
+```
+
+[scripting/scripting](https://docs.getutm.app/scripting/scripting/) states the fact that governs
+everything below:
+
+> **"The CLI tool is a wrapper around the AppleScript interface and provides easy access to some of the
+> functionality."**
+
+So `utmctl` **inherits every backend constraint in §2**. It is a more ergonomic front-end onto the same
+five suites — not a new capability. Reading `utmctl --help` and concluding UTM can exec commands inside
+a macOS guest is the single most likely wrong turn in this whole document; §4.3 exists to prevent it.
+
+Observed on this host: `utmctl version` → `4.7.5`. Every subcommand accepts the global `--debug` and
+`--hide` (hide the main UTM window).
+
+**Invoking `utmctl` launches UTM.app if it is not already running.** Verified by quitting UTM
+(`osascript -e 'quit app "UTM"'`), confirming via `pgrep` that it was down, then running `utmctl list`
+and observing UTM.app come back under a new PID. This is Apple Events launch semantics, and it follows
+from §4.1's wrapper fact. It is not in `.team/claims.jsonl` because the ledger's verifier is deliberately
+side-effect-free and this evidence launches a GUI application; re-run the three commands above to
+re-check it.
+
+Error behaviour worth encoding in a wrapper: `utmctl status <unknown-vm>` prints
+`Error: Virtual machine not found.` to stderr and exits `1`.
+
+### 4.2 Subcommand → AppleScript verb, and what survives on an Apple-backend macOS guest
+
+| Subcommand | AppleScript equivalent (§2) | Apple-backend macOS guest |
+|---|---|---|
+| `version`, `list`, `status` | `UTM version`, `virtual machines`, `status of vm` | **Yes** |
+| `start` (`--recovery`, `--attach`) | `start vm [recovery]` (§2.1) | **Yes** — recovery is macOS 13+, see [`06`](06-utm-macos-guest.md) §4 |
+| `suspend` (`--save-state`) | `suspend vm [saving]` (§2.1) | **Yes** |
+| `stop` (`--force` / `--kill` / `--request`) | `stop vm by force/kill/request` (§2.1) | **Yes** |
+| `clone` | `duplicate` (§2.1) — **the names differ** | **Yes** |
+| `delete` | `delete` (§2.1) | **Yes** |
+| `attach [--index]` | serial port `address`/`interface` (§2.1) | **Yes**, if a serial device is configured |
+| `exec` | Guest Suite `execute` (§2.2) | **No** — QEMU guest agent |
+| `file pull` / `file push` | Guest Suite `open file` (§2.2) | **No** — QEMU guest agent |
+| `ip-address` | Guest Suite `query ip` (§2.2) | **No** — QEMU guest agent |
+| `start --disposable` | `start vm without saving` (§2.1) | **No** — QEMU backend only |
+| `usb list` / `connect` / `disconnect` | USB Devices Suite (§2.4) | **No** — QEMU backend only |
+
+`utmctl file` describes itself as "Guest agent file operations" in its own help text, which is the
+clearest self-admission of the §2.2 gate.
+
+The consequence for a harness: **`utmctl` cannot report a macOS guest's IP address.** `ip-address` is
+`query ip`, and `query ip` needs the guest agent. There is no UTM-lane equivalent of `tart ip`; the IP
+must be learned some other way (a known static address, or the serial console). See
+[`10`](10-tart-vs-utm-adr.md).
+
+The working set is therefore **lifecycle plus host-side serial** — slightly wider than "lifecycle-only",
+because `attach` reads the *host* end of a ptty/tcp serial device and needs no guest agent at all. It is
+the only guest-facing channel `utmctl` offers a macOS guest.
+
+### 4.3 The `--disposable` and `usb` trap
+
+`utmctl start --help` advertises `--disposable`, and `utmctl usb` offers `list`/`connect`/`disconnect`.
+Both appear on **every** host, including one that can only ever run Apple-backend macOS guests. Neither
+works for such a guest:
+
+> [advanced/disposable](https://docs.getutm.app/advanced/disposable/): **"Disposable mode is only
+> supported on QEMU backend."**
+
+> [guest-support/sharing/usb](https://docs.getutm.app/guest-support/sharing/usb/): USB sharing **"is
+> supported only by the QEMU backend."** Corroborated by
+> [guest-support/macos](https://docs.getutm.app/guest-support/macos/), which lists "USB sharing" among
+> the features the Apple Virtualization backend does not support.
+
+**A flag in `--help` proves the flag parses. It does not prove the feature works.** `--help` is emitted
+by the argument parser, which knows nothing about the backend of the VM you are about to name.
+
+This is not an abstract worry — it is a live hazard for this repo's own verifier. `.team/claims.jsonl`
+has a `cli-help` evidence kind, and a `cli-help` claim asserting `--disposable` appears in
+`utmctl start --help` **passes**. That is why the ledger pairs it with a `doc-contains` claim
+(`utmctl-disposable-is-qemu-only`) that re-executes the sentence above. `doc-index` proves a page
+exists; `doc-contains` proves the page *says it*. Both claims are in the ledger, adjacent, and the
+`claim` prose on the `cli-help` entry names its own refutation.
+
+### 4.4 What this means for CI
+
+`utmctl` drives UTM.app over Apple Events. It therefore requires UTM.app to be running —
+[advanced/headless](https://docs.getutm.app/advanced/headless/): **"UTM needs to be open while the
+headless virtual machine is running."** That implies a GUI login session and, for a non-interactive
+caller, TCC Automation consent. Combined with §6's finding that the `utm://` recipes are login-session
+automations, this is consistent with the House Stance ([`10`](10-tart-vs-utm-adr.md)): **UTM is the
+interactive escape hatch, not the CI driver.**
+
+Where `utmctl` genuinely earns its place is *observability* — see
+[`12`](12-tooling-and-agent-loop.md): `utmctl list` / `status` for authoritative lifecycle state, and
+`utmctl attach` for the serial console, when a UTM-lane VM misbehaves and you need to look at it.
+
+## 5. Headless operation
 
 Source: [advanced/headless](https://docs.getutm.app/advanced/headless/).
 
@@ -245,12 +348,13 @@ Source: [advanced/headless](https://docs.getutm.app/advanced/headless/).
   "Built-in Terminal" mode. It is "highly recommended" to keep at least one serial device in a
   non-terminal mode so you still have a way to talk to the guest (see `06` §6 for serial on macOS
   guests).
-- Control a headless VM through the AppleScript interface (§2) or the `utm://` scheme (§5).
+- Control a headless VM through the AppleScript interface (§2), the `utmctl` CLI (§4), or the `utm://`
+  scheme (§6).
 - macOS 13+: you can additionally hide the Dock icon for a headless-only workflow
   ([preferences/macos](https://docs.getutm.app/preferences/macos/): "Show dock icon" — disabling it
   requires the menu-bar icon to stay enabled so UTM keeps running with all windows closed).
 
-## 5. The `utm://` URL scheme
+## 6. The `utm://` URL scheme
 
 Source: [advanced/remote-control](https://docs.getutm.app/advanced/remote-control/).
 
@@ -282,15 +386,21 @@ Both are GUI-login-session automations, not headless/CI-friendly — they assume
 session, which is consistent with the House Stance (`10`) that UTM is the interactive escape hatch, not
 the CI driver.
 
-## 6. Summary: what UTM automation can and cannot do for a macOS guest
+## 7. Summary: what UTM automation can and cannot do for a macOS guest
 
-| Capability | Works for Apple-backend macOS guest? | Mechanism |
-|---|---|---|
-| Start/stop/suspend/resume/delete/duplicate | Yes | AppleScript UTM Suite (§2.1) or `utm://` (§5) |
-| Read/write config (CPU/memory/drives/network/serial/display) | Yes | AppleScript UTM Configuration Suite, `apple configuration` record (§2.3, detailed in `06` §5) |
-| Recovery-mode boot (1TR) | Yes (macOS 13+) | `start vm with recovery` or GUI action menu — see `06` §4 |
-| File push/pull, remote command exec, guest IP query | **No** | Guest Suite requires QEMU guest agent (§2.2) — use SSH + VirtioFS instead (`06` §3) |
-| Scripted keystrokes / mouse clicks | **No** (AppleScript path) / <!-- UNVERIFIED --> (`utm://` path) | Input Automation Suite is QEMU-only (§2.6) |
-| USB device passthrough | **No** | Apple backend doesn't support USB sharing (§2.4, `06` §2) |
-| Disposable ("run without saving") mode | **No** — G5 | QEMU backend only |
-| Declarative create/destroy (Terraform-style) | **No** — G1 | No IaC exists; tracked in #3718, "a long way off" |
+| Capability | Works for Apple-backend macOS guest? | `utmctl` (§4) | Mechanism |
+|---|---|---|---|
+| Start/stop/suspend/resume/delete/duplicate | Yes | `start`/`stop`/`suspend`/`delete`/`clone` | AppleScript UTM Suite (§2.1) or `utm://` (§6) |
+| Query lifecycle state | Yes | `list`, `status` | AppleScript `status of vm` (§2.1) |
+| Serial console access | Yes, if a serial device is configured | `attach` | Host end of a ptty/tcp serial port (§2.1); needs no guest agent — see `06` §6 |
+| Read/write config (CPU/memory/drives/network/serial/display) | Yes | — (no CLI verb) | AppleScript UTM Configuration Suite, `apple configuration` record (§2.3, detailed in `06` §5) |
+| Recovery-mode boot (1TR) | Yes (macOS 13+) | `start --recovery` | `start vm with recovery` or GUI action menu — see `06` §4 |
+| File push/pull, remote command exec | **No** | `file`, `exec` — **parse, do not work** | Guest Suite requires QEMU guest agent (§2.2) — use SSH + VirtioFS instead (`06` §3) |
+| Guest IP query | **No** | `ip-address` — **parses, does not work** | Guest Suite `query ip` (§2.2). There is no UTM-lane `tart ip` |
+| Scripted keystrokes / mouse clicks | **No** (AppleScript path) / <!-- UNVERIFIED --> (`utm://` path) | — (no CLI verb) | Input Automation Suite is QEMU-only (§2.6) |
+| USB device passthrough | **No** | `usb` — **parses, does not work** | Apple backend doesn't support USB sharing (§2.4, §4.3, `06` §2) |
+| Disposable ("run without saving") mode | **No** — G5 | `start --disposable` — **parses, does not work** | QEMU backend only (§4.3) |
+| Declarative create/destroy (Terraform-style) | **No** — G1 | — | No IaC exists; tracked in #3718, "a long way off" |
+
+The `utmctl` column is the point of §4.3: four of its entries **parse in `--help` and cannot work**.
+A CLI's argument parser knows nothing about the backend of the VM you name.

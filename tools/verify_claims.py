@@ -32,6 +32,14 @@ Evidence kinds, cheapest first:
                  The index IS the authoritative page list: if a path is absent,
                  that page does not exist. This is the anti-G10 check.
 
+  doc-contains   page `page`'s indexed text contains the `expect` sentence.
+                 doc-index proves a page exists; this proves the page *says it*.
+                 Needed because `cli-help` is unsound for backend questions: it
+                 proves a flag parses, not that it works. `utmctl start --help`
+                 advertises `--disposable` on a host that can only run
+                 Apple-backend macOS guests, while /advanced/disposable/ states
+                 "Disposable mode is only supported on QEMU backend."
+
   absent         target does NOT contain `expect`. For negative claims, e.g.
                  "zsh-dotfiles has no macOS asdf installer".
 
@@ -40,6 +48,15 @@ verify. This is how the ledger tests its own oracle: one control claim asserts
 the fabricated `settings-apple/devices/` URL, and if that ever starts passing,
 the doc-index check has silently broken and every other doc-index claim is
 worthless. A verifier nobody verifies is just a second thing to trust.
+
+Two failure prefixes are never inverted by `must_fail`, because neither is
+evidence about the claim itself:
+
+  UNREACHABLE:   network down, binary absent. Says nothing about the world.
+  STRUCTURE:     a doc-contains page is missing from the index. Distinguishes
+                 "the page vanished" from "the sentence vanished" — an upstream
+                 reword must not read as a fabricated URL, and a control must
+                 never "pass" merely because its page 404'd.
 
 Exit codes:  0 all claims verified  ·  2 one or more failed
              ·  3 evidence unreachable (network/binary missing)  ·  4 usage error
@@ -52,6 +69,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 import urllib.error
@@ -101,17 +119,44 @@ def check_line(text: str, line_no: int, expect: str) -> tuple[bool, str]:
     return False, f"line {line_no} is {actual.strip()[:70]!r}, expected to contain {expect!r}"
 
 
-def index_paths(payload: object) -> set[str]:
-    """Extract every documented path from a MkDocs or Just-the-Docs search index."""
-    paths: set[str] = set()
+def norm_path(loc: str) -> str:
+    """Normalize a doc path. Used for BOTH indexing and lookup — never inline this.
+
+    The index stores `/advanced/disposable`; a claim naturally writes
+    `/advanced/disposable/`. If store and lookup disagree by one slash, every
+    lookup silently misses.
+    """
+    return ("/" + str(loc).split("#")[0].strip("/")).rstrip("/") or "/"
+
+
+def norm_text(s: str) -> str:
+    """Collapse whitespace and casefold. Indexed content carries ` . | ` separators."""
+    return re.sub(r"\s+", " ", s).strip().casefold()
+
+
+def index_texts(payload: object) -> dict[str, str]:
+    """Map every documented path to its indexed text, folding #anchors into the parent page."""
+    texts: dict[str, str] = {}
+
+    def add(loc: object, title: object, body: object) -> None:
+        path = norm_path(str(loc))
+        texts[path] = f"{texts.get(path, '')} {title} {body}"
+
     if isinstance(payload, dict) and "docs" in payload:  # MkDocs Material (tart.run)
         for entry in payload["docs"]:
-            paths.add("/" + str(entry.get("location", "")).split("#")[0].strip("/"))
+            if isinstance(entry, dict):
+                add(entry.get("location", ""), entry.get("title", ""), entry.get("text", ""))
     elif isinstance(payload, dict):  # Just the Docs (docs.getutm.app)
         for entry in payload.values():
             if isinstance(entry, dict) and "relUrl" in entry:
-                paths.add(str(entry["relUrl"]).split("#")[0].rstrip("/"))
-    return {p.rstrip("/") or "/" for p in paths}
+                add(entry["relUrl"], entry.get("title", ""), entry.get("content", ""))
+
+    return {p: norm_text(t) for p, t in texts.items()}
+
+
+def index_paths(payload: object) -> set[str]:
+    """Extract every documented path from a MkDocs or Just-the-Docs search index."""
+    return set(index_texts(payload))
 
 
 # ------------------------------------------------------------------ I/O shell
@@ -124,14 +169,14 @@ def _read(target: str) -> str:
     return p.read_text(encoding="utf-8", errors="replace")
 
 
-def _fetch_index(site: str) -> set[str]:
+def _fetch_index(site: str) -> dict[str, str]:
     url = DOC_INDEXES[site]
     req = urllib.request.Request(url, headers={"User-Agent": "verify-claims/1.0"})
     with urllib.request.urlopen(req, timeout=20) as r:  # noqa: S310 - fixed https allowlist
-        return index_paths(json.loads(r.read().decode()))
+        return index_texts(json.loads(r.read().decode()))
 
 
-def evaluate(claim: dict[str, Any], index_cache: dict[str, set[str]]) -> Result:
+def evaluate(claim: dict[str, Any], index_cache: dict[str, dict[str, str]]) -> Result:
     kind = claim.get("kind", "")
     cid = claim.get("id", "<unnamed>")
     expect = claim.get("expect", "")
@@ -162,9 +207,21 @@ def evaluate(claim: dict[str, Any], index_cache: dict[str, set[str]]) -> Result:
             site = claim["site"]
             if site not in index_cache:
                 index_cache[site] = _fetch_index(site)
-            want = "/" + expect.strip("/")
-            ok = want.rstrip("/") in index_cache[site]
+            want = norm_path(expect)
+            ok = want in index_cache[site]
             hint = "" if ok else f"{want!r} is not in the {site} search index ({len(index_cache[site])} pages) — fabricated or moved"
+            return Result(cid, kind, ok, hint, src)
+
+        if kind == "doc-contains":
+            site = claim["site"]
+            if site not in index_cache:
+                index_cache[site] = _fetch_index(site)
+            page = norm_path(claim["page"])
+            if page not in index_cache[site]:
+                # Not a verdict on the sentence: the page itself is gone. Never inverted by must_fail.
+                return Result(cid, kind, False, f"STRUCTURE: page {page!r} is not in the {site} index — fabricated or moved", src)
+            ok = norm_text(expect) in index_cache[site][page]
+            hint = "" if ok else f"page {page} exists but does not contain {expect!r} — upstream may have reworded; re-read it"
             return Result(cid, kind, ok, hint, src)
 
         return Result(cid, kind or "?", False, f"unknown evidence kind {kind!r}", src)
@@ -193,14 +250,16 @@ def main() -> int:
         print("ledger is empty — a spec with no checkable claims is a spec nobody verified", file=sys.stderr)
         return USAGE
 
-    cache: dict[str, set[str]] = {}
+    cache: dict[str, dict[str, str]] = {}
     results: list[Result] = []
     for c in claims:
         r = evaluate(c, cache)
         if c.get("must_fail"):
             # A control claim: its evidence is required NOT to verify.
-            # Never invert an UNREACHABLE — that would mask a broken oracle as a pass.
-            if r.detail.startswith("UNREACHABLE"):
+            # Never invert an UNREACHABLE (network down) or a STRUCTURE (page gone) —
+            # neither is evidence about the claim, and inverting either would mask a
+            # broken oracle as a pass.
+            if r.detail.startswith(("UNREACHABLE", "STRUCTURE")):
                 pass
             else:
                 r = Result(
