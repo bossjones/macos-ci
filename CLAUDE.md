@@ -64,8 +64,32 @@ Write every URL as a markdown link, never a bare backticked path — lychee only
 spec-to-spec links are checked too, **including `#anchor` fragments** (`scheme` includes `file`,
 `include_fragments = true`); that combination caught two broken anchors that shipped in the first PR.
 
+## The claims ledger
+
+Link hygiene proves a URL resolves. It does not prove the sentence citing it is true. `.team/claims.jsonl`
+records every load-bearing assertion alongside evidence a machine can re-execute:
+
+```bash
+just check              # link-check + verify-claims + unverified-count. The truth gate.
+just verify-claims      # re-run the evidence behind every claim
+just verify-claims-json # same, for an agent to read instead of scraping prose
+```
+
+Evidence kinds: `file-contains`, `file-line` (catches hallucinated `file:line` citations), `absent`
+(negative claims), `cli-help` (proves a flag exists), `doc-index` (proves a doc page exists, via the
+search index above — this is what would have caught the fabricated `settings-apple/devices/` URL).
+
+One claim carries `"must_fail": true` and asserts that fabricated URL. It is a control: if it ever
+starts passing, the oracle has broken and every `doc-index` claim is unreliable. A verifier nobody
+verifies is just a second thing to trust.
+
+Exit codes: `0` verified · `2` a claim failed · `3` evidence unreachable · `4` usage.
+
 ## Conventions
 
 - Claims that cannot be verified from a source get an explicit `<!-- UNVERIFIED -->` marker on the line.
-  Never present inference as fact.
+  Never present inference as fact. A claim you cannot express as a ledger entry is a claim that needs
+  the marker.
+- `just unverified-count` is an honesty budget. It should fall because claims got verified, never
+  because markers got deleted.
 - Prefer a shorter document that is entirely true over a longer one padded with plausible detail.

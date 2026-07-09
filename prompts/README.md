@@ -1,0 +1,1 @@
+I want to keep artifacts of boss-cmux commands in this folder so that we can find patterns and figure out easier ways to prompt claude to create them.

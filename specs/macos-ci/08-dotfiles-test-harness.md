@@ -18,23 +18,33 @@ enters at teardown-comparison time (d) to explain why it is *not* used here.
 
 **Recommendation: golden image, cloned per run.**
 
-`zsh-dotfiles-prep/bin/zsh-dotfiles-prereq-installer` is expensive to run from a bare OS image: Xcode
-CLT install, Homebrew bootstrap, ~25 brew formulae with compiled C/Ruby deps (openssl@3, readline,
-libyaml, gmp, autoconf), a git-cloned asdf v0.11.2, a full Rust toolchain via rustup, and two parallel
-Python installs (brew + pyenv 3.12.8 built `--enable-shared`) — see
-[09-dotfiles-under-test.md](./09-dotfiles-under-test.md#bootstrap-verbatim-g9) for the full list.
-None of that is what's under test; it's fixed cost that would otherwise be repeated on every single
-test invocation.
+Bootstrapping a bare OS image is expensive: Xcode CLT install, Homebrew bootstrap, and ~25 brew
+formulae with compiled C/Ruby deps (openssl@3, readline, libyaml, gmp, autoconf). None of that is what's
+under test; it's fixed cost that would otherwise be repeated on every single test invocation.
+
+**What the golden image contains is a scoping decision, not a convenience.** It supplies exactly what
+`zsh-dotfiles` assumes but never installs: **Xcode CLT, Homebrew, chezmoi ≥ 2.20.0**
+(`zsh-dotfiles/.chezmoiversion:1`), and the brew prereq list from `smoke-test-docker.sh:142-157`
+(`wget curl retry go trash openssl@3 readline libyaml gmp autoconf tmux`). `retry` is load-bearing — the
+ported apply command is `retry -t 4 -- chezmoi init …`.
+
+**It does not run `zsh-dotfiles-prep/bin/zsh-dotfiles-prereq-installer`.** That installer additionally
+provides a git-cloned asdf v0.11.2, a full Rust toolchain via rustup, and two parallel Python installs
+(brew + pyenv 3.12.8 built `--enable-shared`) — see
+[09-dotfiles-under-test.md](./09-dotfiles-under-test.md#bootstrap-verbatim-g9). Baking that in would
+force `asdf` into every image, including `mise` runs, and none of it is required for the default lane.
+It is invoked only by the optional `asdf` matrix leg, behind a `--with-prereq-installer` flag. See
+[09-dotfiles-under-test.md](./09-dotfiles-under-test.md#what-zsh-dotfiles-cannot-bootstrap-on-macos).
 
 Design:
 
-1. **Build once** — a Packer build (per [02](./02-packer-tart-builder.md)'s field reference) that
-   runs the macOS prereq installer to completion inside the image: Xcode CLT + Homebrew + asdf +
-   chezmoi ≥ 2.20.0 (the installer pins **v2.31.1**, comfortably above the `.chezmoiversion` floor —
-   `zsh-dotfiles/.chezmoiversion:1`) preinstalled and verified working (`chezmoi --version` exits 0).
-   This becomes the base tart VM image, tagged and optionally pushed to an OCI registry (ghcr.io, per
-   [01](./01-tart-core.md)'s registry push/pull support) so the golden image itself is versioned and
-   reproducible, not a snowflake on one machine.
+1. **Build once** — a Packer build (per [02](./02-packer-tart-builder.md)'s field reference) whose
+   single idempotent `shell` provisioner installs the list above, verified working (`chezmoi --version`
+   exits 0). This becomes the base tart VM image, tagged and optionally pushed to an OCI registry
+   (ghcr.io, per [01](./01-tart-core.md)'s registry push/pull support) so the golden image itself is
+   versioned and reproducible, not a snowflake on one machine. Which base image, and whether it comes
+   from an OCI ref or a pinned IPSW, is declared in `macos-versions.toml`
+   ([12](./12-tooling-and-agent-loop.md#macos-versionstoml--declarative-image-selection)).
 2. **Clone per test run** — `tart clone <golden-image> <ephemeral-name>` gives a byte-identical,
    independent VM in seconds (copy-on-write per [01](./01-tart-core.md)), not minutes. Each test run
    gets its own ephemeral clone name (e.g. `dotfiles-test-<run-id>`) so concurrent runs never collide.

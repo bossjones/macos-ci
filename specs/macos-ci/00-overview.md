@@ -21,14 +21,20 @@ AppleScript/JXA plus the `utm://` URL scheme, both of which are lifecycle-only f
 [10-tart-vs-utm-adr.md](10-tart-vs-utm-adr.md).
 
 - **Golden image**: Packer + `packer-plugin-tart` builds a Tart VM once, with Xcode CLT + Homebrew +
-  chezmoi ≥ 2.20.0 preinstalled.
+  `retry` + chezmoi ≥ 2.20.0 preinstalled — exactly what `zsh-dotfiles` assumes but never installs
+  itself. It does **not** bake in `zsh-dotfiles-prep`; see
+  [09-dotfiles-under-test.md](09-dotfiles-under-test.md#what-zsh-dotfiles-cannot-bootstrap-on-macos).
 - **Per-test clone**: `tart clone <golden> <ephemeral>` gives a byte-identical VM in seconds; the
   dotfiles working tree is mounted in (not baked in) via `tart --dir`.
 - **The install run**: an SSH session with no TTY attached, which is exactly what makes chezmoi's
   `stdinIsATTY` gate resolve every prompt to its documented default — already solved upstream, not
-  discovered here (G11).
+  discovered here (G11). `version_manager` defaults to **`mise`**, passed on the CLI, because mise is
+  the only version manager `zsh-dotfiles` can bootstrap unaided on macOS.
 - **Teardown**: `tart delete`. UTM has no equivalent for a macOS guest (disposable mode is
   QEMU-backend only, G5).
+- **The driver**: a `Justfile` fronting an installable `macos-ci` package, with a machine-readable
+  `artifacts/<run-id>/verdict.json` so a human *and* an agent can tell what broke — see
+  [12-tooling-and-agent-loop.md](12-tooling-and-agent-loop.md).
 - **Scale-out** (not needed yet): Orchard, if/when this ever needs to run across more than one
   physical host.
 
@@ -48,10 +54,12 @@ AppleScript/JXA plus the `utm://` URL scheme, both of which are lifecycle-only f
 | 09 | `09-dotfiles-under-test.md` | harness | What's actually installed; the chezmoi template contract (G11); reused assertion vocabulary |
 | 10 | `10-tart-vs-utm-adr.md` | synth | The ADR recording the house stance |
 | 11 | `11-sources.md` | synth | Every source URL, grouped, graded meaty/thin/404/cited-as-exclusion. Checked by `just link-check` |
+| 12 | `12-tooling-and-agent-loop.md` | harness | The Justfile/`macos-ci` CLI surface, the pure/impure split that makes it TDD-able, the four test tiers, the `artifacts/` contract, and the `.claude/` agent loop |
 
-Suggested reading order for a newcomer: **00 → 10 → 01 → 02 → 08 → 09 → 03 → 04 → 05 → 06 → 07 → 11.**
+Suggested reading order for a newcomer: **00 → 10 → 01 → 02 → 08 → 09 → 12 → 03 → 04 → 05 → 06 → 07 → 11.**
 Start with the decision (why Tart), then the primitives it composes (01/02), then the harness that
-uses them (08/09), then the supporting detail (03/04/05/06/07), then the audit trail (11).
+uses them (08/09), then how you actually drive it (12), then the supporting detail (03/04/05/06/07),
+then the audit trail (11).
 
 ## Scope note
 

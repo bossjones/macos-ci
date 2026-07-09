@@ -103,12 +103,46 @@ runs are distinguishable in logs and in the rendered config (see 08(b)).
 ### The `version_manager` selector (asdf | mise)
 
 `version_manager` (`.chezmoi.yaml.tmpl:20`, comment at `:102`) is deliberately reachable non-TTY:
-`--promptString version_manager=mise` (or `=asdf`) selects the lane. Downstream,
-`zsh-dotfiles/scripts/smoke-test-docker.sh` enforces a **mutual exclusion invariant** between the
-two managers — when `VERSION_MANAGER=mise`, the script never sources `asdf.sh` or sets `ASDF_DIR`,
-and vice versa (`smoke-test-docker.sh:222-224`, citing `specs/migrate-asdf-to-mise.md:15-27` in that
-repo). A harness that runs both lanes must preserve this: never let both managers' shell
-initialization run in the same test.
+`--promptString version_manager=mise` (or `=asdf`) selects the lane. It is the **only** prompt key
+placed outside the `if $interactive` block — every other prompt, including all seven feature bools,
+sits inside it and is therefore unreachable in a non-TTY run (G11). Together with the `CM_computer_name`
+and `CM_hostname` env vars, it is the entire externally-settable surface of a non-interactive apply.
+
+Mutual exclusion is enforced in two places. At the **file** level, `home/.chezmoiignore.tmpl:5` —
+`{{ if eq .version_manager "mise" }}` ignores the asdf scripts, `{{ else }}` ignores the mise ones — so
+selecting one lane prevents the other's scripts from ever rendering. At the **shell-init** level,
+`zsh-dotfiles/scripts/smoke-test-docker.sh` never sources `asdf.sh` or sets `ASDF_DIR` when
+`VERSION_MANAGER=mise`, and vice versa (`smoke-test-docker.sh:222-224`, citing
+`specs/migrate-asdf-to-mise.md:15-27` in that repo). A harness that runs both lanes must preserve this:
+never let both managers' shell initialization run in the same test.
+
+### What `zsh-dotfiles` cannot bootstrap on macOS
+
+`zsh-dotfiles` is a dotfiles/config layer that provisions user-space tools on top of an
+already-bootstrapped system. Read directly from the source, the boundary is sharp:
+
+**It installs itself, on macOS:** `mise` (`run_onchange_before_02-macos-install-mise.sh.tmpl`, gated on
+`(eq .version_manager "mise")`, via `brew install mise`), `sheldon` (built from source via rustup+cargo
+on arm64 — slow, and a hard Xcode CLT dependency), `bun`, `deno`, `uv`, and `wtp`.
+
+**It never installs:**
+
+- **Homebrew.** `install.sh:206` hard-errors when brew is missing. Every `brew install` in the repo
+  assumes it is already present.
+- **Xcode Command Line Tools.** `xcode-select` appears nowhere in the repo.
+- **asdf, on macOS.** There is no `run_*-macos-install-asdf*` script — the asdf installers exist only
+  for `centos` and `ubuntu`. The macOS asdf-*plugins* script
+  (`run_onchange_after_50-macos-install-asdf-plugins.sh.tmpl:20-34`) explicitly exits 0 when the binary
+  is absent: `"asdf not available - skipping asdf plugin install"`.
+- **chezmoi.** Chicken-and-egg; it is bootstrapped by `install.sh`, CI, or the prereq installer.
+
+**Consequences for this harness.** The golden image must own Homebrew, Xcode CLT, chezmoi, and the brew
+prereq list. And because asdf on macOS can only come from `zsh-dotfiles-prep`, **`mise` is the only
+version manager `zsh-dotfiles` can bootstrap unaided** — which is why it is the harness default. The
+`asdf` leg remains available behind a `--with-prereq-installer` flag that runs
+`zsh-dotfiles-prep/bin/zsh-dotfiles-prereq-installer --debug` before apply, matching what upstream CI
+(`zsh-dotfiles/.github/workflows/tests.yml:136-138`) and `smoke-test-docker.sh:202` already do. Note
+that upstream's own smoke test therefore does **not** demonstrate standalone bootstrap either.
 
 ### Template data block (pinned tool versions)
 
