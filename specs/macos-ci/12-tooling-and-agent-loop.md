@@ -390,6 +390,18 @@ box uses — `https://tart.run/search/search_index.json` (101 pages) and
 authoritative page list: if a path is not in it, that page does not exist.** No fetching, no scraping,
 no 403. One query for `trackpad` would have found the page G10 missed.
 
+`developer.hashicorp.com` (cited for the Packer `tart` builder field reference,
+[02](02-packer-tart-builder.md)) is the same idea implemented a different way: it's a Next.js app with
+no static search JSON, but its `sitemap.xml` → `server-sitemap.xml` plays the same authoritative-list
+role for `/packer/docs/**` pages (203 of them) — see [11](11-sources.md#verifying-packer-docs-urls).
+It does **not** cover `/packer/integrations/**`, which is where the tart-builder page itself lives —
+those are rendered from the plugin's own GitHub `.web-docs/` directory, not HashiCorp's sitemap. That
+asymmetry is why `DOC_INDEXES` in `tools/verify_claims.py` still only has two entries (`tart`, `utm`):
+a sitemap is a different shape of evidence than a JSON search index (XML, no per-product filter,
+`.web-docs`-sourced pages it can't see at all), so wiring it in as a third `doc-index` site is a real
+code change — deferred, not forgotten, and due for TDD like every other change to this tool if it
+happens.
+
 ### The ledger tests its own oracle
 
 A verifier nobody verifies is just a second thing to trust. Any claim may set `"must_fail": true`,

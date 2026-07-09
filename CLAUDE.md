@@ -40,15 +40,33 @@ curl -fsSL https://tart.run/search/search_index.json |
   python3 -c 'import json,sys; d=json.load(sys.stdin)
 for e in d["docs"]:
     if "fair source" in (e["title"]+e["text"]).lower(): print(e["title"], "->", e["location"])'
+
+# HashiCorp Packer docs — no static search JSON; the site's own sitemap is the page list
+curl -fsSL https://developer.hashicorp.com/server-sitemap.xml |
+  grep -o '<loc>https://developer.hashicorp.com/packer/docs[^<]*</loc>'
+# -> 203 <loc> entries, e.g. .../packer/docs/commands/build, .../packer/docs/templates/hcl_templates
 ```
 
 The index doubles as the **authoritative page list**: if a path is not in it, that page does not exist.
 This is how `settings-apple/devices/` was proven to be a fabricated URL rather than a dead page, and how
 `settings-apple/virtualization/` — omitted from the original research brief — was recovered. One query
 for `trackpad` would have found it.
+[developer.hashicorp.com's sitemap](https://developer.hashicorp.com/server-sitemap.xml) plays the same
+role for HashiCorp's own Packer docs pages — see
+[11-sources.md](specs/macos-ci/11-sources.md#verifying-packer-docs-urls) for the full writeup.
+
+**Exception: `/packer/integrations/**` pages are not in that sitemap.** The Tart builder field
+reference cited in [02](specs/macos-ci/02-packer-tart-builder.md) — `developer.hashicorp.com/packer/
+integrations/cirruslabs/tart/latest/components/builder/tart` — is one of these: 0 of 337 `/packer/*`
+sitemap entries match `/packer/integrations`. HashiCorp renders these pages from the plugin's own
+GitHub repo instead of its own CMS —
+[cirruslabs/packer-plugin-tart ships a `.web-docs/` directory](https://github.com/cirruslabs/packer-plugin-tart/tree/main/.web-docs)
+that is the actual source. Verify one of these with a plain `curl -sS -o /dev/null -w '%{http_code}'`
+against the URL, or by reading the plugin repo's `.web-docs/` directly — not by grepping the sitemap.
 
 `docs.getutm.app` returns 403 to WebFetch; use `curl -fsSL`. For anything genuinely interactive, the
-cmux browser surface is available, but the JSON index answers almost every question faster.
+cmux browser surface is available, but the JSON index (or sitemap) answers almost every question
+faster.
 
 ## Link hygiene
 

@@ -32,6 +32,38 @@ it, which is how the mistake in the retraction section below survived a full cro
 | [developer.hashicorp.com — tart builder](https://developer.hashicorp.com/packer/integrations/cirruslabs/tart/latest/components/builder/tart) | `[meaty]` | Canonical full field reference (source-VM, registry, resources, disk, display/boot, runtime, SSH, HTTP server, VNC) — [02](02-packer-tart-builder.md) |
 | [github.com/markkenny/macos-virtualisation](https://github.com/markkenny/macos-virtualisation) | `[meaty]` | Real-world reference pipeline: `Packer.sh`/`Tarter.sh`, 15-20 min build time, IPSW sourcing, clone-and-run pattern, Ansible-during-build precedent, config toggles — [02](02-packer-tart-builder.md) |
 
+### Verifying packer docs URLs
+
+`developer.hashicorp.com` is a Next.js app, not MkDocs/Jekyll — it ships no static search-index JSON
+like `tart.run` or `docs.getutm.app` do. Its client-side search is Algolia (index `product_PACKER`,
+`searchOnlyApiKey` visible per-page in the embedded `__NEXT_DATA__` blob), but querying it needs the
+Algolia `appId`, which is a build-time-inlined constant absent from every served HTML/JSON page —
+extracting it would mean scraping a minified JS bundle, so this is rejected as a verification method.
+
+The usable authoritative-page-list equivalent is its
+[server-sitemap.xml](https://developer.hashicorp.com/server-sitemap.xml), advertised in `robots.txt`:
+
+```bash
+curl -fsSL https://developer.hashicorp.com/server-sitemap.xml |
+  grep -o '<loc>https://developer.hashicorp.com/packer/docs[^<]*</loc>'
+```
+
+This returns **203 pages** under `/packer/docs` (out of 337 total `/packer/*` URLs in the sitemap).
+
+**It does not cover `/packer/integrations/**`** — including the tart-builder page cited above as the
+canonical field reference. 0 of the 337 `/packer/*` sitemap entries match `/packer/integrations`.
+Root cause, confirmed against the plugin's own GitHub repo:
+[cirruslabs/packer-plugin-tart's `.web-docs/`](https://github.com/cirruslabs/packer-plugin-tart/tree/main/.web-docs)
+directory (`components/`, `metadata.hcl`, `README.md`) — HashiCorp renders third-party
+plugin/integration pages directly from that directory, per release tag, rather than from its own
+CMS/sitemap. The plugin repo is the actual source of truth for that page, not
+`developer.hashicorp.com` itself. Verify an integrations page with a plain
+`curl -sS -o /dev/null -w '%{http_code}'` against the URL, or by reading the plugin repo's
+`.web-docs/` directly — grepping the sitemap won't find it.
+
+Other avenues checked and rejected: `llms.txt` / `llms-full.txt` (404), a `.md` content-negotiation
+suffix on doc pages (404), and a few guessed content/registry API paths (all 404).
+
 ## Tart CI integration and Orchard
 
 | URL | Grade | What it gave us |

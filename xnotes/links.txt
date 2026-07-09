@@ -149,3 +149,13 @@ https://github.com/markkenny/macos-virtualisation
 
 Tart Builder | Integrations | Packer | HashiCorp Developer
 https://developer.hashicorp.com/packer/integrations/cirruslabs/tart/latest/components/builder/tart
+
+
+HashiCorp / Packer Documentation
+--------------------------
+
+server-sitemap.xml | HashiCorp Developer (authoritative /packer/docs page list; grep for /packer/docs)
+https://developer.hashicorp.com/server-sitemap.xml
+
+.web-docs | cirruslabs/packer-plugin-tart (the actual source of the Tart Builder page above; not covered by the sitemap)
+https://github.com/cirruslabs/packer-plugin-tart/tree/main/.web-docs
