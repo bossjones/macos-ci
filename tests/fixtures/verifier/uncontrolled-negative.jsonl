@@ -1,0 +1,2 @@
+// An `absent` record with NO `control`. check_structure must reject BEFORE any evidence runs.
+{"id":"absent-record-with-no-control","kind":"absent","file":"tests/fixtures/verifier/uncontrolled-negative.jsonl","target":"tests/fixtures/verifier/uncontrolled-negative.jsonl","expect":"zzz-token-not-present","claim":"fixture: an uncontrolled negative must be rejected structurally"}

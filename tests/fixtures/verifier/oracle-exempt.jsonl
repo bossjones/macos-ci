@@ -1,0 +1,3 @@
+// A CONTROL-* oracle of a doc kind, must_fail, NO control field. It IS the control; it has no
+// partner by construction. check_structure must EXEMPT it (the record, not the kind — GB5).
+{"id":"CONTROL-oracle-with-no-partner","kind":"doc-index","must_fail":true,"file":"tests/fixtures/verifier/oracle-exempt.jsonl","site":"tart","expect":"/integrations/sshpass","claim":"fixture: an oracle control needs no control"}

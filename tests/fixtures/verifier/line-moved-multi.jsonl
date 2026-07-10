@@ -1,0 +1,2 @@
+// The text exists at SEVERAL other lines. MOVED: must list them all.
+{"id":"pin-whose-text-moved-to-several-lines","kind":"file-line","file":"tests/fixtures/verifier/line-moved-multi.jsonl","target":"tests/fixtures/verifier/sample-doc.md","line":3,"expect":"SENTINEL_TWICE","claim":"fixture: MOVED: reports every line"}

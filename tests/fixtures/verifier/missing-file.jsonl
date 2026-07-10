@@ -1,0 +1,4 @@
+// A must_fail file-line whose TARGET DOES NOT EXIST.
+// Correct behaviour: `UNREACHABLE: missing file:` — a prefix must_fail must NEVER invert.
+// If this ever prints [PASS], deleting a control's target file turns that control green.
+{"id":"probe-over-a-file-that-does-not-exist","kind":"file-line","must_fail":true,"file":"tests/fixtures/verifier/missing-file.jsonl","target":"tests/fixtures/verifier/NO-SUCH-FILE.md","line":607,"expect":"UNVERIFIED","claim":"fixture: an absent target is not evidence about the claim"}

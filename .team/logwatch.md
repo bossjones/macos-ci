@@ -1,0 +1,208 @@
+# 📡 LOGWATCH — team macos-ci-build
+
+Append-only. Owned exclusively by 📡 log-watcher. Terminal outcome is confirmed from the log tail's own
+exit banner or a background-job wait — never from `read-screen` on the 🏗 build pane.
+
+---
+
+## 2026-07-10T18:17:52Z — LOGWATCH ARMED
+
+Armed on `logs/packer-build-20260710-141058.log` per lead's BUILD-LAUNCH confirmation. Log file exists
+(495B at arm time), build in progress: `tart-cli.golden` cloning golden VM, pulling disk (23.7 GB
+compressed), currently at ~5%. Tailing now.
+
+- 2026-07-10T18:18:36Z [pull] [1;32m==> tart-cli.golden: Cloning virtual machine...[0m
+- 2026-07-10T18:18:36Z [pull] [1;32m==> tart-cli.golden: pulling manifest...[0m
+- 2026-07-10T18:18:36Z [pull] [1;32m==> tart-cli.golden: pulling disk (23.7 GB compressed)...[0m
+- 2026-07-10T18:20:07Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 9: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T18:25:03Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 12: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T18:25:04Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 11: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T18:30:22Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 14: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T18:35:02Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 17: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T18:35:05Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 15: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T18:40:03Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 19: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T18:50:02Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 25: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T18:55:17Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 30: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:10:01Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 50: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:10:03Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 49: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:10:08Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 51: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:20:01Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 60: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:20:01Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 62: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:20:08Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 59: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:25:06Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 63: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:30:07Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 64: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:35:05Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 68: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:35:06Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 69: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:40:00Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 71: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:40:05Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 70: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:45:05Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 72: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:45:05Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 73: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:50:09Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 74: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T19:50:17Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 75: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T20:00:01Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 84: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T20:00:01Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 76: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T20:05:01Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 86: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T20:05:13Z [pull] [1;32m==> tart-cli.golden: Error pulling disk layer 85: "The network connection was lost.", attempting to re-try...[0m
+- 2026-07-10T20:09:24Z [vm-boot] [1;32m==> tart-cli.golden: Starting the virtual machine...[0m
+- 2026-07-10T20:09:43Z [provisioner-start] [1;32m==> tart-cli.golden: Provisioning with shell script: /var/folders/wg/9dy_d45j0cbdj9fg2xcvxyvm0000gn/T/packer-shell578737250[0m
+- 2026-07-10T20:09:43Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Xcode Command Line Tools[0m
+- 2026-07-10T20:09:43Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Homebrew[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/bin/brew[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/share/doc/homebrew[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/share/man/man1/brew.1[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/share/zsh/site-functions/_brew[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/etc/bash_completion.d/brew[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /etc/paths.d/homebrew[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/bin[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/etc[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/include[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/lib[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/sbin[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/share[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/var[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/opt[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/share/zsh[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/share/zsh/site-functions[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/var/homebrew[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/var/homebrew/linked[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/Cellar[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/Caskroom[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/Frameworks[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: ==> /usr/bin/sudo /usr/bin/install -d -o root -g wheel -m 0755 /opt/homebrew[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: ==> /usr/bin/sudo /bin/mkdir -p /opt/homebrew/bin /opt/homebrew/etc /opt/homebrew/include /opt/homebrew/lib /opt/homebrew/sbin /opt/homebrew/share /opt/homebrew/var /opt/homebrew/opt /opt/homebrew/share/zsh /opt/homebrew/share/zsh/site-functions /opt/homebrew/var/homebrew /opt/homebrew/var/homebrew/linked /opt/homebrew/Cellar /opt/homebrew/Caskroom /opt/homebrew/Frameworks[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: ==> /usr/bin/sudo /bin/chmod ug=rwx /opt/homebrew/bin /opt/homebrew/etc /opt/homebrew/include /opt/homebrew/lib /opt/homebrew/sbin /opt/homebrew/share /opt/homebrew/var /opt/homebrew/opt /opt/homebrew/share/zsh /opt/homebrew/share/zsh/site-functions /opt/homebrew/var/homebrew /opt/homebrew/var/homebrew/linked /opt/homebrew/Cellar /opt/homebrew/Caskroom /opt/homebrew/Frameworks[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: ==> /usr/bin/sudo /bin/chmod go-w /opt/homebrew/share/zsh /opt/homebrew/share/zsh/site-functions[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: ==> /usr/bin/sudo /usr/sbin/chown admin /opt/homebrew/bin /opt/homebrew/etc /opt/homebrew/include /opt/homebrew/lib /opt/homebrew/sbin /opt/homebrew/share /opt/homebrew/var /opt/homebrew/opt /opt/homebrew/share/zsh /opt/homebrew/share/zsh/site-functions /opt/homebrew/var/homebrew /opt/homebrew/var/homebrew/linked /opt/homebrew/Cellar /opt/homebrew/Caskroom /opt/homebrew/Frameworks[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: ==> /usr/bin/sudo /usr/bin/chgrp admin /opt/homebrew/bin /opt/homebrew/etc /opt/homebrew/include /opt/homebrew/lib /opt/homebrew/sbin /opt/homebrew/share /opt/homebrew/var /opt/homebrew/opt /opt/homebrew/share/zsh /opt/homebrew/share/zsh/site-functions /opt/homebrew/var/homebrew /opt/homebrew/var/homebrew/linked /opt/homebrew/Cellar /opt/homebrew/Caskroom /opt/homebrew/Frameworks[0m
+- 2026-07-10T20:09:44Z [provisioner-step] [1;32m==> tart-cli.golden: ==> /usr/bin/sudo /usr/sbin/chown -R admin:admin /opt/homebrew[0m
+- 2026-07-10T20:09:45Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Downloading and installing Homebrew...[0m
+- 2026-07-10T20:10:24Z [provisioner-step] [1;32m==> tart-cli.golden: ==> /usr/bin/sudo tee /etc/paths.d/homebrew[0m
+- 2026-07-10T20:10:24Z [provisioner-step] [1;32m==> tart-cli.golden: /opt/homebrew/bin[0m
+- 2026-07-10T20:10:24Z [provisioner-step] [1;32m==> tart-cli.golden: ==> /usr/bin/sudo /usr/sbin/chown root:wheel /etc/paths.d/homebrew[0m
+- 2026-07-10T20:10:24Z [provisioner-step] [1;32m==> tart-cli.golden: ==> /usr/bin/sudo /bin/chmod a+r /etc/paths.d/homebrew[0m
+- 2026-07-10T20:10:25Z [provisioner-step] [1;31m==> tart-cli.golden: ==> Updating Homebrew...[0m
+- 2026-07-10T20:10:26Z [provisioner-step] [1;31m==> tart-cli.golden: ==> Downloading https://ghcr.io/v2/homebrew/core/portable-ruby/blobs/sha256:4ba8d535df01e4bf97e6661c3815796fd77364ea2552606e891659133a76f0e1[0m
+- 2026-07-10T20:10:28Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Homebrew has enabled anonymous aggregate formulae and cask analytics.[0m
+- 2026-07-10T20:10:28Z [provisioner-step] [1;32m==> tart-cli.golden:   https://docs.brew.sh/Analytics[0m
+- 2026-07-10T20:10:28Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Homebrew is run entirely by unpaid volunteers. Please consider donating:[0m
+- 2026-07-10T20:10:28Z [provisioner-step] [1;32m==> tart-cli.golden:   https://github.com/Homebrew/brew#donations[0m
+- 2026-07-10T20:10:28Z [provisioner-step] [1;32m==> tart-cli.golden: - Run these commands in your terminal to add Homebrew to your PATH:[0m
+- 2026-07-10T20:10:28Z [provisioner-step] [1;32m==> tart-cli.golden:     echo 'eval "$(/opt/homebrew/bin/brew shellenv zsh)"' >> /Users/admin/.zprofile[0m
+- 2026-07-10T20:10:28Z [provisioner-step] [1;32m==> tart-cli.golden:     eval "$(/opt/homebrew/bin/brew shellenv zsh)"[0m
+- 2026-07-10T20:10:28Z [provisioner-step] [1;32m==> tart-cli.golden: - Run brew help to get started[0m
+- 2026-07-10T20:10:28Z [provisioner-step] [1;32m==> tart-cli.golden:     https://docs.brew.sh[0m
+- 2026-07-10T20:10:28Z [provisioner-step] [1;32m==> tart-cli.golden: ==> brew prerequisites (smoke-test-docker.sh:142-143)[0m
+- 2026-07-10T20:10:29Z [provisioner-step] [1;31m==> tart-cli.golden: ==> Tapping kadwanev/brew[0m
+- 2026-07-10T20:10:29Z [provisioner-step] [1;31m==> tart-cli.golden: Cloning into '/opt/homebrew/Library/Taps/kadwanev/homebrew-brew'...[0m
+- 2026-07-10T20:10:34Z [provisioner-step] [1;31m==> tart-cli.golden: ==> Trusted formula kadwanev/brew/retry[0m
+- 2026-07-10T20:10:34Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Downloading https://ghcr.io/v2/homebrew/core/wget/manifests/1.25.0-2[0m
+- 2026-07-10T20:10:34Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Downloading https://ghcr.io/v2/homebrew/core/curl/manifests/8.21.0-1[0m
+- 2026-07-10T20:10:35Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Downloading https://ghcr.io/v2/homebrew/core/go/manifests/1.26.5[0m
+- 2026-07-10T20:10:35Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Downloading https://ghcr.io/v2/homebrew/core/openssl/3/manifests/3.6.3-1[0m
+- 2026-07-10T20:10:35Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Downloading https://ghcr.io/v2/homebrew/core/readline/manifests/8.3.3[0m
+- 2026-07-10T20:10:35Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Downloading https://ghcr.io/v2/homebrew/core/libyaml/manifests/0.2.5[0m
+- 2026-07-10T20:10:36Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Downloading https://ghcr.io/v2/homebrew/core/gmp/manifests/6.3.0[0m
+- 2026-07-10T20:10:36Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Downloading https://ghcr.io/v2/homebrew/core/autoconf/manifests/2.73[0m
+- 2026-07-10T20:10:36Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Downloading https://ghcr.io/v2/homebrew/core/tmux/manifests/3.7b[0m
+- 2026-07-10T20:11:02Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing dependencies for wget: libunistring, json-c, gettext, libidn2, libpsl, ca-certificates and openssl@3[0m
+- 2026-07-10T20:11:02Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing wget dependency: libunistring[0m
+- 2026-07-10T20:11:02Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/libunistring/1.4.2: 59 files, 5.8MB[0m
+- 2026-07-10T20:11:02Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing wget dependency: json-c[0m
+- 2026-07-10T20:11:02Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/json-c/0.19: 34 files, 378.6KB[0m
+- 2026-07-10T20:11:02Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing wget dependency: gettext[0m
+- 2026-07-10T20:11:03Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/gettext/1.0: 2,499 files, 35.5MB[0m
+- 2026-07-10T20:11:03Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing wget dependency: libidn2[0m
+- 2026-07-10T20:11:04Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/libidn2/2.3.8: 80 files, 948.4KB[0m
+- 2026-07-10T20:11:04Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing wget dependency: libpsl[0m
+- 2026-07-10T20:11:04Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/libpsl/0.22.0: 16 files, 312.8KB[0m
+- 2026-07-10T20:11:04Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing wget dependency: ca-certificates[0m
+- 2026-07-10T20:11:10Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/ca-certificates/2026-05-14: 4 files, 199.2KB[0m
+- 2026-07-10T20:11:10Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing wget dependency: openssl@3[0m
+- 2026-07-10T20:11:11Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/openssl@3/3.6.3: 7,633 files, 37.8MB[0m
+- 2026-07-10T20:11:11Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing wget[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/wget/1.25.0: 92 files, 4.7MB[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Running `brew cleanup wget`...[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: Hide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing dependencies for curl: brotli, libnghttp2, libnghttp3, libngtcp2, libssh2, lz4, xz and zstd[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing curl dependency: brotli[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/brotli/1.2.0: 33 files, 1.9MB[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing curl dependency: libnghttp2[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/libnghttp2/1.69.0: 14 files, 849KB[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing curl dependency: libnghttp3[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/libnghttp3/1.17.0: 20 files, 617.3KB[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing curl dependency: libngtcp2[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/libngtcp2/1.24.0: 21 files, 1.4MB[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing curl dependency: libssh2[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/libssh2/1.11.1_3: 201 files, 1.3MB[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing curl dependency: lz4[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/lz4/1.10.0: 24 files, 729.3KB[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing curl dependency: xz[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/xz/5.8.3: 96 files, 2.7MB[0m
+- 2026-07-10T20:11:12Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing curl dependency: zstd[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/zstd/1.5.7_1: 32 files, 2.3MB[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing curl[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;32m==> tart-cli.golden: curl is keg-only, which means it was not symlinked into /opt/homebrew,[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;32m==> tart-cli.golden:   echo 'export PATH="/opt/homebrew/opt/curl/bin:$PATH"' >> ~/.zshrc[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;32m==> tart-cli.golden:   export LDFLAGS="-L/opt/homebrew/opt/curl/lib"[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;32m==> tart-cli.golden:   export CPPFLAGS="-I/opt/homebrew/opt/curl/include"[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/curl/8.21.0: 554 files, 4.9MB[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Running `brew cleanup curl`...[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing retry from kadwanev/brew[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;31m==> tart-cli.golden: You should download the Command Line Tools for Xcode 26.3.[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;31m==> tart-cli.golden:   https://docs.brew.sh/Support-Tiers#tier-2[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;31m==> tart-cli.golden: You can report issues with Tier 2 configurations to Homebrew/* repositories![0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing kadwanev/brew/retry dependency: gnu-getopt[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/gnu-getopt/2.42.2: 13 files, 190.8KB[0m
+- 2026-07-10T20:11:13Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing kadwanev/brew/retry[0m
+- 2026-07-10T20:11:15Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/retry/1.0.2: 4 files, 9.6KB, built in 2 seconds[0m
+- 2026-07-10T20:11:15Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Running `brew cleanup retry`...[0m
+- 2026-07-10T20:11:17Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/go/1.26.5: 14,965 files, 228.7MB[0m
+- 2026-07-10T20:11:17Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Running `brew cleanup go`...[0m
+- 2026-07-10T20:11:17Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Running `brew cleanup openssl@3`...[0m
+- 2026-07-10T20:11:17Z [provisioner-step] [1;32m==> tart-cli.golden: readline is keg-only, which means it was not symlinked into /opt/homebrew,[0m
+- 2026-07-10T20:11:17Z [provisioner-step] [1;32m==> tart-cli.golden:   export LDFLAGS="-L/opt/homebrew/opt/readline/lib"[0m
+- 2026-07-10T20:11:17Z [provisioner-step] [1;32m==> tart-cli.golden:   export CPPFLAGS="-I/opt/homebrew/opt/readline/include"[0m
+- 2026-07-10T20:11:17Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/readline/8.3.3: 56 files, 2.7MB[0m
+- 2026-07-10T20:11:17Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Running `brew cleanup readline`...[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/libyaml/0.2.5: 11 files, 361.7KB[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Running `brew cleanup libyaml`...[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/gmp/6.3.0: 22 files, 3.4MB[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Running `brew cleanup gmp`...[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing autoconf dependency: m4[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/m4/1.4.21: 14 files, 816.2KB[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing autoconf[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/autoconf/2.73: 73 files, 3.8MB[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Running `brew cleanup autoconf`...[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing dependencies for tmux: libevent, ncurses and utf8proc[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing tmux dependency: libevent[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/libevent/2.1.13: 58 files, 2.4MB[0m
+- 2026-07-10T20:11:18Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing tmux dependency: ncurses[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/ncurses/6.6: 4,086 files, 10.6MB[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing tmux dependency: utf8proc[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/utf8proc/2.11.3: 15 files, 474.7KB[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Installing tmux[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden:   /opt/homebrew/opt/tmux/share/tmux[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/tmux/3.7b: 9 files, 1.4MB[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Running `brew cleanup tmux`...[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden:   /opt/homebrew/opt/curl/share/zsh/site-functions[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden: curl is keg-only, which means it was not symlinked into /opt/homebrew,[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden:   echo 'export PATH="/opt/homebrew/opt/curl/bin:$PATH"' >> ~/.zshrc[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden:   export LDFLAGS="-L/opt/homebrew/opt/curl/lib"[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden:   export CPPFLAGS="-I/opt/homebrew/opt/curl/include"[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden: readline is keg-only, which means it was not symlinked into /opt/homebrew,[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden:   export LDFLAGS="-L/opt/homebrew/opt/readline/lib"[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden:   export CPPFLAGS="-I/opt/homebrew/opt/readline/include"[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden:   /opt/homebrew/opt/tmux/share/tmux[0m
+- 2026-07-10T20:11:19Z [provisioner-step] [1;32m==> tart-cli.golden: ==> chezmoi[0m
+- 2026-07-10T20:11:20Z [provisioner-step] [1;32m==> tart-cli.golden: chezmoi[0m
+- 2026-07-10T20:11:20Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Downloading https://ghcr.io/v2/homebrew/core/chezmoi/manifests/2.71.0[0m
+- 2026-07-10T20:11:20Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Fetching downloads for: chezmoi[0m
+- 2026-07-10T20:11:25Z [provisioner-step] [1;31m==> tart-cli.golden: ✔︎ Bottle chezmoi (2.71.0)[0m
+- 2026-07-10T20:11:25Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Pouring chezmoi--2.71.0.arm64_sequoia.bottle.tar.gz[0m
+- 2026-07-10T20:11:25Z [provisioner-step] [1;32m==> tart-cli.golden: 🍺  /opt/homebrew/Cellar/chezmoi/2.71.0: 9 files, 38.0MB[0m
+- 2026-07-10T20:11:25Z [provisioner-step] [1;32m==> tart-cli.golden: ==> Running `brew cleanup chezmoi`...[0m
+- 2026-07-10T20:11:25Z [provisioner-step] [1;32m==> tart-cli.golden: Hide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).[0m
+- 2026-07-10T20:11:25Z [provisioner-step] [1;32m==> tart-cli.golden:   /opt/homebrew/share/zsh/site-functions[0m
+- 2026-07-10T20:11:26Z [provisioner-step] [1;32m==> tart-cli.golden: chezmoi version v2.71.0, commit bd880914c19817b03567573e474254ac2ad7d84a, built at 2026-07-07T23:29:09Z, built by Homebrew[0m
+- 2026-07-10T20:11:26Z [terminal-banner] [1;32mBuild 'tart-cli.golden' finished after 2 hours 24 seconds.[0m

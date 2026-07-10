@@ -1,0 +1,6 @@
+// THE TRAP. A must_fail file-line over text that MOVED. `MOVED:` is a MESSAGE, not a verdict
+// class: it IS evidence about the claim (the pin is wrong), unlike UNREACHABLE:/STRUCTURE:.
+// So it stays an ordinary False and must_fail STILL INVERTS IT -> [PASS].
+// CONTROL-spec12-line-330-is-not-the-vnc-port-mention passes in the live ledger by exactly this.
+{"id":"mustfail-over-moved-text-still-inverts","kind":"file-line","must_fail":true,"polarity":"negative","control":"POSITIVE-sample-doc-really-holds-the-sentinel","file":"tests/fixtures/verifier/mustfail-moved.jsonl","target":"tests/fixtures/verifier/sample-doc.md","line":3,"expect":"SENTINEL_MOVED_HERE","claim":"fixture: must_fail inverts a MOVED: plain False"}
+{"id":"POSITIVE-sample-doc-really-holds-the-sentinel","kind":"file-contains","file":"tests/fixtures/verifier/mustfail-moved.jsonl","target":"tests/fixtures/verifier/sample-doc.md","expect":"SENTINEL_MOVED_HERE","claim":"fixture control: the sentinel really is in the file, so the inversion is not vacuous"}

@@ -1,0 +1,66 @@
+# Local/CI parity wrapper around this repo's own harness, per
+# specs/macos-ci/03-tart-ci-and-orchard.md Part A and specs/macos-ci/12-tooling-and-agent-loop.md's
+# `ci` recipe.
+#
+# CORRECTION (Step 14 execution): an earlier revision of this file had no `macos_instance:` at all,
+# on the theory that Cirrus CLI could run a task directly on the host and simply shell out to
+# `just run`. That theory was wrong and was falsified by executing `cirrus run` against a scratch
+# no-instance task: Cirrus CLI's task model has no "run directly on the host" mode — every task
+# requires an instance type, and a bare task without one fails with
+# "unsupported instance type: got nil instance". So `macos_instance` is not optional here.
+#
+# This also settles the nested-virtualization worry the old comment raised: this task's
+# `macos_instance.image` IS the VM Cirrus's own tart backend clones/boots/tears down — replacing
+# `just run`'s `up`/`destroy` steps, not nesting inside them. The scripts below run *inside* that
+# VM, so they reproduce the `chezmoi diff`/apply half of `just run`'s main loop directly, rather
+# than re-invoking `just run` (which would try to `tart clone` from inside its own guest).
+#
+# The zsh-dotfiles source is cloned fresh from the public repo (`bossjones/zsh-dotfiles`, confirmed
+# via `git remote -v` against the local checkout) rather than relying on the host's `ZSH_DOTFILES`
+# sibling directory or a `tart --dir` mount — Cirrus CLI's tart backend has no config surface for
+# extra host-directory mounts, and a self-contained clone is what a real (non-sibling-directory) CI
+# runner would need to do anyway.
+#
+# `chezmoi` and `retry` are both already on the golden image (packer/tart-golden-image.pkr.hcl's
+# provisioner); the apply command is the same one this repo's harness composes elsewhere
+# (specs/macos-ci/08-dotfiles-test-harness.md §(b) step 4 / smoke-test-docker.sh:361-365).
+#
+# Scope note: this reproduces the apply-level pass/fail `just run` gates on, not a full
+# pytest-testinfra `-m vm` run — that suite SSHes from the *host* into the guest
+# (specs/macos-ci/12-tooling-and-agent-loop.md's `vm` fixture), and Cirrus's tart backend tears the
+# VM down at the end of the task with no hook to run a host-side assertion pass against it
+# mid-task. Full-suite parity is future work, not claimed here.
+#
+# CORRECTION 2 (same execution): `clone_script` is not a free-form `<name>_script` step — Cirrus CI
+# reserves that name for its own built-in "check out the project the task is running for" stage,
+# which runs in a different context than a normal script step. Naming a step `clone_script` here
+# silently swallowed the `git clone` call instead of running it in-VM before `apply_script`, so
+# `apply_script`'s `cd zsh-dotfiles` failed with "No such file or directory" — observed directly,
+# not inferred: the log shows only 'apply' and 'verify' script stages, no 'clone' stage, between
+# "configure virtual machine" and the failing `cd`. Renamed to `fetch_dotfiles_script` below, which
+# is not a reserved name.
+
+task:
+  name: dotfiles-install-parity
+  macos_instance:
+    image: dotfiles-golden
+
+  environment:
+    VERSION_MANAGER: mise
+
+  fetch_dotfiles_script:
+    - git clone --depth 1 https://github.com/bossjones/zsh-dotfiles.git zsh-dotfiles
+
+  apply_script:
+    - cd zsh-dotfiles && retry -t 4 -- chezmoi init -R --debug -v --apply --force --promptString version_manager="$VERSION_MANAGER" --source=. | tee ../cirrus-apply.log
+
+  verify_script:
+    - chezmoi --version
+
+  # `cirrus run --artifacts-dir artifacts` pulls this out of the guest after the run, resolving to
+  # $PWD/artifacts/dotfiles-install-parity/apply_log/cirrus-apply.log on the host. Artifact paths
+  # must be relative to CIRRUS_WORKING_DIR (an absolute /tmp path failed with "path is outside of
+  # CIRRUS_WORKING_DIR" — observed directly on this run's first attempt); `../cirrus-apply.log`
+  # above writes it one level up from the `zsh-dotfiles` clone, back at the working-dir root.
+  apply_log_artifacts:
+    path: cirrus-apply.log

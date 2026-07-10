@@ -1,0 +1,326 @@
+🚀 Checking all links in markdown files using lychee
+[200] https://github.com/bossjones/zsh-dotfiles | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/10-tart-vs-utm-adr.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/00-overview.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/00-overview.md
+[200] https://developer.hashicorp.com/server-sitemap.xml | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci.md
+[200] https://github.com/cirruslabs/packer-plugin-tart/tree/main/.web-docs | OK (cached)
+[200] https://docs.getutm.app/advanced/disposable/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/10-tart-vs-utm-adr.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/02-packer-tart-builder.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/prompts/macos-ci-verify-team.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/prompts/macos-ci-research-team.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/prompts/macos-ci-verify-team.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md#verifying-packer-docs-urls
+[200] https://docs.getutm.app/settings-apple/virtualization/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/virtualization/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/12-tooling-and-agent-loop.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/10-tart-vs-utm-adr.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#what-zsh-dotfiles-cannot-bootstrap-on-macos
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#the-linux-coverage-gap-this-repo-exists-to-close
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md
+[200] https://github.com/cirruslabs/macos-image-templates/blob/main/templates/base.pkr.hcl | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/02-packer-tart-builder.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/10-tart-vs-utm-adr.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/08-dotfiles-test-harness.md
+[200] https://github.com/openai/tart-guest-agent | OK (cached)
+[200] https://github.com/cirruslabs/macos-image-templates/blob/main/templates/vanilla-tahoe.pkr.hcl | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/05-utm-automation.md
+[200] https://tart.run/quick-start/ | OK (cached)
+[200] https://tart.run/faq/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/04-tart-licensing-risk.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/13-build-secrets.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/08-dotfiles-test-harness.md#e-decision-ansible--reject-it
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md#shared-directories---dir
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/13-build-secrets.md#sensitive-masks-values-not-variables
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md
+[200] https://docs.getutm.app/guest-support/sharing/usb/ | OK (cached)
+[200] https://docs.getutm.app/updates/v4.2/ | OK (cached)
+[200] https://docs.getutm.app/advanced/remote-control/ | OK (cached)
+[200] https://docs.getutm.app/advanced/disposable/ | OK (cached)
+[200] https://docs.getutm.app/scripting/cheat-sheet/ | OK (cached)
+[200] https://docs.getutm.app/guest-support/macos/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/12-tooling-and-agent-loop.md
+[200] https://docs.getutm.app/scripting/scripting/ | OK (cached)
+[200] https://docs.getutm.app/scripting/reference/ | OK (cached)
+[200] https://docs.getutm.app/preferences/macos/ | OK (cached)
+[200] https://github.com/utmapp/UTM/issues/3718 | OK (cached)
+[200] https://github.com/utmapp/UTM/discussions/3618 | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md#retraction--the-g10-prune-list-was-wrong
+[200] https://docs.getutm.app/settings-apple/settings-apple/ | OK (cached)
+[200] https://docs.getutm.app/advanced/rosetta/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/devices/devices/ | OK (cached)
+[200] https://docs.getutm.app/guides/classic-macos/ | OK (cached)
+[200] https://docs.getutm.app/advanced/multiple-displays/ | OK (cached)
+[200] https://docs.getutm.app/guest-support/macos/ | OK (cached)
+[200] https://docs.getutm.app/advanced/serial/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/virtualization/ | OK (cached)
+[200] https://docs.getutm.app/scripting/reference/ | OK (cached)
+[200] https://docs.getutm.app/guest-support/dynamic-resolution/ | OK (cached)
+[200] https://docs.getutm.app/advanced/disposable/ | OK (cached)
+[200] https://docs.getutm.app/advanced/recovery/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md
+[200] https://docs.getutm.app/settings-qemu/devices/devices/ | OK (cached)
+[200] https://docs.getutm.app/settings-qemu/drive/drive/ | OK (cached)
+[200] https://docs.getutm.app/settings-qemu/system/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/06-utm-macos-guest.md
+[200] https://docs.getutm.app/advanced/headless/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/10-tart-vs-utm-adr.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/04-tart-licensing-risk.md#4-what-keeps-this-repo-under-the-threshold
+[200] https://tart.run/licensing/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md
+[200] https://github.com/cirruslabs/cirrus-cli | OK (cached)
+[200] https://tart.run/integrations/cirrus-cli/ | OK (cached)
+[200] https://github.com/cirruslabs/macos-image-templates/blob/main/templates/vanilla-tahoe.pkr.hcl | OK (cached)
+[200] https://tart.run/quick-start/#ssh-access | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/08-dotfiles-test-harness.md#the-run-composed-from-tart-primitives
+[200] https://tart.run/orchard/quick-start/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md#headless-mode-and-the-macos-15-keychain-requirement-g8
+[200] https://github.com/cirruslabs/packer-plugin-tart | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/08-dotfiles-test-harness.md#a-golden-image-vs-from-scratch-per-test
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md
+[200] https://developer.hashicorp.com/packer/integrations/cirruslabs/tart/latest/components/builder/tart | OK (cached)
+[200] https://github.com/markkenny/macos-virtualisation | OK (cached)
+[200] https://docs.getutm.app/settings-qemu/sharing/ | OK (cached)
+[200] https://docs.getutm.app/guest-support/sharing/sharing/ | OK (cached)
+[200] https://docs.getutm.app/settings-qemu/qemu/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/settings-apple/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md#retraction--the-g10-prune-list-was-wrong
+[200] https://docs.getutm.app/settings-qemu/information/ | OK (cached)
+[200] https://docs.getutm.app/preferences/macos/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/10-tart-vs-utm-adr.md
+[200] https://docs.getutm.app/settings-apple/sharing/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/drive/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/devices/devices/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/system/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/information/ | OK (cached)
+[200] https://docs.getutm.app/settings-qemu/input/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/virtualization/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/boot/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/12-tooling-and-agent-loop.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/10-tart-vs-utm-adr.md#decision
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/02-packer-tart-builder.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/03-tart-ci-and-orchard.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/06-utm-macos-guest.md
+[200] https://github.com/cirruslabs/macos-image-templates/blob/main/templates/base.pkr.hcl | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/13-build-secrets.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/03-tart-ci-and-orchard.md#running-scripts-in-a-vm-cirrus-run-vs-plain-ssh
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/05-utm-automation.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/08-dotfiles-test-harness.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/10-tart-vs-utm-adr.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/12-tooling-and-agent-loop.md#macos-versionstoml--declarative-image-selection
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#what-zsh-dotfiles-cannot-bootstrap-on-macos
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#the-version_manager-selector-asdf--mise
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#bootstrap-verbatim-g9
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#the-chezmoi-template-contract-g11
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/02-packer-tart-builder.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/03-tart-ci-and-orchard.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#pre-apply-template-validation-chezmoi-diff-not-chezmoi-verify
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/05-utm-automation.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/02-packer-tart-builder.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/06-utm-macos-guest.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#non-tty-default-state-what-installed-means-for-a-lean-baseline-run
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/08-dotfiles-test-harness.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/04-tart-licensing-risk.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/05-utm-automation.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#assertion-vocabulary-already-in-use-upstream-reuse-dont-reinvent
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/02-packer-tart-builder.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/13-build-secrets.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/10-tart-vs-utm-adr.md
+[200] https://developer.hashicorp.com/packer/docs/templates/hcl_templates/functions/collection/compact | OK (cached)
+[200] https://docs.getutm.app/guest-support/sharing/sharing/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/10-tart-vs-utm-adr.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md
+[200] https://docs.getutm.app/advanced/headless/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#the-linux-coverage-gap-this-repo-exists-to-close
+[200] https://docs.getutm.app/advanced/rosetta/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/08-dotfiles-test-harness.md
+[200] https://tart.run/faq/ | OK (cached)
+[200] https://docs.getutm.app/advanced/disposable/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md#the-tart-guest-agent
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/00-overview.md#scope-note
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#the-version_manager-selector-asdf--mise
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md#headless-mode-and-the-macos-15-keychain-requirement-g8
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md#verifying-packer-docs-urls
+[200] https://docs.getutm.app/basics/controls/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/07-utm-settings-appendix.md
+[200] https://developer.hashicorp.com/server-sitemap.xml | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/03-tart-ci-and-orchard.md
+[200] https://developer.hashicorp.com/packer/docs/provisioners/shell | OK (cached)
+[200] https://developer.hashicorp.com/packer/docs/templates/hcl_templates/functions/contextual/env | OK (cached)
+[200] https://docs.getutm.app/advanced/serial/ | OK (cached)
+[200] https://tart.run/blog/2025/10/27/press-release-cirrus-labs-successfully-enforces-its-fair-source-license/ | OK (cached)
+[200] https://docs.getutm.app/settings-qemu/input/ | OK (cached)
+[200] https://docs.getutm.app/preferences/macos/ | OK (cached)
+[200] https://tart.run/blog/2023/02/11/changing-tart-license/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/02-packer-tart-builder.md
+[200] https://docs.getutm.app/advanced/version/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/settings-apple/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/devices/devices/ | OK (cached)
+[200] https://developer.hashicorp.com/packer/docs/templates/hcl_templates/variables | OK (cached)
+[200] https://git-scm.com/docs/git-config | OK (cached)
+[200] https://github.com/cirruslabs/cirrus-cli | OK (cached)
+[200] https://docs.getutm.app/guides/classic-macos/ | OK (cached)
+[200] https://github.com/utmapp/UTM/discussions/3618 | OK (cached)
+[200] https://docs.getutm.app/scripting/cheat-sheet/ | OK (cached)
+[200] https://docs.getutm.app/guides/guides/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/information/ | OK (cached)
+[200] https://motionbug.com/the-cookbook-baking-up-your-perfect-jamf-pro-test-vm/ | OK (cached)
+[200] https://docs.getutm.app/advanced/multiple-displays/ | OK (cached)
+[200] https://docs.getutm.app/installation/macos/ | OK (cached)
+[200] https://docs.getutm.app/settings-qemu/qemu/ | OK (cached)
+[200] https://github.com/cirruslabs/packer-plugin-tart | OK (cached)
+[200] https://tonyyo11.github.io/posts/October-Learning-Terraform/ | OK (cached)
+[200] https://docs.getutm.app/basics/actions/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/drive/ | OK (cached)
+[200] https://tart.run/quick-start/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/04-tart-licensing-risk.md
+[200] https://mac.getutm.app/ | OK (cached)
+[200] https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api | OK (cached)
+[200] https://docs.getutm.app/settings-qemu/sharing/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md
+[200] https://docs.getutm.app/advanced/remote-control/ | OK (cached)
+[200] https://tart.run/orchard/quick-start/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/06-utm-macos-guest.md
+[200] https://github.com/bossjones/zsh-dotfiles | OK (cached)
+[200] https://github.com/utmapp/UTM/issues/3718 | OK (cached)
+[200] https://github.com/lycheeverse/lychee | OK (cached)
+[200] https://tart.run/licensing/ | OK (cached)
+[200] https://docs.getutm.app/advanced/recovery/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/system/ | OK (cached)
+[200] https://docs.getutm.app/settings-qemu/devices/devices/ | OK (cached)
+[200] https://tart.run/faq/#vm-location-on-disk | OK (cached)
+[200] https://docs.getutm.app/settings-qemu/information/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/05-utm-automation.md
+[200] https://docs.getutm.app/settings-qemu/settings-qemu/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/boot/ | OK (cached)
+[200] https://raw.githubusercontent.com/bossjones/zsh-dotfiles-prep/main/bin/zsh-dotfiles-prereq-installer | OK (cached)
+[200] https://docs.getutm.app/settings-qemu/system/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/sharing/ | OK (cached)
+[200] https://docs.getutm.app/ | OK (cached)
+[200] https://docs.getutm.app/guest-support/macos/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/12-tooling-and-agent-loop.md
+[200] https://docs.getutm.app/scripting/reference/ | OK (cached)
+[200] https://www.ivobeerens.nl/blog/2024/06/pass-github-variable-to-packer-powershell-provisioner/ | OK (cached)
+[200] https://docs.getutm.app/guest-support/dynamic-resolution/ | OK (cached)
+[200] https://github.com/cirruslabs/packer-plugin-tart/tree/main/.web-docs | OK (cached)
+[200] https://tart.run/quick-start/#ssh-access | OK (cached)
+[200] https://chezmoi.io/get | OK (cached)
+[200] https://tart.run/integrations/cirrus-cli/ | OK (cached)
+[200] https://developer.hashicorp.com/packer/integrations/cirruslabs/tart/latest/components/builder/tart | OK (cached)
+[200] https://tart.run/blog/ | OK (cached)
+[200] https://docs.getutm.app/settings-apple/virtualization/ | OK (cached)
+[200] https://developer.hashicorp.com/packer/docs/templates/legacy_json_templates/user-variables | OK (cached)
+[200] https://github.com/markkenny/macos-virtualisation | OK (cached)
+[200] https://github.com/Homebrew/brew/blob/master/docs/Manpage.md | OK (cached)
+[200] https://docs.getutm.app/settings-qemu/drive/drive/ | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/13-build-secrets.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/02-packer-tart-builder.md
+[200] https://developer.hashicorp.com/packer/docs/provisioners/shell | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/08-dotfiles-test-harness.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/12-tooling-and-agent-loop.md
+[200] https://tart.run/faq/#vm-location-on-disk | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/05-utm-automation.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/10-tart-vs-utm-adr.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/07-utm-settings-appendix.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/02-packer-tart-builder.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md#the-tart-guest-agent
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md#verifying-packer-docs-urls
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/13-build-secrets.md
+[200] https://developer.hashicorp.com/packer/docs/templates/hcl_templates/variables | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#pre-apply-template-validation-chezmoi-diff-not-chezmoi-verify
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#the-chezmoi-template-contract-g11
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/04-tart-licensing-risk.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/03-tart-ci-and-orchard.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/12-tooling-and-agent-loop.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/08-dotfiles-test-harness.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#the-chezmoi-template-contract-g11
+[200] https://developer.hashicorp.com/packer/docs/templates/hcl_templates/functions/contextual/env | OK (cached)
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md#build-time-secrets
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/01-tart-core.md#headless-mode-and-the-macos-15-keychain-requirement-g8
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/09-dotfiles-under-test.md#the-linux-coverage-gap-this-repo-exists-to-close
+🔬 Re-checking every spec claim against its evidence
+[PASS] G11-version-manager-outside-interactive  (file-contains)
+[PASS] G11-stdinIsATTY-line-2  (file-line)
+         line 2: {{- $interactive := stdinIsATTY -}}
+[PASS] G11-version-manager-default-asdf-line-20  (file-line)
+         line 20: {{- $version_manager := "asdf" -}}
+[PASS] mise-installed-by-dotfiles-on-macos  (file-contains)
+[PASS] no-macos-asdf-installer  (absent)
+[PASS] chezmoiignore-enforces-mutual-exclusion  (file-contains)
+[PASS] smoke-test-promptstring-invocation  (file-contains)
+[PASS] smoke-test-wraps-in-retry  (file-contains)
+[PASS] prereq-installer-bakes-asdf  (file-contains)
+[PASS] chezmoiversion-floor  (file-contains)
+[PASS] tart-has-vnc-experimental  (cli-help)
+[PASS] tart-has-no-graphics  (cli-help)
+[PASS] utm-virtualization-page-exists  (doc-index)
+[PASS] CONTROL-utm-settings-apple-devices-is-fabricated  (doc-index)
+[PASS] utmctl-help-lists-exec  (cli-help)
+[PASS] utmctl-help-lists-ip-address  (cli-help)
+[PASS] utmctl-start-help-lists-disposable  (cli-help)
+[PASS] utmctl-is-an-applescript-wrapper  (doc-contains)
+[PASS] utmctl-exec-needs-qemu-guest-agent  (doc-contains)
+[PASS] utm-guest-commands-need-guest-agent-v42  (doc-contains)
+[PASS] utm-input-automation-is-qemu-only  (doc-contains)
+[PASS] utmctl-disposable-is-qemu-only  (doc-contains)
+[PASS] utmctl-usb-is-qemu-only  (doc-contains)
+[PASS] utm-requires-app-open-for-headless  (doc-contains)
+[PASS] CONTROL-disposable-is-not-apple-backend  (doc-contains)
+[PASS] tart-recommends-cirrus-cli-for-scripts  (doc-contains)
+[PASS] tart-documents-sshpass-fallback  (doc-contains)
+[PASS] tart-cirrus-cli-page-exists  (doc-index)
+[PASS] cirrus-cli-artifacts-dir-documented  (doc-contains)
+[PASS] cirrus-run-has-artifacts-dir  (cli-help)
+[PASS] tart-ip-has-agent-resolver  (cli-help)
+[PASS] base-image-installs-tart-guest-agent  (file-line)
+         line 167: "brew install cirruslabs/cli/tart-guest-agent",
+[PASS] base-image-preinstalls-mise  (file-contains)
+[PASS] vanilla-tahoe-sets-admin-password  (file-line)
+         line 20: ssh_password = "admin"
+[PASS] vanilla-tahoe-enables-remote-login  (file-contains)
+[PASS] CONTROL-tart-doc-index-oracle  (doc-index)
+[PASS] CONTROL-tart-cirrus-page-has-no-sshpass  (doc-contains)
+[PASS] packer-is-installed  (cli-help)
+[PASS] packer-sensitive-masks-value  (cli-help)
+[PASS] CONTROL-packer-inspect-prints-plain-literals  (cli-help)
+[PASS] packer-sensitive-hides-secret  (cli-help)
+[PASS] packer-sensitive-hides-secret-under-debug-log  (cli-help)
+[PASS] CONTROL-packer-debug-log-prints-plain-literals  (cli-help)
+[PASS] git-reads-config-from-env-only  (cli-help)
+[PASS] gh-auth-token-subcommand-exists  (cli-help)
+[PASS] linux-lane-uses-buildkit-secret-mount  (file-line)
+         line 127: RUN --mount=type=secret,id=homebrew_token \
+[PASS] prep-brewfile-taps-over-ssh  (file-contains)
+[PASS] no-packages-token-in-dockerfile  (absent)
+[PASS] no-packages-token-in-prereq-installer  (absent)
+[PASS] tart-vm-location-documented  (doc-index)
+
+50/50 claims verified
+🕵️  <!-- UNVERIFIED --> markers by file:
+specs/macos-ci/07-utm-settings-appendix.md:25:| [qemu](https://docs.getutm.app/settings-qemu/qemu/) | Logging, UEFI boot, RNG ("entropy") device, balloon device, TPM 2.0, hypervisor/TSO toggles, PS/2 fallback, UEFI variable reset, raw QEMU machine properties/arguments | Notably: "Use TSO... not supported on macOS however when using the Apple virtualization backend, a similar option is available." That Apple-backend equivalent is **still undocumented**: [settings-apple/virtualization](https://docs.getutm.app/settings-apple/virtualization/) enumerates every Apple toggle and TSO is not among them <!-- UNVERIFIED: absence of a TSO toggle inferred from that page's complete section list, not from an explicit statement --> |
+specs/macos-ci/01-tart-core.md:68:<!-- UNVERIFIED: exact ghcr.io image path/tag syntax composed from the quick-start command patterns; not quoted verbatim as a single fetched example. -->
+specs/macos-ci/12-tooling-and-agent-loop.md:340:<!-- UNVERIFIED: `--vnc-experimental` is labelled experimental by Tart itself, and the exact stdout
+specs/macos-ci/13-build-secrets.md:51:<!-- UNVERIFIED: reproduced on the host against a UDIF/APFS image via hdiutil, not inside a tart VM
+specs/macos-ci/13-build-secrets.md:54:<!-- UNVERIFIED: whether the same holds for `disk_format = "asif"` (macOS 26+), a sparse format
+specs/macos-ci/02-packer-tart-builder.md:73:| `pull_concurrency` | number* | Number of layers to pull concurrently from the OCI registry. <!-- UNVERIFIED: HashiCorp page lists this as boolean, which looks like a docs typo for a concurrency count; flagged rather than silently "corrected". --> |
+specs/macos-ci/02-packer-tart-builder.md:169:<!-- UNVERIFIED: composed example combining documented fields; not a block quoted verbatim from either source. -->
+specs/macos-ci/05-utm-automation.md:112:an Apple-backend macOS guest is <!-- UNVERIFIED --> from the docs alone.)
+specs/macos-ci/05-utm-automation.md:404:| Scripted keystrokes / mouse clicks | **No** (AppleScript path) / <!-- UNVERIFIED --> (`utm://` path) | — (no CLI verb) | Input Automation Suite is QEMU-only (§2.6) |
+specs/macos-ci/03-tart-ci-and-orchard.md:53:  <!-- UNVERIFIED: exact CWD-copy mechanism (rsync vs tart's --dir mount) not detailed on this page -->
+specs/macos-ci/03-tart-ci-and-orchard.md:144:   hosted Cirrus CI can do for us. <!-- UNVERIFIED: no source page describes self-hosted Cirrus CI
+specs/macos-ci/06-utm-macos-guest.md:76:treat persistent auto-mount on the macOS guest side as <!-- UNVERIFIED --> and, if needed, solve it with
+specs/macos-ci/08-dotfiles-test-harness.md:62:   <!-- UNVERIFIED: exact `tart clone` syntax — cross-check against 01-tart-core.md's verified CLI
+specs/macos-ci/08-dotfiles-test-harness.md:97:   <!-- UNVERIFIED: exact headless-run flag spelling — cross-check against 01-tart-core.md's
+specs/macos-ci/08-dotfiles-test-harness.md:104:   <!-- UNVERIFIED: exact `--dir` mount syntax — cross-check against 01-tart-core.md. -->
+specs/macos-ci/08-dotfiles-test-harness.md:174:  from Sheldon's own CLI contract — <!-- UNVERIFIED: confirm exact non-mutating flag against sheldon

@@ -1,0 +1,4 @@
+// A must_fail file-line over an EXISTING file at an out-of-range line.
+// check_line returns a PLAIN False ("line 999 out of range"), so must_fail inverts it -> PASS.
+// This is the exact mechanism CONTROL-12-line-607-does-not-exist depends on.
+{"id":"probe-out-of-range-line-is-inverted","kind":"file-line","must_fail":true,"file":"tests/fixtures/verifier/mustfail-inversion.jsonl","target":"tests/fixtures/verifier/mustfail-inversion.jsonl","line":999,"expect":"never-matched-sentinel","claim":"fixture: a plain failure IS inverted by must_fail"}

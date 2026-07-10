@@ -1,0 +1,33 @@
+// Proposed by 🔬 ledger during AUDIT-OWN. Dry-run before filing (see backlog).
+//
+// Two new must_fail/control PAIRS. Each negative probe ships a positive control running
+// the SAME argv AND the SAME env, asserting a literal that command genuinely prints —
+// invariant (b). A pair whose control is vacuous is a green check that means nothing.
+
+// --- G16: `sensitive = true` masks the VALUE, not the variable ---------------
+// The existing fixture cannot show this: `ghp_FIXTURE_SENTINEL` is not a substring of
+// `plain_FIXTURE_CONTROL`, so no bleed is observable. An `env` overlay fixes that with
+// NO new fixture: PKR_VAR_pub injects the secret's value into a DIFFERENT, non-sensitive
+// variable, and packer redacts it there too. This is the claim that makes G16's
+// "never mark `admin` sensitive" warning true rather than merely plausible.
+{"id":"g16-sensitive-masks-value-inside-unrelated-variable","kind":"cli-help","file":"specs/macos-ci/13-build-secrets.md","argv":["packer","inspect","tests/fixtures/packer-sensitive"],"env":{"PKR_VAR_pub":"ghp_FIXTURE_SENTINEL_AND_MORE"},"expect":"<sensitive>_AND_MORE","claim":"packer's sensitive=true redacts the VALUE wherever it appears, including inside a different, NON-sensitive variable: overriding var.pub to `ghp_FIXTURE_SENTINEL_AND_MORE` prints `<sensitive>_AND_MORE`. Masking is a substring rewrite over the output, not a property of the variable. This is why marking a common word (`admin`, G8's public default password) sensitive would rewrite every occurrence of that word in every log. POSITIVE CONTROL for g16-injected-secret-never-prints-in-unrelated-variable: same argv, same env, and it proves the command emits output at all."}
+{"id":"g16-injected-secret-never-prints-in-unrelated-variable","kind":"cli-help","must_fail":true,"file":"specs/macos-ci/13-build-secrets.md","argv":["packer","inspect","tests/fixtures/packer-sensitive"],"env":{"PKR_VAR_pub":"ghp_FIXTURE_SENTINEL_AND_MORE"},"expect":"ghp_FIXTURE_SENTINEL_AND_MORE","claim":"the sensitive value does not survive being smuggled into a non-sensitive variable: the injected literal never reaches packer's output. Alone this is unfalsifiable — an empty output satisfies it equally. Paired with g16-sensitive-masks-value-inside-unrelated-variable, which runs the SAME argv and SAME env and asserts `<sensitive>_AND_MORE` IS printed."}
+
+// --- the verifier's own must_fail soundness ----------------------------------
+// Found this run: `_read` raising FileNotFoundError used to return a PLAIN failure
+// (`missing: ...`), which `must_fail` inverted into a PASS. So DELETING a control's
+// target file turned that control green. CONTROL-12-line-607-does-not-exist is exactly
+// such a claim. Fixed by prefixing UNREACHABLE. This claim pins the fix.
+{"id":"verify-claims-missing-file-is-unreachable","kind":"file-contains","file":"specs/macos-ci/12-tooling-and-agent-loop.md","target":"tools/verify_claims.py","expect":"UNREACHABLE: missing file:","claim":"an absent target file yields an UNREACHABLE-prefixed failure, which must_fail never inverts. Without this prefix, deleting a control's target file turns the control GREEN — a must_fail file-line claim on a missing file 'passes' for the wrong reason. Guards CONTROL-12-line-607-does-not-exist against exactly that."}
+
+// --- D1: Justfile:44 invokes a template that does not exist ------------------
+{"id":"d1-justfile-44-invokes-absent-template","kind":"file-line","file":"specs/macos-ci/13-build-secrets.md","target":"Justfile","line":44,"expect":"packer build packer/tart-golden-image.pkr.hcl","claim":"Justfile:44 shells out to packer/tart-golden-image.pkr.hcl. Paired with CONTROL-d1-packer-dir-does-not-exist, which proves that path is absent — together they are D1: `just build-golden` is broken today."}
+{"id":"CONTROL-d1-packer-dir-does-not-exist","kind":"cli-help","must_fail":true,"file":"specs/macos-ci/13-build-secrets.md","argv":["ls","-1"],"expect":"packer","claim":"there is no `packer/` directory at the repo root, so the template Justfile:44 invokes does not exist (D1). If this ever starts PASSING the template was authored — re-audit 13-build-secrets.md, which currently documents it as ABSENT. Alone this is unfalsifiable (no output satisfies it too); paired with CONTROL-ls-prints-repo-root-entries, which runs the SAME argv and asserts `Justfile` IS printed."}
+{"id":"CONTROL-ls-prints-repo-root-entries","kind":"cli-help","file":"specs/macos-ci/13-build-secrets.md","argv":["ls","-1"],"expect":"Justfile","claim":"POSITIVE CONTROL for CONTROL-d1-packer-dir-does-not-exist: `ls -1` from the repo root DOES print entries. If this fails, 'packer/ was absent from the listing' proves nothing — ls printed nothing."}
+
+// --- D2 / D5': pin the defect sites the brief cited with WRONG line numbers ---
+// The brief said 12:200-202. Re-derived with `sed -n`: line 200 is the table rule; the
+// three fabricated recipe rows are 201-203. Third false line-number claim in the brief.
+{"id":"d2-spec12-201-documents-nonexistent-build-recipe","kind":"file-line","file":"specs/macos-ci/12-tooling-and-agent-loop.md","target":"specs/macos-ci/12-tooling-and-agent-loop.md","line":201,"expect":"`build [IMAGE]`","claim":"12-tooling-and-agent-loop.md:201 documents a `build [IMAGE]` recipe. `just --summary` lists no such recipe (D2). The master brief cited :200-202 for this; 200 is the table rule and the rows run 201-203."}
+{"id":"d2-justfile-has-no-build-ipsw-recipe","kind":"absent","file":"specs/macos-ci/12-tooling-and-agent-loop.md","target":"Justfile","expect":"build-ipsw","claim":"the `build-ipsw VERSION` recipe documented at 12-tooling-and-agent-loop.md:202 does not exist in the Justfile (D2)."}
+{"id":"d5-justfile-63-discriminates-on-the-backtick","kind":"file-line","file":"specs/macos-ci/12-tooling-and-agent-loop.md","target":"Justfile","line":63,"expect":"grep -v '`<!-- UNVERIFIED'","claim":"D5' landed: unverified-count excludes backticked prose mentions, not the bare word. The brief's D5 claimed Justfile:63 grepped the bare word `UNVERIFIED` and that tightening to '<!-- UNVERIFIED' would drop 5 lines; both halves were false and the real discriminator is the backtick. Soundness of that discriminator is OQ-05."}

@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan: macos-ci — Tart-Based Dotfiles Test Harness</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #161d25;
+    --panel-2: #1c242e;
+    --ink: #dbe2ea;
+    --muted: #8a97a5;
+    --accent: #34d399;      /* terminal green */
+    --accent-dim: #10b981;
+    --blue: #60a5fa;
+    --warn: #fbbf24;
+    --danger: #f87171;
+    --border: #2a3542;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+    font-size: 16px;
+  }
+  main { max-width: 920px; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
+  h1 { font-size: 1.9rem; letter-spacing: -0.02em; margin-bottom: 0.75rem; }
+  h1::before { content: "▸ "; color: var(--accent); }
+  h2 {
+    font-size: 1.35rem; margin: 3rem 0 1rem;
+    padding-bottom: 0.4rem; border-bottom: 1px solid var(--border);
+    color: var(--accent);
+  }
+  h3 { font-size: 1.1rem; margin: 1.75rem 0 0.75rem; }
+  h4 { font-size: 1rem; margin: 1.5rem 0 0.5rem; color: var(--blue); }
+  p { margin: 0.75rem 0; }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--panel-2); padding: 0.12em 0.4em; border-radius: 4px;
+    color: #e8eef4;
+  }
+  pre {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem; overflow-x: auto; margin: 1rem 0; font-size: 0.85rem;
+  }
+  pre code { background: none; padding: 0; }
+  ul, ol { margin: 0.5rem 0 0.75rem 1.4rem; }
+  li { margin: 0.3rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { border: 1px solid var(--border); padding: 0.45rem 0.7rem; text-align: left; vertical-align: top; }
+  th { background: var(--panel-2); color: var(--accent); font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+  figure { margin: 1.75rem auto; text-align: center; }
+  figure img {
+    max-width: 100%; border-radius: 10px; border: 1px solid var(--border);
+    display: block; margin: 0 auto;
+  }
+  figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 0.6rem; font-style: italic; }
+  details.meta, #questionables details, #amendments details {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.6rem 1rem; margin: 0.6rem 0;
+  }
+  details summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+  details[open] summary { color: var(--accent); margin-bottom: 0.5rem; }
+  dl { display: grid; grid-template-columns: 10rem 1fr; gap: 0.3rem 1rem; margin: 0.75rem 0; font-size: 0.88rem; }
+  dt { color: var(--muted); font-family: var(--mono); }
+  dd { word-break: break-word; }
+  .tag {
+    font-family: var(--mono); font-size: 0.7rem; padding: 0.1em 0.55em;
+    border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em;
+    margin-right: 0.4rem; vertical-align: middle;
+  }
+  .tag.existing { background: rgba(96,165,250,0.15); color: var(--blue); border: 1px solid rgba(96,165,250,0.4); }
+  .tag.new { background: rgba(52,211,153,0.12); color: var(--accent); border: 1px solid rgba(52,211,153,0.4); }
+  .tag.broken { background: rgba(248,113,113,0.12); color: var(--danger); border: 1px solid rgba(248,113,113,0.4); }
+  .phase {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.25rem 1.5rem; margin: 1.75rem 0;
+  }
+  .phase > h3 { margin-top: 0; }
+  code.status { color: var(--warn); background: var(--panel-2); }
+  ul.checklist { list-style: none; margin-left: 0.25rem; }
+  ul.checklist li { padding-left: 0.25rem; }
+  .loop {
+    background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.35);
+    border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0 0.25rem; font-size: 0.9rem;
+  }
+  .callout {
+    background: rgba(52,211,153,0.07); border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0; padding: 0.8rem 1rem; margin: 1rem 0; font-size: 0.92rem;
+  }
+  .callout.danger { background: rgba(248,113,113,0.07); border-left-color: var(--danger); }
+  .qa-answer { color: var(--muted); font-size: 0.92rem; }
+  .qa-answer strong { color: var(--ink); }
+  header p.subtitle { color: var(--muted); font-size: 1.02rem; }
+  section#questionables summary::before { content: "⚠ "; color: var(--warn); }
+</style>
+</head>
+<body>
+<main>
+
+  <!-- ===== HEADER + UPDATABLE METADATA ===== -->
+  <header>
+    <h1>Plan: macos-ci — Tart-Based Dotfiles Test Harness</h1>
+    <p class="subtitle">A local, scriptable, disposable-VM CI loop that installs <code>zsh-dotfiles</code> into a macOS guest, asserts the install, and tears it down — the macOS equivalent of the three Linux Dockerfiles.</p>
+    <div class="callout" role="note"><strong>Derived artifact:</strong> this page is a rendering of <code>specs/macos-ci.md</code> + <code>specs/macos-ci/*</code> at commit <code>f0b434a</code>. The markdown specs are authoritative — on any conflict, trust them, not this page. To change the plan, change the specs and re-render.</div>
+    <details class="meta">
+      <summary>Metadata</summary>
+      <dl>
+        <dt>created</dt>      <dd>2026-07-10</dd>
+        <dt>modified</dt>     <dd>2026-07-10</dd>
+        <dt>commits</dt>      <dd>f0b434a</dd>
+        <dt>agent name</dt>   <dd>Claude Fable 5 (agent-harness:planf3)</dd>
+        <dt>session id</dt>   <dd>session_01Ljo7fwNZUXi8eX49bJrFS1</dd>
+        <dt>back refs</dt>    <dd>specs/macos-ci.md, specs/macos-ci/00-overview.md, specs/macos-ci/01-tart-core.md, specs/macos-ci/02-packer-tart-builder.md, specs/macos-ci/03-tart-ci-and-orchard.md, specs/macos-ci/04-tart-licensing-risk.md, specs/macos-ci/05-utm-automation.md, specs/macos-ci/06-utm-macos-guest.md, specs/macos-ci/07-utm-settings-appendix.md, specs/macos-ci/08-dotfiles-test-harness.md, specs/macos-ci/09-dotfiles-under-test.md, specs/macos-ci/10-tart-vs-utm-adr.md, specs/macos-ci/11-sources.md, specs/macos-ci/12-tooling-and-agent-loop.md, specs/macos-ci/13-build-secrets.md, .team/macos-ci.open-questions.md</dd>
+        <dt>forward refs</dt> <dd>pyproject.toml, src/macos_ci/, Justfile (lifecycle recipes), Makefile, macos-versions.toml, packer/tart-golden-image.pkr.hcl, packer/ipsw/&lt;version&gt;.pkr.hcl, harness/seed-config/chezmoi.yaml.tmpl, tests/{unit,integration,pty,gui,manual}/, .cirrus.yml</dd>
+      </dl>
+    </details>
+  </header>
+
+  <!-- Hero image — synced to the :root visual identity. -->
+  <figure>
+    <!-- IMAGE-SLOT: disposable macOS VM lifecycle loop — clone, apply dotfiles, assert, delete — clean terminal-green cycle diagram on dark slate -->
+      <img src="macos-ci/hero.png" alt="Lifecycle loop: clone, apply, assert, delete">
+    <figcaption>The whole system in one loop: clone a golden VM, apply the dotfiles, assert, delete. Every run disposable, every verdict machine-readable.</figcaption>
+  </figure>
+
+  <!-- ===== PURPOSE / PROBLEM / SOLUTION ===== -->
+  <section id="purpose">
+    <h2>Purpose</h2>
+    <p>Build a local, scriptable, disposable-VM test harness that installs <code>zsh-dotfiles</code> (chezmoi) into a macOS virtual machine, asserts the install succeeded, and tears the VM down. It gives macOS the same fast local CI loop that <code>zsh-dotfiles-prep</code>'s three Linux Dockerfiles already give Linux. Everything is driven by a <code>Justfile</code> fronting an installable <code>macos-ci</code> Python package, and every command emits machine-readable state (<code>artifacts/latest/verdict.json</code>) so both a human and an autonomous agent can tell exactly which phase failed. (Source: <code>specs/macos-ci.md</code>, <code>specs/macos-ci/00-overview.md</code>.)</p>
+  </section>
+
+  <section id="problem">
+    <h2>Problem</h2>
+    <p>There is no local, disposable macOS test environment for the dotfiles today. Docker cannot run a macOS guest, so the Linux images cover Linux only; the sole macOS coverage is upstream's remote, queued GitHub Actions <code>macos-14</code> runner — slow feedback, no interactive debugging, no matrix control. Testing a chezmoi template change against a pristine macOS user account currently means risking your own host or waiting on CI. The research in <code>specs/macos-ci/10-tart-vs-utm-adr.md</code> settled the virtualization question: <strong>Tart is primary, UTM is the escape hatch</strong> — UTM has no Packer builder, no IaC story, and its guest-automation surface needs a QEMU guest agent that Apple-backend macOS guests cannot run.</p>
+    <figure>
+      <!-- IMAGE-SLOT: split diagram — Linux side with fast Docker loop vs macOS side with only a slow remote CI queue, the gap highlighted -->
+      <img src="macos-ci/problem.png" alt="Linux has a fast local Docker loop; macOS only a slow remote queue">
+      <figcaption>Linux gets an instant Docker loop; macOS gets a remote queue. The harness closes that gap.</figcaption>
+    </figure>
+  </section>
+
+  <section id="solution">
+    <h2>Solution</h2>
+    <p>A golden Tart image (<code>ghcr.io/cirruslabs/macos-sequoia-vanilla</code> + Xcode CLT + Homebrew + chezmoi + <code>retry</code>, built by <code>packer-plugin-tart</code>) is cloned per run. The harness drives <code>tart clone → tart run --no-graphics → tart ip → SSH (no
+    <code>-t</code>, so chezmoi's <code>stdinIsATTY</code> contract takes every prompt's default) → chezmoi diff → chezmoi apply → pytest-testinfra assertions → tart delete</code>. A pure/impure split (<code>_*_core.py</code> stdlib-only modules paired with thin I/O siblings) keeps the logic unit-testable without a VM; four opt-in pytest tiers (<code>vm</code>/<code>pty</code>/<code>gui</code>/<code>manual</code>) are all deselected by default; <code>artifacts/&lt;run-id&gt;/verdict.json</code> plus exit codes 0/2/3/4 make every failure attributable to a phase.</p>
+    <figure>
+      <!-- IMAGE-SLOT: layered architecture — Justfile and macos-ci CLI on top, tart VM lifecycle in middle, verdict.json artifact output at bottom -->
+      <img src="macos-ci/solution.png" alt="Layered architecture: Justfile and macos-ci CLI, tart VM lifecycle, verdict.json">
+      <figcaption>Justfile → <code>macos-ci</code> package → tart lifecycle → <code>verdict.json</code>: one command in, one attributable verdict out.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ===== RELEVANT FILES ===== -->
+  <section id="files" class="files">
+    <h2>Relevant Files</h2>
+
+    <h3>Existing Files</h3>
+    <ul>
+      <li><span class="tag existing">existing</span> <code>justfile</code> / <code>Justfile</code> — the truth-gate recipes that work today: <code>check</code>, <code>link-check*</code>, <code>verify-claims*</code>, <code>unverified-count</code>, <code>verify-no-secrets</code>; extend with the lifecycle recipes</li>
+      <li><span class="tag existing">existing</span> <code>tools/verify_claims.py</code> — the claims-ledger re-executor (exit 0/2/3/4); the harness's verdict/exit-code contract mirrors it</li>
+      <li><span class="tag existing">existing</span> <code>.team/claims.jsonl</code> — 357 load-bearing claims with re-executable evidence; new implementation claims land here</li>
+      <li><span class="tag existing">existing</span> <code>lychee.toml</code> — link hygiene incl. <code>#anchor</code> fragments; new docs must pass it</li>
+      <li><span class="tag existing">existing</span> <code>tests/fixtures/packer-sensitive/fixture.pkr.hcl</code> — the paired sensitive/control masking probe reused by task 6a</li>
+      <li><span class="tag existing">existing</span> <code>tests/fixtures/verifier/</code> — 11 fixtures exercising <code>verify_claims.py</code>; the pattern for new fixture-driven unit tests</li>
+      <li><span class="tag existing">existing</span> <span class="tag broken">stale</span> <code>.claude/</code> agents/commands/skills — inherited from a Multipass project, reference a nonexistent <code>tools/system_debug.py</code>; rewritten in Phase 3, never extended</li>
+      <li><span class="tag existing">existing</span> <span class="tag broken">broken</span> <code>justfile:build-golden</code> — invokes <code>packer/tart-golden-image.pkr.hcl</code> which does not exist; guarded to exit 4 (OQ-04 / defect D1)</li>
+    </ul>
+
+    <h3>New Files</h3>
+    <ul>
+      <li><span class="tag new">new</span> <code>pyproject.toml</code> — hatchling; <code>[project.scripts] macos-ci = "macos_ci.cli:app"</code>; typer, pytest, testinfra, ruff, basedpyright</li>
+      <li><span class="tag new">new</span> <code>src/macos_ci/</code> — paired modules: <code>_doctor_core.py</code>/<code>doctor.py</code>, <code>_tart_core.py</code>/<code>tart.py</code>, <code>_harness_core.py</code>/<code>harness.py</code>, <code>_config_core.py</code>, <code>_gui_core.py</code> (incl. <code>parse_vnc_url</code>), <code>_triage_core.py</code>, <code>cli.py</code></li>
+      <li><span class="tag new">new</span> <code>macos-versions.toml</code> — single source of truth for image references: OCI lane tags + IPSW lane pinned CDN URL + sha256 per point release</li>
+      <li><span class="tag new">new</span> <code>packer/tart-golden-image.pkr.hcl</code> — the OCI-clone lane golden image (fixes broken <code>build-golden</code>)</li>
+      <li><span class="tag new">new</span> <code>packer/ipsw/&lt;version&gt;.pkr.hcl</code> — the from-IPSW lane, one template per pinned release</li>
+      <li><span class="tag new">new</span> <code>Makefile</code> — thin shim delegating to <code>just</code> for muscle-memory parity</li>
+      <li><span class="tag new">new</span> <code>harness/seed-config/chezmoi.yaml.tmpl</code> — the Option A pre-seeded config that reaches the 7 non-TTY-settable feature bools</li>
+      <li><span class="tag new">new</span> <code>tests/unit/</code>, <code>tests/integration/</code>, <code>tests/pty/</code>, <code>tests/gui/</code>, <code>tests/manual/</code> — the four opt-in tiers plus the always-on unit tier</li>
+      <li><span class="tag new">new</span> <code>.cirrus.yml</code> — <code>cirrus run</code> local/CI parity task for a future self-hosted runner</li>
+      <li><span class="tag new">new</span> <code>artifacts/</code> — gitignored per-run output: <code>&lt;run-id&gt;/verdict.json</code>, logs, screenshots; <code>latest</code> symlink</li>
+    </ul>
+  </section>
+
+  <!-- ===== IMPLEMENTATION PHASES ===== -->
+  <section id="phases">
+    <h2>Implementation Phases</h2>
+    <p><strong>IMPORTANT:</strong> Execute every phase and task step by step, in order, top to bottom.</p>
+    <p>Status markers: <code>[]</code> idle · <code>[wip]</code> in progress · <code>[x]</code> complete · <code>[f]</code> failed. All start as <code>[]</code>; the Build Plan workflow updates them as it works.</p>
+
+    <!-- ================= PHASE 1 ================= -->
+    <div class="phase">
+      <h3><code class="status">[]</code> Phase 1: Foundation</h3>
+      <p>Stand up the tooling skeleton and the golden image. Write <code>just doctor</code> first — it is the cheapest way to discover the host is wrong. Confirm a single manual <code>tart clone → SSH → chezmoi apply → tart delete</code> cycle works <em>by hand</em> before any automation wraps it: the specs were a docs-only research pass, so the exact tart CLI syntax is assumed-until-verified (see Questionables).</p>
+
+      <figure>
+        <!-- IMAGE-SLOT: foundation phase — host prerequisite checks feeding a packer build that produces one golden VM image -->
+      <img src="macos-ci/phase1.png" alt="Phase 1: doctor checks feed a packer build producing the golden image">
+        <figcaption>Phase 1: prove the host, build the golden image, verify one manual cycle end-to-end.</figcaption>
+      </figure>
+
+      <h4>1. Confirm host prerequisites</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> Verify Apple Silicon + macOS floor: tart needs macOS 13+, <strong>packer-plugin-tart needs macOS 15+</strong> (<code>specs/macos-ci/01</code>, <code>02</code>)</li>
+        <li><code class="status">[]</code> Confirm toolchain already present: <code>tart 2.32.1</code>, <code>packer 1.15.4</code>, <code>just</code>, <code>uv</code>, <code>cirrus</code></li>
+        <li><code class="status">[]</code> Apply the Sequoia local-network-permission workaround (requires a reboot) so <code>tart ip</code> works</li>
+        <li><code class="status">[]</code> Unlock/create the login keychain for headless macOS 15+ boot (constraint G8, <code>specs/macos-ci/01</code>)</li>
+      </ul>
+
+      <h4>2. Licensing sign-off (G4)</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> Read <code>specs/macos-ci/04-tart-licensing-risk.md</code>; record explicit <strong>human</strong> sign-off on the Fair Source accepted-risk before provisioning any headless host</li>
+        <li><code class="status">[]</code> Record the ceiling durably: ≤3 hosts, ≤100 combined CPU cores; <code>just doctor</code> must <em>report</em> the ceiling, never auto-approve it</li>
+      </ul>
+
+      <h4>3. Scaffold the package and write <code>doctor</code> (TDD, red first)</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> <code>pyproject.toml</code> (hatchling) with <code>[project.scripts] macos-ci = "macos_ci.cli:app"</code></li>
+        <li><code class="status">[]</code> Failing unit tests first: <code>_gui_core.parse_vnc_url</code>, <code>_config_core.load</code>, <code>_tart_core.clone_argv</code>, <code>_doctor_core.check</code></li>
+        <li><code class="status">[]</code> Implement <code>doctor.py</code>: host arch/OS, tool presence, free disk, keychain state, license-ceiling report; <code>--json</code> output</li>
+      </ul>
+
+      <h4>4. Write the <code>Justfile</code> recipes and the <code>Makefile</code> shim</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> Implement the full recipe table from <code>specs/macos-ci/12</code> (<code>doctor up down run apply ssh logs debug status gui vnc shot test verify-* matrix lint fmt typecheck ci prune</code>), preserving the existing truth-gate recipes</li>
+        <li><code class="status">[]</code> Add <code>Bash(just:*)</code> to <code>.claude/settings.json</code> allow-list</li>
+      </ul>
+
+      <h4>5. Author <code>macos-versions.toml</code> and the two image lanes</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> <code>macos-versions.toml</code>: OCI tags + IPSW pinned URL/sha256 per point release</li>
+        <li><code class="status">[]</code> <code>packer/tart-golden-image.pkr.hcl</code> — OCI clone lane from <code>…-vanilla</code> (<strong>not</strong> <code>-base</code>: it preinstalls mise and would disarm the test, OQ-18)</li>
+        <li><code class="status">[]</code> <code>packer/ipsw/&lt;version&gt;.pkr.hcl</code> — IPSW lane, expected fragile <code>boot_command</code></li>
+      </ul>
+
+      <h4>6. Build and smoke-test the golden image</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> <code>just build-golden</code> (this un-breaks the currently guarded recipe / closes OQ-04)</li>
+        <li><code class="status">[]</code> Manual smoke: <code>tart clone dotfiles-golden smoke-check</code> → SSH → <code>chezmoi --version && brew doctor</code> → <code>tart delete smoke-check</code></li>
+      </ul>
+
+      <h4>6a. Inject the Homebrew token without letting it reach the artifact</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> Pass <code>HOMEBREW_GITHUB_API_TOKEN</code> only via shell-provisioner <code>environment_vars</code> with <code>use_env_var_file = false</code> — never write it to the guest FS (<code>rm</code> unlinks, it does not zero blocks; <code>specs/macos-ci/13</code>)</li>
+        <li><code class="status">[]</code> Rewrite the one <code>git@github.com:</code> tap to anonymous HTTPS via <code>GIT_CONFIG_COUNT</code>/<code>KEY_n</code>/<code>VALUE_n</code>; no SSH key, no <code>~/.gitconfig</code> in the image</li>
+        <li><code class="status">[]</code> <code>just verify-no-secrets &lt;vm&gt;</code> — and prove the probe works with a planted-canary positive control (a negative probe alone is satisfied by an empty disk)</li>
+      </ul>
+
+      <h4>7. Testing Strategy</h4>
+      <p>Unit tier (pure <code>_core</code> modules, no VM) via pytest; lint/format/type gates; Packer template validation; then the one manual end-to-end cycle that proves the docs-only research against reality.</p>
+      <ul class="checklist">
+        <li><code class="status">[]</code> <code>uv run pytest</code> — unit tier passes with no VM booted</li>
+        <li><code class="status">[]</code> <code>uv run ruff check . && uv run ruff format --check .</code> — style gate clean</li>
+        <li><code class="status">[]</code> <code>uv run basedpyright src/</code> — type gate clean</li>
+        <li><code class="status">[]</code> <code>just doctor --json | jq '.[] | select(.ok == false)'</code> — empty output on a healthy host</li>
+        <li><code class="status">[]</code> <code>packer init packer/tart-golden-image.pkr.hcl && packer validate packer/tart-golden-image.pkr.hcl</code> — template parses</li>
+        <li><code class="status">[]</code> <code>just build-golden</code> — exits 0, image exists in <code>tart list</code></li>
+        <li><code class="status">[]</code> <code>just verify-no-secrets smoke-check</code> — exit 0 clean; planted canary flips it to exit 2</li>
+      </ul>
+      <div class="loop">
+        🔁 <strong>Do not exit this phase until every box above is checked.</strong>
+        If any command fails, fix the cause and re-run — loop until all pass.
+      </div>
+    </div>
+
+    <!-- ================= PHASE 2 ================= -->
+    <div class="phase">
+      <h3><code class="status">[]</code> Phase 2: Core Implementation</h3>
+      <p>Script the full cycle behind <code>just run</code>, port the assertion vocabulary from <code>smoke-test-docker.sh</code> into pytest-testinfra modules, implement the pre-seeded-config lever, and land the <code>artifacts/&lt;run-id&gt;/</code> contract including <code>verdict.json</code>.</p>
+
+      <figure>
+        <!-- IMAGE-SLOT: core pipeline — clone, ssh, chezmoi diff and apply, testinfra assertions, verdict.json emitted, VM deleted -->
+      <img src="macos-ci/phase2.png" alt="Phase 2 pipeline: clone, ssh, diff+apply, assert, verdict, delete">
+        <figcaption>Phase 2: <code>just run</code> owns the whole cycle and always emits a verdict, pass or fail.</figcaption>
+      </figure>
+
+      <h4>1. Implement the harness (<code>up</code>/<code>run</code>/<code>destroy</code>)</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> <code>_harness_core.py</code> (pure): run-id generation, artifact paths, <code>chezmoi_argv()</code></li>
+        <li><code class="status">[]</code> <code>harness.py</code> (impure): clone → run <code>--no-graphics</code> → <code>tart ip</code> → <code>--dir</code> mount → SSH <em>without</em> <code>-t</code> (so <code>stdinIsATTY</code> defaults every prompt, G11) → <code>chezmoi diff</code> (never <code>verify</code>) → <code>chezmoi apply</code></li>
+        <li><code class="status">[]</code> Per-VM identity via <code>CM_computer_name</code>/<code>CM_hostname</code> env vars; flaky network ops wrapped in <code>retry -t 4</code></li>
+        <li><code class="status">[]</code> <code>version_manager</code> selector: <code>mise</code> default (the only manager zsh-dotfiles bootstraps unaided on macOS), <code>asdf</code> opt-in behind <code>--with-prereq-installer</code></li>
+      </ul>
+
+      <h4>2. Implement the pre-seeded-config lever (Option A)</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> Render <code>harness/seed-config/chezmoi.yaml.tmpl</code> → write <code>~/.config/chezmoi/chezmoi.yaml</code> in the guest <em>before</em> <code>chezmoi init</code></li>
+        <li><code class="status">[]</code> This is the only path to the 7 feature bools (<code>ruby pyenv nodejs k8s cuda fnm opencv</code>) — they are unreachable non-TTY (<code>specs/macos-ci/08</code> §(b), <code>09</code>)</li>
+      </ul>
+
+      <h4>3. Port the assertion layer (the <code>vm</code> tier)</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> <code>tests/integration/</code> testinfra modules reusing the <code>smoke-test-docker.sh</code> assertion vocabulary; session-scoped host fixture in <code>conftest.py</code></li>
+        <li><code class="status">[]</code> mise assertions + run the in-guest <code>hack/doctor/check_dev_environment.py</code></li>
+        <li><code class="status">[]</code> <code>sheldon lock</code> as the one mutating assertion (no read-only alternative in 0.6.6, OQ-17 — acceptable only because the clone is disposable)</li>
+      </ul>
+
+      <h4>4. Implement teardown and the artifacts contract</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> Always <code>tart delete &lt;run-id&gt;</code> on completion; <code>--keep-on-failure</code> escape hatch; <code>just prune</code> for strays</li>
+        <li><code class="status">[]</code> <code>artifacts/&lt;run-id&gt;/verdict.json</code> (<code>ok</code>, <code>phase</code>, <code>cause</code>) + logs; <code>artifacts/latest</code> symlink; exit codes 0/2/3/4 matching <code>verify_claims.py</code></li>
+      </ul>
+
+      <h4>5. Testing Strategy</h4>
+      <p>The real thing: a full <code>just run</code> against the actual zsh-dotfiles checkout, verdict inspection with <code>jq</code>, and leak-checking the VM inventory afterwards.</p>
+      <ul class="checklist">
+        <li><code class="status">[]</code> <code>ZSH_DOTFILES=/Users/bossjones/dev/bossjones/zsh-dotfiles just run</code> — full cycle exits 0</li>
+        <li><code class="status">[]</code> <code>jq '.ok, .phase, .cause' artifacts/latest/verdict.json</code> — <code>true</code>, final phase, <code>null</code></li>
+        <li><code class="status">[]</code> <code>uv run pytest -m vm</code> — integration tier green against a live clone</li>
+        <li><code class="status">[]</code> <code>tart list</code> — no leaked run VMs after completion</li>
+        <li><code class="status">[]</code> <code>just prune</code> — removes deliberately stranded clones</li>
+      </ul>
+      <div class="loop">
+        🔁 <strong>Do not exit this phase until every box above is checked.</strong>
+        If any command fails, fix the cause and re-run — loop until all pass.
+      </div>
+    </div>
+
+    <!-- ================= PHASE 3 ================= -->
+    <div class="phase">
+      <h3><code class="status">[]</code> Phase 3: Integration &amp; Polish</h3>
+      <p>Add the <code>pty</code>/<code>gui</code>/<code>manual</code> tiers, rewrite the stale <code>.claude/</code> agent tooling for macOS, wrap the harness in a <code>.cirrus.yml</code> task for <code>cirrus run</code> parity, and validate the whole feedback loop by breaking it on purpose.</p>
+
+      <figure>
+        <!-- IMAGE-SLOT: four test tiers stacked — vm, pty, gui, manual — plus cirrus CI parity and an agent debug loop -->
+      <img src="macos-ci/phase3.png" alt="Phase 3: escalation ladder of test tiers vm, pty, gui, manual plus cirrus parity">
+        <figcaption>Phase 3: the escalation ladder — headless, PTY, VNC framebuffer, human-confirmed — plus CI parity.</figcaption>
+      </figure>
+
+      <h4>1. Add the <code>pty</code>, <code>gui</code>, and <code>manual</code> tiers</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> <code>pty</code>: pexpect over <code>ssh -tt</code> to exercise the interactive prompt path the headless lane deliberately skips</li>
+        <li><code class="status">[]</code> <code>gui</code>: VNC framebuffer via <code>asyncvnc</code> against <code>tart run --vnc-experimental</code>; <code>parse_vnc_url</code> confirmed against real stdout (its regex was composed from one reported example — see Questionables); <code>vncdotool</code> as fallback; screenshots into <code>artifacts/&lt;run-id&gt;/screenshots/</code></li>
+        <li><code class="status">[]</code> <code>manual</code>: <code>confirm()</code> fixture that <code>pytest.skip()</code>s when stdin is not a TTY</li>
+      </ul>
+
+      <h4>2. Implement <code>vm-debug</code> and rewrite the <code>.claude/</code> tooling</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> <code>_triage_core.py</code> failure-signature table (the macOS analogue of the Multipass journal signatures)</li>
+        <li><code class="status">[]</code> Rewrite — not extend — the stale Multipass/journalctl agents, commands, and skills; they reference a nonexistent <code>tools/system_debug.py</code></li>
+        <li><code class="status">[]</code> Add <code>/vm-status</code></li>
+      </ul>
+
+      <h4>3. Wrap in a Cirrus CLI task</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> Author <code>.cirrus.yml</code> reproducing <code>just run</code> so <code>cirrus run</code> gives local/CI parity for a future self-hosted runner</li>
+      </ul>
+
+      <h4>4. Dry-run the full matrix and validate the feedback loop</h4>
+      <ul class="checklist">
+        <li><code class="status">[]</code> <code>just matrix</code> across <code>{sequoia} × {mise, asdf}</code></li>
+        <li><code class="status">[]</code> Break a chezmoi template on purpose; confirm <code>verdict.json</code> names the <code>chezmoi-diff</code> phase and the correct cause</li>
+      </ul>
+
+      <h4>5. Testing Strategy</h4>
+      <p>Exercise every tier plus both front doors (<code>just</code> and <code>make</code>) plus the CI wrapper; finish with the deliberate-breakage drill that proves failures are attributable, which is the point of the whole harness.</p>
+      <ul class="checklist">
+        <li><code class="status">[]</code> <code>just verify-pty</code> — interactive prompt path green</li>
+        <li><code class="status">[]</code> <code>just verify-gui && ls artifacts/latest/screenshots/</code> — framebuffer reachable, screenshots written</li>
+        <li><code class="status">[]</code> <code>just verify-manual</code> — skips cleanly non-TTY, prompts on a TTY</li>
+        <li><code class="status">[]</code> <code>make doctor && make test</code> — Makefile shim delegates correctly</li>
+        <li><code class="status">[]</code> <code>cirrus run --artifacts-dir artifacts</code> — CI-parity task passes locally</li>
+        <li><code class="status">[]</code> <code>just matrix</code> — both version-manager lanes produce verdicts</li>
+        <li><code class="status">[]</code> Deliberate breakage → <code>jq '.phase' artifacts/latest/verdict.json</code> prints <code>"chezmoi-diff"</code></li>
+      </ul>
+      <div class="loop">
+        🔁 <strong>Do not exit this phase until every box above is checked.</strong>
+        If any command fails, fix the cause and re-run — loop until all pass.
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== GLOBAL VALIDATION ===== -->
+  <section id="validation">
+    <h2>Validation Commands</h2>
+    <p>Execute these commands to validate the entire plan is complete (from <code>specs/macos-ci.md</code> §Validation plus the repo's existing truth gate):</p>
+    <ul class="checklist">
+      <li><code class="status">[]</code> <code>uv run pytest</code> — unit tier green, zero VMs booted</li>
+      <li><code class="status">[]</code> <code>uv run ruff check . && uv run ruff format --check . && uv run basedpyright src/</code> — style + types</li>
+      <li><code class="status">[]</code> <code>uv run python -c "import macos_ci._tart_core, macos_ci._doctor_core, macos_ci._gui_core"</code> — pure cores import stdlib-only</li>
+      <li><code class="status">[]</code> <code>just doctor</code> — healthy host, license ceiling reported</li>
+      <li><code class="status">[]</code> <code>just build-golden</code> — golden image builds; <code>just verify-no-secrets</code> clean with working canary control</li>
+      <li><code class="status">[]</code> <code>ZSH_DOTFILES=… just run && jq '.ok' artifacts/latest/verdict.json</code> — <code>true</code></li>
+      <li><code class="status">[]</code> <code>just verify-pty && just verify-gui && just verify-manual</code> — all tiers</li>
+      <li><code class="status">[]</code> <code>make doctor && make test</code> — shim parity</li>
+      <li><code class="status">[]</code> <code>cirrus run --artifacts-dir artifacts</code> — CI parity</li>
+      <li><code class="status">[]</code> <code>tart list</code> — no stray VMs</li>
+      <li><code class="status">[]</code> <code>just check</code> — the existing truth gate (link-check + verify-claims + unverified-count) still passes with all new docs/claims</li>
+    </ul>
+    <div class="loop">
+      🔁 <strong>The plan is not complete until every box is checked and every command passes. If for some reason a step is not possible to complete, mark it with [f] and move on if possible.</strong>
+    </div>
+  </section>
+
+  <!-- ===== QUESTIONABLES ===== -->
+  <section id="questionables">
+    <h2>Questionables</h2>
+    <p>QUESTIONABLE=true: these are the places where the specs are assumed, unverified, contradictory, or thinner than they read. Each entry says what was questioned and what the plan does about it.</p>
+    <figure>
+      <!-- IMAGE-SLOT: a magnifying glass over a stack of spec documents, several pages flagged with warning marks -->
+      <img src="macos-ci/questionables.png" alt="Spec documents with flagged unverified claims under scrutiny">
+      <figcaption>The specs' own honesty budget: every flagged assumption below must be settled by evidence, not confidence.</figcaption>
+    </figure>
+
+    <details>
+      <summary>The entire spec set is a docs-only research pass — no VM was ever booted</summary>
+      <p class="qa-answer"><strong>The biggest caveat ships inside the plan itself</strong> (<code>specs/macos-ci.md</code> §Notes): no VM was booted, no <code>brew install</code> run, no host mutated during research. The tart CLI syntax, headless flags, VNC stdout format, and the Packer template are composed examples, not source-quoted facts. <strong>Mitigation:</strong> Phase 1 task 6's <em>manual</em> clone→SSH→delete cycle exists precisely to convert these assumptions into evidence before automation wraps them. The dotfiles findings (prep boundary, mise/asdf split, prompt contract) are the exception — read directly from source.</p>
+    </details>
+
+    <details>
+      <summary>OQ-04: <code>build-golden</code> invokes a Packer template that does not exist</summary>
+      <p class="qa-answer">Nothing in the image build path has ever executed end-to-end. <code>justfile:build-golden</code> guards on the absent <code>packer/tart-golden-image.pkr.hcl</code> and exits 4 (defect D1). Marked NEEDS-HUMAN in the open-questions ledger. <strong>This plan resolves it</strong> in Phase 1 task 5 — but until then, every claim about the golden image is design, not fact.</p>
+    </details>
+
+    <details>
+      <summary>Exact tart CLI syntax in spec 08 is UNVERIFIED — clone, headless flag, <code>--dir</code> mount</summary>
+      <p class="qa-answer"><code>specs/macos-ci/08:99,134,141</code> carry <code>&lt;!-- UNVERIFIED --&gt;</code> markers on the exact <code>tart clone</code> invocation, the headless-run flag, and the <code>--dir</code> mount syntax. Cross-check against <code>specs/macos-ci/01</code>'s CLI reference <em>and</em> against <code>tart 2.32.1 --help</code> on the real host before implementing <code>_tart_core.clone_argv</code>. Related: OQ-15 — whether <code>tart run --graphics</code> even parses on 2.32.1 is BLOCKED-BY-SCOPE because settling it requires invoking <code>tart run</code>.</p>
+    </details>
+
+    <details>
+      <summary>The <code>gui</code> tier stands on an experimental flag and a single reported example</summary>
+      <p class="qa-answer"><code>tart run --vnc-experimental</code> is experimental by name, and <code>parse_vnc_url</code>'s regex was composed from <em>one</em> reported stdout example (<code>specs/macos-ci/12:364</code>, UNVERIFIED). If the format differs or the flag changes, the whole gui tier fails at its first line. <strong>Mitigation:</strong> the regex is confirmed against real output in Phase 1 (unit test) and Phase 3 (live); <code>vncdotool</code> is the designated fallback client. The gui tier is deliberately last and opt-in.</p>
+    </details>
+
+    <details>
+      <summary>Secret masking has only ever been probed via <code>packer inspect</code> — which never runs a provisioner</summary>
+      <p class="qa-answer">OQ-23 (also numbered OQ-08 in spec 13): every masking claim in the ledger probes <code>packer inspect</code>, but the leak surface that matters is the real <code>packer build</code> provisioner path, which is untested. Relatedly OQ-14: the <code>cli-help</code> evidence kind's env overlay can <em>set</em> but not <em>unset</em> a variable, so an operator with <code>PACKER_LOG=1</code> exported silently promotes every no-env claim to a debug-log run. <strong>Mitigation:</strong> Phase 1 task 6a validates masking on a real build, with a planted-canary positive control — a negative probe alone is satisfied by empty output.</p>
+    </details>
+
+    <details>
+      <summary>The unlink-doesn't-erase reproduction was host-side, not in-VM — and <code>asif</code> is unstudied</summary>
+      <p class="qa-answer"><code>specs/macos-ci/13:51,54</code>: the demonstration that <code>rm</code> leaves plaintext recoverable by <code>strings</code> was performed on a host UDIF/APFS image via <code>hdiutil</code>, not inside a tart VM's actual disk image. And OQ-01 (BLOCKED-BY-SCOPE): whether macOS 26's sparse <code>disk_format = "asif"</code> changes the residue model is unknown — narrower than it reads (only the IPSW/ISO lanes ever set it) but not closed. The policy conclusion (never write secrets to the guest FS) is safe regardless, because it removes the question rather than answering it.</p>
+    </details>
+
+    <details>
+      <summary>Who enforces Fair Source after the OpenAI acquisition?</summary>
+      <p class="qa-answer"><code>specs/macos-ci/04:186</code> (UNVERIFIED): Cirrus Labs was acquired by OpenAI (announced 2026-04-07); tier numbers are unchanged and the repo moved to <code>openai/tart</code> (license <code>FSL-1.1-ALv2</code>), but whether <code>licensing@cirruslabs.org</code> is still the right contact — or who now enforces — is unverified. The Oct-2025 enforcement precedent predates the acquisition. <strong>Mitigation:</strong> the G4 sign-off in Phase 1 task 2 is a <em>human</em> gate, and the ≤3 hosts / ≤100 cores ceiling is comfortably inside the free tier either way.</p>
+    </details>
+
+    <details>
+      <summary>The host floor is split and stricter than it first reads</summary>
+      <p class="qa-answer">Tart's floor is macOS 13, but <strong>packer-plugin-tart requires macOS 15+</strong> (<code>specs/macos-ci/02:35-52</code>) — so the build host and a mere run host have different requirements. macOS 15+ then adds its own tax: the G8 login-keychain unlock for headless boot and the Sequoia local-network-permission workaround that requires a reboot. A contributor on macOS 14 can run clones but never build images. <code>just doctor</code> must distinguish these two floors explicitly.</p>
+    </details>
+
+    <details>
+      <summary>The IPSW lane is fragile by design</summary>
+      <p class="qa-answer">Point releases are pinned by hand-copied CDN URL + sha256 from MrMacintosh's firmware database — Apple publishes no stable version→URL resolver. The reference <code>boot_command</code> is admittedly brittle (the markkenny reference implementation's typo'd <code>&lt;wai7s&gt;</code> token is cited in the specs as a cautionary tale). <strong>Position:</strong> the OCI clone lane is the primary; the IPSW lane is for versions ghcr.io doesn't carry, and every use of it should expect maintenance.</p>
+    </details>
+
+    <details>
+      <summary>OQ-13: may <code>just check</code> take a network dependency at all?</summary>
+      <p class="qa-answer">NEEDS-HUMAN: settling the <code>use_env_var_file</code> safety property properly means fetching Packer source at a pinned tag inside the truth gate — which would make <code>just check</code> network-dependent and thus flaky offline. Related OQ-26: should <code>verify_claims.py</code> gain <code>http-status</code>/<code>http-contains</code> evidence kinds with a host allowlist? <strong>Not resolved by this plan</strong> — flagged for the human; the default remains a network-free <code>just check</code>.</p>
+    </details>
+
+    <details>
+      <summary>One assertion mutates the guest: <code>sheldon lock</code></summary>
+      <p class="qa-answer">OQ-17 (answered): sheldon 0.6.6 has no read-only verify, so the plugin-manager assertion must run <code>sheldon lock</code>, which writes a lockfile. Acceptable <em>only</em> because it runs inside a disposable clone that is deleted after the run — but it means the assertion suite is not idempotent-by-construction, and anyone reusing it against a persistent VM inherits that footgun. Documented in the testinfra module.</p>
+    </details>
+
+    <details>
+      <summary>The honesty budget itself is gameable</summary>
+      <p class="qa-answer">OQ-05 (OPEN): <code>unverified-count</code> greps for <code>&lt;!-- UNVERIFIED --&gt;</code> marker lines — wrapping or rephrasing a marker games the count. OQ-06 (OPEN): the recipe prints marker <em>lines</em>, not an actual count, so "the budget should fall" is measured by eyeball. Neither breaks the plan, but both mean the verification layer's own meta-metric is softer than the claims ledger it sits beside.</p>
+    </details>
+
+    <details>
+      <summary>No self-hosted runner exists — <code>.cirrus.yml</code> targets a future machine</summary>
+      <p class="qa-answer">Today the only macOS CI is upstream's queued GitHub <code>macos-14</code> runner. The Phase 3 <code>.cirrus.yml</code> buys local/CI <em>parity</em> (<code>cirrus run</code> reproduces <code>just run</code>), not CI itself; Orchard scale-out is explicitly deferred. The plan's value holds without a runner — it is a local harness first — but "CI" in the repo name is aspirational until a runner exists.</p>
+    </details>
+
+    <details>
+      <summary>Golden-image sizing is a sketch, not a decision</summary>
+      <p class="qa-answer">The spec-02 example says <code>cpu_count=4, memory_gb=8, disk_size_gb=60</code>, but no measurement backs those numbers, and Tart auto-prunes LRU cached images when host disk runs low — a surprise deletion mid-matrix would look like corruption. <code>just doctor</code>'s free-disk check (Phase 1 task 3) should assert headroom for at least golden + 2 clones before any matrix run.</p>
+    </details>
+
+    <details>
+      <summary>The stale <code>.claude/</code> tooling actively lies about this repo</summary>
+      <p class="qa-answer">The inherited agents/commands/skills (<code>log-researcher</code>, <code>system-debug</code>, <code>triage-*</code>) are Multipass/journalctl tooling referencing a <code>tools/system_debug.py</code> that does not exist here. Until the Phase 3 rewrite, an agent following them will confidently SSH to VMs that aren't there. They are scheduled for <em>rewrite, not extension</em> — flagged here because they are a live hazard during Phases 1–2, not just debt.</p>
+    </details>
+  </section>
+
+  <!-- ===== NOTES ===== -->
+  <section id="notes">
+    <h2>Notes</h2>
+
+    <h3>Settled facts — do not re-litigate</h3>
+    <p>These were expensive to establish and keep getting re-derived. Each is settled in the named spec:</p>
+    <ul>
+      <li><strong>Tart is primary, UTM is the escape hatch</strong> — the ADR (<code>10</code>). No Terraform provider exists for either; <code>packer-plugin-tart</code> is tart-only; UTM's disposable mode and guest-exec are QEMU-backend-only, which never applies to a macOS guest; <code>utmctl</code> is an AppleScript wrapper, not a second surface — a flag in <code>--help</code> proves it parses, not that it works (<code>05</code> §4).</li>
+      <li><strong>The golden image is built from <code>-vanilla</code>, never <code>-base</code></strong> (<code>08</code> §(a), OQ-18) — <code>-base</code> preinstalls mise, silently disarming the very test the suite exists to run. The image carries Xcode CLT, Homebrew, chezmoi ≥ 2.20.0, <code>retry</code> — and <em>not</em> <code>zsh-dotfiles-prep</code>.</li>
+      <li><strong>mise is the default <code>version_manager</code></strong> (<code>09</code>) — the only one zsh-dotfiles bootstraps unaided on macOS; asdf is opt-in via the prep installer.</li>
+      <li><strong>Non-interactive chezmoi is solved upstream</strong> via <code>stdinIsATTY</code> (G11, <code>09</code>) — SSH without <code>-t</code> defaults every prompt; no upstream change needed. Pre-apply validation is <code>chezmoi diff</code>, never <code>chezmoi verify</code>.</li>
+      <li><strong>No Ansible</strong> (<code>08</code> §(e)) — neither dotfiles repo is provisioned by it.</li>
+      <li><strong>Secrets never touch the guest filesystem</strong> (<code>13</code>) — provisioner <code>environment_vars</code> with <code>use_env_var_file = false</code>; deleting a file does not erase it. Packer's <code>sensitive = true</code> masks <em>values</em> globally by substring — never mark a common word like <code>admin</code> sensitive. The build needs no SSH key, no <code>~/.gitconfig</code>, no <code>HOMEBREW_GITHUB_PACKAGES_TOKEN</code>; the token is a rate-limit optimisation (60→5000 req/hr), not a dependency.</li>
+      <li><strong>Fair Source, accepted risk</strong> (<code>04</code>, G4) — free below 100 combined cores / headless "server installations"; enforced since Oct-2025; fleet target ≤2–3 hosts.</li>
+    </ul>
+
+    <h3>Built vs designed (from spec 12's status table)</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Layer</th><th>Status</th><th>Evidence</th></tr>
+        <tr><td>Truth gate: <code>just check</code> = link-check + verify-claims + unverified-count</td><td>✅ built, passing</td><td><code>justfile</code>, <code>tools/verify_claims.py</code> (exit 0/2/3/4), 357-claim <code>.team/claims.jsonl</code></td></tr>
+        <tr><td>Verifier test fixtures</td><td>✅ built</td><td><code>tests/fixtures/verifier/</code> (11 fixtures), <code>tests/fixtures/packer-sensitive/</code></td></tr>
+        <tr><td><code>build-golden</code> recipe</td><td>⚠️ built but broken</td><td>guards on absent <code>packer/</code> template, exits 4 (OQ-04)</td></tr>
+        <tr><td><code>macos_ci</code> package, lifecycle recipes, test tiers, Packer templates, <code>.cirrus.yml</code></td><td>📐 designed only</td><td>this plan's Phases 1–3</td></tr>
+        <tr><td><code>.claude/</code> agent tooling</td><td>❌ stale (wrong project)</td><td>Phase 3 rewrite</td></tr>
+      </table>
+    </div>
+
+    <h3>Contracts the implementation must honor</h3>
+    <ul>
+      <li><strong>Exit codes</strong>: <code>0</code> verified/ok · <code>2</code> a claim/phase failed · <code>3</code> evidence/host unreachable · <code>4</code> usage — shared by <code>verify_claims.py</code> and the harness.</li>
+      <li><strong>Pure/impure split</strong>: every <code>_*_core.py</code> is stdlib-only and unit-testable without a VM; its sibling owns all I/O.</li>
+      <li><strong>Three-layer verification</strong> (<code>00</code>): inline citations → <code>&lt;!-- UNVERIFIED --&gt;</code> markers → the claims ledger. New implementation claims must land as ledger entries; a claim that can't be a ledger entry gets the marker. Negative probes always pair with a positive control.</li>
+      <li><strong>Doc verification</strong>: query the doc sites' own search JSON indexes (UTM, tart) or the HashiCorp sitemap — never guess a URL; <code>/packer/integrations/**</code> pages are the exception (verify by HTTP status or the plugin repo's <code>.web-docs/</code>).</li>
+      <li><strong>Reading order</strong> for onboarding: <code>00 → 10 → 01 → 02 → 13 → 08 → 09 → 12 → 03 → 04 → 05 → 06 → 07 → 11</code>.</li>
+    </ul>
+
+    <h3>Dependencies</h3>
+    <p>New Python deps (via <code>uv add</code>): <code>typer</code>, <code>pytest</code>, <code>pytest-testinfra</code>, <code>pexpect</code>, <code>asyncvnc</code> (fallback <code>vncdotool</code>), dev-tier <code>ruff</code> + <code>basedpyright</code>. Host tools already present: <code>tart 2.32.1</code>, <code>packer 1.15.4</code>, <code>just</code>, <code>uv</code>, <code>cirrus</code>. Guest-side: golden image provides chezmoi ≥ 2.20.0, Homebrew, Xcode CLT, <code>retry</code>.</p>
+
+    <figure>
+      <!-- IMAGE-SLOT: three-layer verification pyramid — citations at base, unverified markers in middle, claims ledger at top -->
+      <img src="macos-ci/notes.png" alt="Verification pyramid: inline citations, UNVERIFIED markers, claims ledger">
+      <figcaption>The verification model the whole repo runs on: cite it, mark it, or prove it in the ledger.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ===== AMENDMENTS ===== -->
+  <section id="amendments">
+    <h2>Amendments</h2>
+    <p class="qa-answer">No amendments yet — this section is populated by the Update Plan / Update References workflows after the plan is first executed. Append-only.</p>
+  </section>
+
+</main>
+</body>
+</html>
