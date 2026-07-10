@@ -9,7 +9,43 @@ SCAFFOLD → PRE-IMAGE → BUILD-LAUNCH → SHADOW-WORK → IMAGE-READY → SMOK
   {CLEAN→DONE | DIRTY→FIX→GATE | ERROR→NEEDS-HUMAN}
 ```
 
-**Current state: INTEGRATE → MATRIX (parallel close-out).** Build confirmed independently from the log
+**Current state: GATE-CLEAN → DONE.**
+
+## GATE (👑 lead, personally run)
+
+```
+$ just check
+...
+311/311 claims verified
+15 <!-- UNVERIFIED --> markers (honesty budget -- unchanged from baseline, all pre-existing/documented)
+EXIT=0
+
+$ uv run pytest
+============================= test session starts ==============================
+platform darwin -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
+collected 93 items / 17 deselected / 76 selected
+
+tests/gui/test_screenshots.py .                                          [  1%]
+tests/integration/test_apply.py ....                                     [  6%]
+tests/unit/test_config_core.py ....                                      [ 11%]
+tests/unit/test_doctor.py ......                                         [ 19%]
+tests/unit/test_doctor_core.py .............                             [ 36%]
+tests/unit/test_gui_core.py .......                                      [ 46%]
+tests/unit/test_harness.py .......                                       [ 55%]
+tests/unit/test_harness_core.py ...............                          [ 75%]
+tests/unit/test_tart_core.py .........                                   [ 86%]
+tests/unit/test_triage_core.py ..........                                [100%]
+
+====================== 76 passed, 17 deselected in 0.08s =======================
+EXIT=0
+```
+
+**BOTH EXIT 0. CLEAN → DONE.** Committed at `f7d732a` (INTEGRATE fixes) and this GATE-clean boundary.
+`tart list` clean (no orphans, only `dotfiles-golden` stopped + cached OCI base). Deferred items (the
+tokenless build leg, `post-install-chezmoi`'s full-brew-list cost, the pre-pull cache optimization) all
+recorded on the board, none silently dropped.
+
+**Previously: INTEGRATE → MATRIX (parallel close-out).** Build confirmed independently from the log
 tail (never read-screen): `Build 'tart-cli.golden' finished after 2 hours 24 seconds`. Golden image
 `dotfiles-golden` verified, smoke-tested, secrets-canary clean. `-m vm` 10/10 green with 2 corner-cuts
 caught and fixed (OQ-09). Now running IN PARALLEL (not serialized behind validator's teardown): 🛠 Step
