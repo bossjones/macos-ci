@@ -210,6 +210,51 @@ This golden-image approach — build once with Packer, then `tart clone` per tes
 recommended pattern; see
 [08-dotfiles-test-harness.md](08-dotfiles-test-harness.md#a-golden-image-vs-from-scratch-per-test).
 
+### Future optimization: pre-pulling the base image (`tart pull`)
+
+**Not implemented — DEFERRED, purely additive.** Recorded here so it isn't re-discovered the hard
+way. Observed on this team's first `just build-golden` run against a cold host (not a ledger claim,
+just this run's own `packer` output): the provisioner step (Xcode CLT + Homebrew + prereqs) is
+comparatively fast next to the time spent pulling `ghcr.io/cirruslabs/macos-sequoia-vanilla:latest`
+— 23.7GB compressed — over the network. Nothing about `packer/tart-golden-image.pkr.hcl` forces that
+repull on every build; it happens because the image isn't in `tart`'s local cache yet on a clean
+host, and every clean-cache rebuild pays for it again.
+
+The fix is a pre-pull, not a template change — `tart` already caches OCI images locally:
+
+```bash
+tart pull ghcr.io/cirruslabs/macos-sequoia-vanilla:latest
+```
+
+`tart pull` fetches the image into `tart`'s local cache once. Every subsequent clone of
+`vm_base_name = "ghcr.io/cirruslabs/macos-sequoia-vanilla:latest"` — via `packer build
+packer/tart-golden-image.pkr.hcl`, `tart clone` directly, or a re-run after `tart delete`-ing the
+golden VM — then clones from that local cache instead of the network. This is the opposite lever
+from `always_pull` (above), which forces a fresh pull on *every* build to guarantee freshness: pull
+once, explicitly, and every later build skips the network by leaving `always_pull` unset (as
+`packer/tart-golden-image.pkr.hcl` already does).
+
+**Proposed `just images-cache` recipe** — not yet in the Justfile (🛠 harness-builder owns
+`Justfile`; recorded here as the exact body to add, mirroring `macos-versions.toml`'s two `[image.*]`
+entries):
+
+```just
+# Pre-pull every declared image's OCI layers into tart's local cache once, so future
+# `build-golden`/`build-ipsw` runs clone locally instead of re-pulling tens of GB over the network.
+images-cache:
+    @echo "📥 Pre-pulling base images into the local tart cache"
+    @tart pull ghcr.io/cirruslabs/macos-sequoia-vanilla:latest
+    @tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:latest
+```
+<!-- UNVERIFIED: recipe body composed from the `tart pull`/`vm_base_name` cache relationship
+documented above; not executed, and not yet added to the Justfile. -->
+
+Manual equivalent, no Justfile change required: `tart pull ghcr.io/cirruslabs/macos-sequoia-vanilla:latest`
+(swap `-tahoe-` for the other lane's ref in [macos-versions.toml](../../macos-versions.toml)).
+
+This is purely additive: it changes nothing about `packer/tart-golden-image.pkr.hcl` or any build
+already in flight, and only removes redundant network time from *future* builds.
+
 ## Reference implementation: markkenny/macos-virtualisation
 
 This repo is a real-world Packer+Tart pipeline, useful as a second data point beyond the field reference.

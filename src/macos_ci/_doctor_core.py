@@ -14,7 +14,7 @@ _MIN_VERSIONS: dict[str, str] = {
     "packer": "1.10.0",
 }
 
-REQUIRED_TOOLS: tuple[str, ...] = ("tart", "packer", "just", "uv", "cirrus")
+REQUIRED_TOOLS: tuple[str, ...] = ("tart", "packer", "just", "uv", "cirrus", "sshpass")
 
 _MIN_MACOS_VERSION = "13.0"  # Tart's floor (spec 01 §"Install")
 _MIN_FREE_DISK_GB = 60.0  # matches the preflight's ">> 60 GB free, OK" convention
@@ -35,7 +35,15 @@ def _parse_version(version: str) -> tuple[int, ...]:
 
 
 def version_at_least(found: str, minimum: str) -> bool:
-    return _parse_version(found) >= _parse_version(minimum)
+    # OQ-01: tuple comparison treats a shorter tuple that is a prefix of a longer one as *less
+    # than* it (e.g. (2, 0) < (2, 0, 0)), so a numerically-equal short-form version spuriously
+    # failed. Zero-pad both to the longer length before comparing.
+    found_parts = _parse_version(found)
+    minimum_parts = _parse_version(minimum)
+    length = max(len(found_parts), len(minimum_parts))
+    found_padded = found_parts + (0,) * (length - len(found_parts))
+    minimum_padded = minimum_parts + (0,) * (length - len(minimum_parts))
+    return found_padded >= minimum_padded
 
 
 @dataclass(frozen=True)

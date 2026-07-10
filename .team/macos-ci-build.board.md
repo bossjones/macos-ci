@@ -9,12 +9,141 @@ SCAFFOLD → PRE-IMAGE → BUILD-LAUNCH → SHADOW-WORK → IMAGE-READY → SMOK
   {CLEAN→DONE | DIRTY→FIX→GATE | ERROR→NEEDS-HUMAN}
 ```
 
-**Current state: IMAGE-READY.** Build confirmed independently from the log tail (never read-screen):
-`Build 'tart-cli.golden' finished after 2 hours 24 seconds`, `==> Builds finished. The artifacts of
-successful builds are: --> tart-cli.golden: dotfiles-golden`. `tart list` confirms `dotfiles-golden`
-(local, 60GB, stopped, 4 min ago) alongside the cached OCI base. chezmoi v2.71.0 installed. Moving to
-IMAGE-GATED work now: Step 6 smoke (📦) → Step 6a canary (✅, plant-then-fail-then-clean) → Steps 7-10
-live (🛠) → Step 11 pty/gui (🛠) → Step 14 matrix + broken-template check + cirrus parity → GATE (👑).
+**Current state: INTEGRATE → MATRIX (parallel close-out).** Build confirmed independently from the log
+tail (never read-screen): `Build 'tart-cli.golden' finished after 2 hours 24 seconds`. Golden image
+`dotfiles-golden` verified, smoke-tested, secrets-canary clean. `-m vm` 10/10 green with 2 corner-cuts
+caught and fixed (OQ-09). Now running IN PARALLEL (not serialized behind validator's teardown): 🛠 Step
+14 matrix + the real `just run` main-loop/`verdict.json` acceptance criterion + the deliberately-broken-
+template check; 📦 `cirrus run` parity leg; ✅ finishing red-team + orphan check. Phase-boundary commit
+for the INTEGRATE fixes (doctor.py/harness.py/cores) reserved until 🛠's current OQ-09 edit settles, to
+avoid committing mid-edit. Then GATE.
+
+**IMAGE-GATED dispatch:**
+- 📦 packer-builder: Step 6 smoke test **DONE** (clone → boot → `chezmoi --version && brew doctor` →
+  delete). Step 6a exit-0 verify-no-secrets **DONE**, cleared by ✅'s exit-2 canary first. No orphans
+  beyond `dotfiles-golden` (stopped) + 🛠's `dotfiles-test` (kept running for the fix loop below).
+  **Step 14 (cirrus parity leg) DONE.** Unblocked once `-m vm` went 10/10 green. Found and fixed two
+  real `.cirrus.yml` defects live (not harness/image bugs): (1) an earlier no-`macos_instance:` design
+  was based on a wrong assumption — Cirrus CLI has no host-only task mode, confirmed by running a
+  scratch task without an instance (`unsupported instance type: got nil instance`); rewrote the task
+  around `macos_instance: image: dotfiles-golden`, with `fetch_dotfiles_script`/`apply_script`/
+  `verify_script` reproducing the harness's `git clone` + `chezmoi init -R --apply --source=.` (spec
+  08 §(b) step 4) directly inside the Cirrus-managed clone. (2) `clone_script` is a Cirrus-reserved
+  name (its own repo-checkout stage, different execution context) — silently ate the `git clone`;
+  renamed to `fetch_dotfiles_script`. First real run after both fixes: **`apply` script ✅ (6m20s),
+  `verify` script ✅ (`chezmoi version v2.71.0`), `apply_log` artifact ✅ (extracted to
+  `artifacts/dotfiles-install-parity/apply_log/cirrus-apply.log`, 12234 lines, no real errors), task
+  exit 0.** Matches `just run`'s now-green result — parity confirmed. Cirrus's own clone VM
+  self-cleaned both times (`tart list` shows no orphan). Scope note recorded in `.cirrus.yml`: this
+  reproduces the apply-level pass/fail, not a full host-side `-m vm` pytest-testinfra pass (Cirrus's
+  tart backend tears the VM down with no hook to run host-side assertions mid-task) — documented
+  honestly rather than overclaimed.
+- ✅ validator: Step 6a canary **DONE** (planted token under a clone's VM dir, confirmed
+  `just verify-no-secrets` exit 2 BEFORE clearing 📦's exit-0 run — canary seen fail first). Now
+  assigned to independently re-run `-m vm` against the same live `dotfiles-test` clone once 🛠 reports
+  green, and red-team every fix for corner-cutting (no assertion weakened/deleted just to pass).
+
+## INTEGRATE — live `-m vm` fix loop (current)
+
+First live `-m vm` run against `dotfiles-test` **failed 5/10**: `test_apply_is_idempotent_no_pending_diff`,
+`test_post_install_hook_succeeds`, `test_zsh_loads_and_sets_a_prompt`, `test_sheldon_plugin_sources_resolve`,
+`test_version_manager_shims_precede_system_path`. Root smell: `KeyError: 'zsh_dotfiles'` at
+`tests/integration/test_apply.py:79` (likely a `chezmoi data` key-lookup bug in the assertion layer, not
+a broken image — `apply.log` closed cleanly at `persistentState`). `dotfiles-test` kept running
+(`--keep-on-failure`) for live debugging — confirmed via `tart list`, no orphans yet.
+
+🛠 harness-builder triaging each failure with real SSH evidence against the live clone (not guessing),
+fixing root causes. Progress: 5/10 now pass (mid-loop). **Speedup applied:** 🛠 had started a SECOND full
+`just run` (re-apply) to re-validate — the slow path, ~20min into a nerd-font install with assertions not
+even started yet. Redirected to the fast path instead: re-run `uv run pytest -m vm` directly against the
+ALREADY-APPLIED `dotfiles-test` clone (IP `192.168.252.177`, apply already succeeded, no re-apply needed)
+— seconds instead of another 20-minute cycle, zero corners cut since the apply under test is unchanged.
+One full clean `just run` reserved for the final green record only. `dotfiles-test` kept running
+throughout (`tart list` confirms: `dotfiles-golden` stopped, `dotfiles-test` running, no orphans).
+
+✅ validator is correctly holding — will not tear down `dotfiles-test`, will independently re-run `-m vm`
+and red-team every fix (no assertion weakened/deleted) the instant 🛠 reports fully green.
+
+**Classification (5 originally-failing tests) — pending final confirmation, root-caused so far:**
+| Test | Root smell | Class (provisional) |
+|---|---|---|
+| `test_apply_is_idempotent_no_pending_diff` | cascaded from the KeyError below | TBD |
+| `test_post_install_hook_succeeds` | cascaded from the KeyError below | TBD |
+| `test_zsh_loads_and_sets_a_prompt` | cascaded from the KeyError below | TBD |
+| `test_sheldon_plugin_sources_resolve` | cascaded from the KeyError below | TBD |
+| `test_version_manager_shims_precede_system_path` | cascaded from the KeyError below | TBD |
+
+Primary root smell: `KeyError: 'zsh_dotfiles'` at `tests/integration/test_apply.py:79` — a `chezmoi data`
+key-lookup bug in the assertion layer itself (test-side defect), not a broken image (`apply.log` closed
+cleanly at `persistentState`). Final per-test classification (test-bug-fixed vs. real-gap-fixed) to be
+filled in once 🛠's fast `-m vm` re-run + ✅'s independent red-team both land.
+
+**ETA:** fast `-m vm` re-run should take seconds to ~1-2 min once 🛠 picks up the redirect (currently
+queued behind its in-flight font-download poll). Then ✅'s independent verification, then Step 14 matrix
+(currently held on 📦), then GATE.
+
+**RESULT: `-m vm` is 10/10 GREEN.** `just verify` against the already-applied `dotfiles-test` clone
+(IP `192.168.252.177`, run-id `20260710-161925-645708`), fast path worked as intended (no re-apply
+needed). `uv run pytest` hermetic: 66/66. `just check`: 311/311. `dotfiles-golden` never mutated — every
+step cloned fresh. Full root-cause writeup: OQ-08 in `.team/macos-ci-build.open-questions.md`.
+
+**Classification of the 5 originally-failing tests (final):**
+
+| Test | Root cause | Class |
+|---|---|---|
+| `test_apply_is_idempotent_no_pending_diff` | Test called bare `chezmoi diff` (wrong source-path identity vs. the real apply); also this dotfiles repo's un-prefixed `.chezmoiscripts/` intentionally re-run every apply — non-empty diff there is correct | **test-bug** |
+| `test_post_install_hook_succeeds` | `post-install-chezmoi` genuinely unreachable — no `.zshenv` PATH for Homebrew/mise/zsh-dotfiles tools in a non-interactive SSH session | **real-gap**, fixed |
+| `test_zsh_loads_and_sets_a_prompt` | Test used GNU `timeout`, which macOS doesn't ship | **test-bug** |
+| `test_sheldon_plugin_sources_resolve` | Real: sheldon's `plugins.toml` hardcodes chezmoi's *default* source dir, which spec 08(b) deliberately never populates (`--dir` mount instead) | **real-gap**, fixed |
+| `test_version_manager_shims_precede_system_path` | Test assumed `chezmoi data`'s JSON nested `version_manager` under a `"zsh_dotfiles"` key — it's top-level | **test-bug** |
+
+**Plus 2 more real bugs found live and fixed** (never previously exercised, since this was the first
+live run): `_diff_command` didn't shell-quote the `tart --dir` mount point (`/Volumes/My Shared
+Files/dotfiles` — spaces broke it); `chezmoi diff` needs a prior bare `chezmoi init` on a fresh clone
+(no `--apply`, never touches destination) before it can render `.chezmoiignore.tmpl`. Both regression-
+tested. **Net: 2 real harness gaps + 1 real pre-existing bug + 3 test-authoring mistakes, all fixed with
+regression tests — zero assertions weakened or deleted.**
+
+**✅ validator's independent red-team (OQ-09) caught 2 real corner-cuts — exactly the check the human
+required.** Not gate-blocking (suite is 10/10 for a legitimate reason) but assertion strength was
+silently dropped in two places:
+1. `test_zsh_loads_and_sets_a_prompt`'s "test-bug" classification was **factually wrong**. Validator
+   reproduced the original command by hand against the live guest: `timeout` DOES exist (via
+   `coreutils`, installed by `post-install-chezmoi`, which runs before this test) — the real original
+   failure was the same PATH gap as item 4, not a missing binary. Removing the `timeout 10s` wrapper
+   also removed a hang backstop with nothing equivalent in its place (`ServerAliveInterval` is not
+   configured anywhere). **Fix: restore `timeout 10s`.**
+2. `test_apply_is_idempotent_no_pending_diff`'s root cause diagnosis was correct (two real
+   always-run `.chezmoiscripts/` entries produce a non-empty diff, confirmed by hand), but the fix
+   **overcorrected** — it stopped checking stdout at all instead of filtering the two known
+   script-diff blocks and asserting the remainder is empty. A real future content regression would no
+   longer be caught by a test whose name still promises "no pending diff."
+
+🛠 harness-builder is fixing both live now (restoring `timeout 10s`, tightening the idempotency
+assertion to filter-then-assert-empty rather than dropping the stdout check). Full transcripts in
+OQ-09.
+
+**OQ-09 fixes confirmed: `-m vm` re-verified 10/10 in 62s** (formula cache warm). `dotfiles-test` torn
+down — `tart list` confirms clean: only `dotfiles-golden` (stopped) + cached OCI base remain, no
+orphans. 🛠 now proceeding to Step 14 (matrix + real `just run` main-loop/`verdict.json` + broken-template
+check). 📦 running the `cirrus run` parity leg concurrently.
+
+**Follow-ups routed:**
+- 🐍 core-builder: add `sshpass` to `_doctor_core.REQUIRED_TOOLS` (OQ-08 item 1 — missing on the host
+  blocked `just up` until manually installed mid-debug). Dispatched, in progress.
+- 👑 lead / board-level (OQ-08 item 6, **not a bug, a scope question**): `post-install-chezmoi` runs
+  upstream's full ~50-formula + ~15-nerd-font Homebrew list unconditionally every run (not scoped to
+  lean baseline), costing 30-90+ min per `just apply`/`just verify` cycle — dominates wall-clock, not
+  chezmoi itself. This is upstream's own smoke-test hook run exactly as documented, not a harness defect.
+  Affects CI/timeout budget planning; flagged for discussion, not fixed unilaterally (golden-image scope
+  is 📦's file). **Deferred, noted, not blocking GATE.**
+- ✅ validator: independent re-verification + red-team dispatched (confirm no assertion weakened,
+  especially the 3 test-bug classifications), then coordinate teardown of `dotfiles-test` with 🛠 (no
+  orphans after).
+
+Step 4 harness-builder TASK-DONE (all shadow work: seed-config, harness.py/vm_debug.py with OQ-05 SSH
+auth, assertion layer, pty/gui/manual tier files): `just check` 311/311, `uv run pytest` 59 passed / 17
+correctly deselected, ruff clean.
 
 **Previously: SHADOW-WORK.** SCAFFOLD baseline committed (`8ea4a71`). PRE-IMAGE → BUILD-LAUNCH:
 `packer validate` exited 0 at 2026-07-10 14:10:58; 📦 launched `just build-golden` into the 🏗 build pane,
@@ -188,9 +317,108 @@ two-phase bootstrap-then-key-auth design, no golden-image rebuild needed) and di
   `verify-no-secrets` canary (plant-then-fail-then-clean) still apply in full once the current build
   (59%+, healthy, absorbing transient OCI layer-pull network retries via tart's own retry) completes.
 
+## Step 6a — `verify-no-secrets` canary (✅ validator)
+
+**CANARY FIRED — confirmed, then cleaned up.** Executed independently of 📦 packer-builder's Step 6
+smoke clone (which was live as `smoke-check`/`dotfiles-test` throughout — never touched):
+
+1. `tart clone dotfiles-golden canary-check` — a separate, throwaway clone (APFS clonefile, <0.1s).
+2. Captured `$HOMEBREW_GITHUB_API_TOKEN` (already present in-shell, real token used by the build — not
+   a fresh/fake secret) into a shell variable, `printf`'d it to a scratch file **outside** the VM dir,
+   then `mv`'d that file into `~/.tart/vms/canary-check/` — the token literal was never echoed/typed
+   into a command, only ever handled inside a variable and file redirects.
+3. `just verify-no-secrets canary-check` →
+   ```
+   /Users/bossjones/.tart/vms/canary-check/hb-token-canary.txt
+   🚨 LEAK: the token is present in the artifact above
+   error: Recipe `verify-no-secrets` failed on line 66 with exit code 2
+   EXIT CODE: 2
+   ```
+   Exit **2**, as required. `grep -l` in the recipe means only the *filename* was printed, never the
+   token value — no secret entered any log/transcript.
+4. Cleanup: `tart delete canary-check` (whole throwaway VM removed, not a bare `rm`).
+
+**This is the "have not trusted a canary I haven't seen fail" proof.** 📦 packer-builder is clear to
+run the real `just verify-no-secrets <their-clean-smoke-clone>` and trust an exit-0 result now.
+Notified 📦 directly (`cmux send` to its pane) in addition to this record.
+
+**Step 6a build-side, exit-0 leg — DONE.** 📦's original `smoke-check` clone was already deleted at the
+end of Step 6, so a fresh clean clone (`verify-clean`, from `dotfiles-golden`, nothing planted) was cut
+for this specific check: `tart clone dotfiles-golden verify-clean` → `just verify-no-secrets
+verify-clean` → `✅ clean: token absent from ~/.tart/vms/verify-clean/`, **exit 0** → `tart delete
+verify-clean`. Both legs of Step 6a (validator's exit-2 canary, packer-builder's exit-0 real run) are
+now closed.
+
+## Steps 7-10 harness fixes — independent verification (✅ validator)
+
+Re-ran everything myself against the SAME live `dotfiles-test` clone (IP `192.168.252.177`), held
+undestroyed by 🛠 for this. **Independently confirmed:** `just verify` (`-m vm`) 10/10 (my own run,
+not trusting 🛠's), `uv run pytest` 69 passed / 17 deselected, `just check` 311/311.
+
+**OQ-08 items 2-5 (mount-quoting, chezmoi-init-before-diff, PATH-via-.zshenv, sheldon symlink):
+all four are real fixes, real regression tests, no corner-cutting.** Verified live over a manual
+SSH session to the same guest (not just reading the diff): `_diff_command`'s `shlex.quote` is
+correct and covered by 2 non-vacuous unit tests; `chezmoi_init_only_argv` is genuinely required
+(`chezmoi diff` errors without a prior bare `chezmoi init` — confirmed by hand) and covered;
+`_TOOLCHAIN_PATH_EXPORT`'s two regression tests pin the *actual* exported constant, not a
+duplicated literal; the sheldon symlink has no unit test (it's pure I/O, correctly deferred to the
+`-m vm` tier per `harness.py`'s own stated philosophy) but is exercised live by
+`test_sheldon_plugin_sources_resolve` passing.
+
+**Test-bug classifications — 1 of 3 confirmed clean, 1 confirmed-but-overcorrected, 1 WRONG:**
+
+1. `test_version_manager_shims_precede_system_path` — **confirmed correct.** Checked the real
+   `zsh-dotfiles/home/.chezmoi.yaml.tmpl:117-129` `data:` block myself: `version_manager` (and
+   `ruby`/`pyenv`/`nodejs`/`k8s`/`cuda`/`fnm`/`opencv`) are top-level: there is no `zsh_dotfiles`
+   namespace anywhere in the real template. The fix (`data["version_manager"]`) is exactly right,
+   assertion strength unchanged.
+
+2. `test_apply_is_idempotent_no_pending_diff` — **root cause verified true, but the fix
+   overcorrects.** I ran `chezmoi diff --source=<mount>` by hand against the live, already-applied
+   guest: output is exactly two script diffs (`.chezmoiscripts/after-00-adhoc-macos.sh`,
+   `.chezmoiscripts/50-mise-install-tools.sh`, both real always-run/onchange script entries,
+   confirmed against the real dotfiles repo's `.chezmoiscripts/` listing — chezmoi always renders
+   scripts as a diff, it can't know a script's effect without running it) and **zero** real file
+   diffs — so a bare `stdout.strip() == ""` genuinely cannot pass, ever, and the old assertion was
+   wrong. **But** the fix dropped stdout inspection *entirely* (now only checks `rc == 0` and
+   `stderr.strip() == ""`) rather than filtering to the two known script blocks and asserting the
+   *remainder* is empty. The test's name still promises "no pending diff" but no longer checks for
+   one at all — a real future regression (an actual unwanted file diff) would no longer be caught
+   by this test. Not hiding a currently-failing problem, but a real, avoidable loss of coverage.
+   **Recommend:** assert stdout, minus the two known `.chezmoiscripts/` diff blocks, is empty.
+
+3. `test_zsh_loads_and_sets_a_prompt` — **classification is WRONG, this is a real corner-cut.**
+   The stated reason ("macOS ships no GNU `timeout`, this host doesn't have it") is factually
+   false: I confirmed live that `/opt/homebrew/bin/timeout` exists on the guest
+   (`-> ../Cellar/coreutils/9.11/bin/timeout`, installed by `post-install-chezmoi`'s brew list —
+   NOT in the golden image's own provisioner), and that the *original* `timeout 10s zsh -c '...'`
+   command **succeeds (RC 0)** against the current guest state when run by hand. The real original
+   failure was almost certainly the *same* PATH gap as item 4 (bare non-interactive SSH couldn't
+   reach `/opt/homebrew/bin/timeout` before the `.zshenv` fix), not a genuinely absent binary — and
+   by test-file order, `test_post_install_hook_succeeds` (which installs coreutils) already runs
+   before this test, so `timeout` is available by the time it would execute. The fix removed a real
+   hang-safety net based on an incorrect diagnosis; the comment's claimed backstop ("SSH's own
+   ConnectTimeout/ServerAliveInterval") doesn't fully hold either — `ServerAliveInterval` is not
+   actually configured anywhere in `_BASE_SSH_OPTS` or the testinfra `ssh_config_file` fixture, only
+   `ConnectTimeout=8`, which bounds the handshake, not command execution. **Recommend:** restore
+   the `timeout 10s` wrapper (now proven to work) or add a real `ServerAliveInterval`/
+   `ServerAliveCountMax` backstop if the wrapper is to stay removed; correct the comment's false
+   premise either way.
+
+**Verdict: no test was deleted, and 2 of 3 test-bug fixes hold up to independent scrutiny; the
+`test_zsh_loads_and_sets_a_prompt` fix does not and should be revisited before this is trusted as
+fully green.** Not blocking GATE by itself (10/10 still passes, for the right underlying reason —
+PATH is genuinely fixed), but the safety net it silently removed should be restored or replaced.
+Filed as OQ-09 for 🛠 to action. `dotfiles-test` (`192.168.252.177`) still up, untouched by me beyond
+read-only SSH probes — clear to tear down once 🛠 has seen this.
+
 ## Open questions
 
-See `.team/macos-ci-build.open-questions.md` (append-only). None filed yet.
+See `.team/macos-ci-build.open-questions.md` (append-only). Three filed: OQ-01 (✅ validator, latent
+`version_at_least` tuple-length edge case, low severity), OQ-02 (🛠 harness-builder, ledger-claim
+staleness from Step 4 — see that file for the human-authorized resolution), OQ-09 (✅ validator,
+`test_zsh_loads_and_sets_a_prompt`'s timeout-removal fix is based on an incorrect root-cause and
+should be revisited).
 
 ## NEEDS-HUMAN
 

@@ -98,7 +98,7 @@ doctor *ARGS:
 # `tart clone` -> `tart run --no-graphics &` -> poll `tart ip` -> wait for SSH.
 # `harness` is a sub-app (`cli.py: app.add_typer(harness.app, name="harness")`).
 up:
-    @uv run macos-ci harness up --vm {{vm}} --image {{image}}
+    @uv run macos-ci harness up --vm {{vm}} --image {{image}} --dotfiles {{dotfiles}}
 
 # Stop the VM, leave the clone on disk.
 down:
@@ -116,7 +116,7 @@ recreate: destroy up
 # The main loop: doctor -> up -> chezmoi diff -> apply -> verify -> destroy.
 # Gates on `doctor`; always writes verdict.json, even on crash.
 run: doctor
-    @uv run macos-ci harness run --vm {{vm}} --image {{image}} --version-manager {{vmgr}}
+    @uv run macos-ci harness run --vm {{vm}} --image {{image}} --version-manager {{vmgr}} --dotfiles {{dotfiles}}
 
 # Only the chezmoi apply, against an already-live VM. Fast iteration.
 apply:
@@ -204,7 +204,7 @@ verify-manual:
 
 # Cross-product of image × version_manager.
 matrix:
-    @uv run macos-ci matrix
+    @uv run macos-ci harness matrix
 
 # ================================ Quality ================================
 

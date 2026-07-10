@@ -17,15 +17,20 @@ from pathlib import Path
 from macos_ci._doctor_core import REQUIRED_TOOLS, DoctorFacts, check, overall_ok
 from macos_ci.artifacts import write_json
 
-_VERSION_RE = re.compile(r"\d+\.\d+\.\d+(?:-[\w.]+)?")
+_VERSION_RE = re.compile(r"\d+\.\d+(?:\.\d+)?(?:-[\w.]+)?")
+
+# OQ-08: sshpass has no `--version` flag (`sshpass --version` errors "illegal option"); only
+# `-V` reports the version. Per-tool override, default `--version` for everything else.
+_VERSION_FLAG_OVERRIDES: dict[str, str] = {"sshpass": "-V"}
 
 
 def _tool_version(tool: str) -> str | None:
     path = shutil.which(tool)
     if path is None:
         return None
+    flag = _VERSION_FLAG_OVERRIDES.get(tool, "--version")
     try:
-        result = subprocess.run([tool, "--version"], capture_output=True, text=True, timeout=5)
+        result = subprocess.run([tool, flag], capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.TimeoutExpired):
         return None
     match = _VERSION_RE.search(result.stdout + result.stderr)

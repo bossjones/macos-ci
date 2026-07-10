@@ -10,6 +10,7 @@ GOOD_FACTS = DoctorFacts(
         "just": "1.42.4",
         "uv": "0.11.14",
         "cirrus": "1.0.0-1769788",
+        "sshpass": "1.10",
     },
     arch="arm64",
     macos_version="15.6.1",
@@ -72,3 +73,13 @@ def test_tool_version_parses_version_string(fake_process, monkeypatch):
     monkeypatch.setattr(doctor.shutil, "which", lambda tool: "/opt/homebrew/bin/just")
 
     assert doctor._tool_version("just") == "1.42.4"
+
+
+def test_tool_version_uses_sshpass_capital_v_not_double_dash_version(fake_process, monkeypatch):
+    # OQ-08: sshpass has no `--version` flag (it errors: "illegal option"); only `-V` reports the
+    # version. `doctor.py::_tool_version()` must special-case it or `just doctor` reports sshpass
+    # as missing even when it's installed.
+    fake_process.register(["sshpass", "-V"], stdout="sshpass 1.10\n(C) 2006-2011 ...\n")
+    monkeypatch.setattr(doctor.shutil, "which", lambda tool: "/opt/homebrew/bin/sshpass")
+
+    assert doctor._tool_version("sshpass") == "1.10"

@@ -1,4 +1,4 @@
-from macos_ci._doctor_core import DoctorFacts, check, overall_ok
+from macos_ci._doctor_core import DoctorFacts, check, overall_ok, version_at_least
 
 GOOD_FACTS = DoctorFacts(
     tool_versions={
@@ -7,6 +7,7 @@ GOOD_FACTS = DoctorFacts(
         "just": "1.42.4",
         "uv": "0.11.14",
         "cirrus": "1.0.0-1769788",
+        "sshpass": "1.10",
     },
     arch="arm64",
     macos_version="15.6.1",
@@ -82,3 +83,39 @@ def test_check_always_reports_fleet_ceiling_never_gates_it():
     assert "3 host" in row.found
     assert "100" in row.found
     assert row.ok is True  # report-only: never silently approved as a pass/fail gate
+
+
+def test_version_at_least_treats_a_short_form_as_equal_when_numerically_equal():
+    # OQ-01: tuple comparison without zero-padding treats a shorter tuple that is a prefix of a
+    # longer one as *less than* it, so "2.0" spuriously failed against a "2.0.0" minimum.
+    assert version_at_least("2.0", "2.0.0") is True
+
+
+def test_version_at_least_still_rejects_a_genuinely_lower_short_form():
+    assert version_at_least("1.9", "2.0.0") is False
+
+
+def test_version_at_least_baseline_equal_length_still_passes():
+    assert version_at_least("2.0.0", "2.0.0") is True
+
+
+def test_check_requires_sshpass_for_the_ssh_bootstrap_phase():
+    # OQ-08: `just up` needs sshpass on the HOST for OQ-05's password-authenticated bootstrap
+    # connection (_harness_core.bootstrap_ssh_argv). Its absence blocked a real run entirely and
+    # was only caught mid-`up`, not by `just doctor` -- `just doctor` must catch it first.
+    facts = GOOD_FACTS.__class__(
+        **{**GOOD_FACTS.__dict__, "tool_versions": {**GOOD_FACTS.tool_versions, "sshpass": None}}
+    )
+    results = check(facts)
+    row = _row(results, "sshpass")
+    assert row.found is None
+    assert row.ok is False
+    assert overall_ok(results) is False
+
+
+def test_check_passes_when_sshpass_is_present():
+    facts = GOOD_FACTS.__class__(
+        **{**GOOD_FACTS.__dict__, "tool_versions": {**GOOD_FACTS.tool_versions, "sshpass": "1.10"}}
+    )
+    row = _row(check(facts), "sshpass")
+    assert row.ok is True
