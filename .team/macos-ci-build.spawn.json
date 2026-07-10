@@ -1,0 +1,19 @@
+{
+  "team": "macos-ci-build",
+  "created": "2026-07-10",
+  "window_ref": "window:1",
+  "window_uuid": "5F182202-5C45-4963-8264-FEDF8E34A06E",
+  "workspace_ref": "workspace:12",
+  "workspace_name": "macos-ci-build",
+  "sentinel": "TASK-DONE",
+  "roles": {
+    "lead":            { "emoji": "👑", "surface_ref": "surface:73", "surface_uuid": "D19A89AB-1B8B-4074-8DC0-B74C080328E3", "agent": "claude-sonnet" },
+    "core-builder":    { "emoji": "🐍", "surface_ref": "surface:74", "surface_uuid": "41F4D7B6-7940-46AB-B2F2-264865D84822", "agent": "claude-sonnet" },
+    "packer-builder":  { "emoji": "📦", "surface_ref": "surface:75", "surface_uuid": "0E3A42D8-66CF-458A-9AE7-25B3D6306D60", "agent": "claude-sonnet" },
+    "harness-builder": { "emoji": "🛠", "surface_ref": "surface:76", "surface_uuid": "C22DBCCD-0588-4DA2-B1F7-D3A5CA765EF2", "agent": "claude-sonnet" },
+    "validator":       { "emoji": "✅", "surface_ref": "surface:77", "surface_uuid": "A37B8728-7F00-4347-872C-AC23171DA7FA", "agent": "claude-sonnet" },
+    "log-watcher":     { "emoji": "📡", "surface_ref": "surface:78", "surface_uuid": "7B514CEE-1BAA-4D0B-AAA6-51F31CD78C9A", "agent": "claude-sonnet" },
+    "build":           { "emoji": "🏗", "surface_ref": "surface:79", "surface_uuid": "A2E7C386-9B66-4483-939B-7363CD6FAB90", "agent": "none-plain-shell" }
+  },
+  "note": "Short refs (surface:N) renumber; re-resolve via `cmux list-pane-surfaces --workspace workspace:12` or match the surface_uuid in `cmux tree --all --id-format both`. Window+workspace UUIDs are the stable handles."
+}

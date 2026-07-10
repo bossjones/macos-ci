@@ -20,6 +20,19 @@ the Fair Source licensing risk we accept to get there.
 - [specs/macos-ci/00-overview.md](specs/macos-ci/00-overview.md) — orientation and reading order
 - [specs/macos-ci/11-sources.md](specs/macos-ci/11-sources.md) — every source, graded
 
+## Licensing accepted-risk sign-off (G4)
+
+**Human sign-off given 2026-07-10.** Tart/Orchard ship Fair Source (`FSL-1.1-ALv2`, copyright holder
+OpenAI following the Cirrus Labs acquisition announced 2026-04-07); the Free Tier is capped at **100
+combined CPU cores** and **4 Orchard workers** across headless ("server installation") hosts. This
+repo's accepted posture, per [specs/macos-ci/04-tart-licensing-risk.md](specs/macos-ci/04-tart-licensing-risk.md):
+
+- Fleet ceiling: **at most 3 hosts, at most 100 combined CPU cores**.
+- Never build a competing virtualization product on top of Tart.
+- `just doctor` must **report** this ceiling as a checked precondition — it must never silently approve it.
+
+Re-litigate only if fleet size grows past 3 hosts or the combined core count approaches 100.
+
 ## Development
 
 ```bash
