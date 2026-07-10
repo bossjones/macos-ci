@@ -9,7 +9,14 @@ SCAFFOLD → PRE-IMAGE → BUILD-LAUNCH → SHADOW-WORK → IMAGE-READY → SMOK
   {CLEAN→DONE | DIRTY→FIX→GATE | ERROR→NEEDS-HUMAN}
 ```
 
-**Current state: SHADOW-WORK.** SCAFFOLD baseline committed (`8ea4a71`). PRE-IMAGE → BUILD-LAUNCH:
+**Current state: IMAGE-READY.** Build confirmed independently from the log tail (never read-screen):
+`Build 'tart-cli.golden' finished after 2 hours 24 seconds`, `==> Builds finished. The artifacts of
+successful builds are: --> tart-cli.golden: dotfiles-golden`. `tart list` confirms `dotfiles-golden`
+(local, 60GB, stopped, 4 min ago) alongside the cached OCI base. chezmoi v2.71.0 installed. Moving to
+IMAGE-GATED work now: Step 6 smoke (📦) → Step 6a canary (✅, plant-then-fail-then-clean) → Steps 7-10
+live (🛠) → Step 11 pty/gui (🛠) → Step 14 matrix + broken-template check + cirrus parity → GATE (👑).
+
+**Previously: SHADOW-WORK.** SCAFFOLD baseline committed (`8ea4a71`). PRE-IMAGE → BUILD-LAUNCH:
 `packer validate` exited 0 at 2026-07-10 14:10:58; 📦 launched `just build-golden` into the 🏗 build pane,
 teed to `logs/packer-build-20260710-141058.log`. BUILD-LAUNCH → SHADOW-WORK: 📡 log-watcher armed on
 that file at 2026-07-10T18:17:52Z, confirmed via `.team/logwatch.md` (append-only, appending real
