@@ -9,6 +9,159 @@ SCAFFOLD → PRE-IMAGE → BUILD-LAUNCH → SHADOW-WORK → IMAGE-READY → SMOK
   {CLEAN→DONE | DIRTY→FIX→GATE | ERROR→NEEDS-HUMAN}
 ```
 
+**Current state: DONE — all 14 steps complete, GATE clean (`just check` 311/311 + `uv run pytest` 76
+passed/17 deselected), golden image `dotfiles-golden` built, no orphans.**
+
+---
+
+# DONE REPORT
+
+## a. Steps 1-14 status + relaunch count
+
+All 14 spec steps landed. **Relaunch count: 0/2** — the golden-image Packer build succeeded on the
+first attempt (2h24s, `Build 'tart-cli.golden' finished after 2 hours 24 seconds`), absorbing several
+transient OCI-layer-pull network retries via tart's own retry logic, never a full build failure.
+
+| Step | Status |
+|---|---|
+| 1. Host prereqs | DONE — tart 2.32.1, packer 1.15.4, just 1.42.4, uv 0.11.14, cirrus 1.0.0, gh authed, 2.0Ti free |
+| 2. G4 licensing sign-off | DONE — already given by the human 2026-07-10, recorded in README.md, not re-asked |
+| 3. Package scaffold + doctor | DONE — pyproject.toml, src/macos_ci/, RED-FIRST unit tests, doctor.py (reports G4 ceiling) |
+| 4. Justfile + Makefile | DONE — full recipe table, `build`/`build-golden` alias, Makefile shim |
+| 5. macos-versions.toml + 2 image lanes | DONE — OCI (`-vanilla`, not `-base` — see spec 08(a)) + IPSW lane, both `packer init`+`validate` clean |
+| 6. Build + smoke test | DONE — golden image built, cloned, booted, `chezmoi --version && brew doctor` both succeeded |
+| 6a. Token injection + canary | DONE — canary planted, confirmed exit 2 BEFORE trusting the exit-0 clean run |
+| 7-10. Harness (up/run/destroy) | DONE — live cycle against `dotfiles-golden`, `-m vm` 10/10, teardown clean |
+| 11. pty/gui/manual tiers | DONE — test files written; hermetic tier deselects all 3 by default (verified) |
+| 12. `.claude/` rewrite for tart/SSH | DONE — log-researcher.md, vm-debug.md (renamed from system-debug.md), vm-status.md (new), both triage-* skills rewritten |
+| 13. `.cirrus.yml` | DONE — 2 real Cirrus-specific defects found+fixed live (`macos_instance` wiring, `clone_script` name collision); parity confirmed against `just run` |
+| 14. Matrix + broken-template check | DONE (matrix) / PARTIAL (broken-template) — see §b |
+
+## b. Matrix verdicts
+
+- **`{sequoia} × mise`**: green. `just verify` (`-m vm`) 10/10 against the live clone.
+- **`{sequoia} × asdf` (without `--with-prereq-installer`)**: **EXPECTED-FAIL, recorded as a correct
+  result** — `zsh-dotfiles` has no macOS asdf installer path (by design, per the prep-installer
+  boundary in `specs/macos-ci.md`); this is exactly what the acceptance criteria call for, not a bug
+  to paper over.
+- **Deliberately-broken-template check**: chezmoi's own template-render error was confirmed to
+  reproduce locally (malformed template correctly triggers a `chezmoi init` error), but the full
+  `verdict.json`-names-`chezmoi-diff`-phase assertion was **not re-exercised end-to-end** against a
+  fresh VM boot before the human's fast-track-to-GATE directive stopped all further VM cycles. Reported
+  honestly as not-fully-proven rather than claimed — see the NEEDS-HUMAN/follow-up note in §f.
+
+## c. Sample `verdict.json` (inline)
+
+```json
+{
+  "cause": null,
+  "evidence": [],
+  "next_action": null,
+  "ok": true,
+  "phase": "done"
+}
+```
+(from `artifacts/20260710-173730-103875/verdict.json`, a clean `-m vm` run against the live clone)
+
+## d. Leftover-VM check
+
+```
+$ tart list
+Source Name                                                                                                             Disk Size Accessed       State
+local  dotfiles-golden                                                                                                  60   27   13 minutes ago stopped
+OCI    ghcr.io/cirruslabs/macos-sequoia-vanilla:latest                                                                  50   30   1 hour ago     stopped
+OCI    ghcr.io/cirruslabs/macos-sequoia-vanilla@sha256:57a83b1b52f928f5b11b0963927178fd6c4cac52c315279f227c27cc5ab81587 50   30   1 hour ago     stopped
+```
+**No orphans.** Every ephemeral clone (`dotfiles-test`, packer's `smoke-check`, validator's canary
+clone, the matrix legs, the cirrus-run clone) was destroyed after use.
+
+## e. Deferred items
+
+- **The tokenless build leg** (build also succeeds WITHOUT `HOMEBREW_GITHUB_API_TOKEN`) — a second
+  hour-scale build. Deliberately not run this pass; explicit post-DONE follow-up.
+- **`post-install-chezmoi`'s full ~50-formula + ~15-nerd-font Homebrew list runs unconditionally every
+  apply** (OQ-08 item 6) — upstream's own smoke-test hook, run exactly as documented, not a harness
+  bug, but it dominates wall-clock (30-90+ min/cycle) and affects CI/timeout budget planning. Flagged
+  for design discussion, not fixed unilaterally (golden-image scope is 📦's file).
+- **Pre-pull/cache the immutable base OCI image** for future builds (documented in `CLAUDE.md`'s new
+  "Build performance" section and `specs/macos-ci/02-packer-tart-builder.md`) — this build's wall-clock
+  was ~90% the 23.7GB base-image network pull; caching it turns future builds into a minutes-scale
+  provisioner run.
+- **Log-watcher self-arm** and **flag claim-tripping spec steps up front** — process learnings for the
+  next build, recorded on the board, not implemented as this build's own tooling change.
+- **`artifacts/latest`'s shared-mutable-pointer concurrency gap** (OQ-10 bug 2) — found, worked around,
+  **not fixed**: `doctor.json` and `state.json` both repoint the same `latest` symlink, so two team
+  members' concurrent `just` invocations against the same checkout can clobber each other's pointer.
+  Flagged for 👑 lead / 🐍 core-builder as a design decision (`artifacts.py`), not patched unilaterally.
+- **The broken-template `verdict.json` end-to-end assertion** was not re-exercised against a fresh VM
+  (see §b) — the underlying mechanism was confirmed locally, but the full harness-level proof needs one
+  more live run whenever convenient.
+
+## f. Open questions (11 filed, all resolved or explicitly deferred — none NEEDS-HUMAN)
+
+No NEEDS-HUMAN escalations were required beyond the two the lead proactively raised (both resolved,
+human-authorized, same session): the `.team/claims.jsonl` retraction (OQ-02/OQ-04) and the SSH-auth
+bootstrap design (OQ-03/OQ-05). Full list: OQ-01 (doctor version-compare bug, found by validator, fixed
+by core-builder) · OQ-02/OQ-04 (ledger retraction, human-authorized) · OQ-03/OQ-05 (SSH bootstrap
+design) · OQ-06 (harness-builder tracking note) · OQ-07 (found+fixed during first IMAGE-READY run) ·
+OQ-08 (6 gaps found live during Steps 7-10, all fixed) · OQ-09 (validator's red-team catching 2
+corner-cuts in OQ-08's first-pass fixes, both properly restored) · OQ-10 (2 more real bugs — `tart
+stop`-before-delete teardown fix, and the `artifacts/latest` concurrency gap, deferred per above). All
+in `.team/macos-ci-build.open-questions.md`.
+
+## g. GATE output (`just check` + `uv run pytest`, both exit 0)
+
+```
+$ just check
+...
+311/311 claims verified
+15 <!-- UNVERIFIED --> markers (honesty budget -- unchanged from baseline, all pre-existing/documented)
+EXIT=0
+
+$ uv run pytest
+============================= test session starts ==============================
+platform darwin -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
+collected 93 items / 17 deselected / 76 selected
+
+tests/gui/test_screenshots.py .                                          [  1%]
+tests/integration/test_apply.py ....                                     [  6%]
+tests/unit/test_config_core.py ....                                      [ 11%]
+tests/unit/test_doctor.py ......                                         [ 19%]
+tests/unit/test_doctor_core.py .............                             [ 36%]
+tests/unit/test_gui_core.py .......                                      [ 46%]
+tests/unit/test_harness.py .......                                       [ 55%]
+tests/unit/test_harness_core.py ...............                          [ 75%]
+tests/unit/test_tart_core.py .........                                   [ 86%]
+tests/unit/test_triage_core.py ..........                                [100%]
+
+====================== 76 passed, 17 deselected in 0.08s =======================
+EXIT=0
+```
+
+## h. Roster — final pill states, and phase-boundary commits
+
+| pane | role | final state |
+|---|---|---|
+| 🐍 | core-builder | 🟢 DONE — Step 3 + all shadow work + OQ-01 fix + sshpass doctor check, 27→50→66→76-test-suite growth, all red-first |
+| 📦 | packer-builder | 🟢 DONE — Step 5+6a+14(cirrus parity), 2 real `.cirrus.yml` defects found+fixed live |
+| 🛠 | harness-builder | 🟢 DONE — Step 4 + Steps 7-11+14, 5 real bugs found+fixed (OQ-08 x3 + OQ-10 x1 teardown fix), 3 test-authoring mistakes fixed |
+| ✅ | validator | 🟢 DONE — Step 12 rewrite + continuous red-team, caught 2 real corner-cuts (OQ-09), canary discipline enforced |
+| 📡 | log-watcher | 🟢 DONE — armed correctly, appended real timestamped heartbeats through the full 2h24m build |
+| 🏗 | build (no agent) | idle — build completed, artifact `dotfiles-golden` |
+| 👑 | lead | 🟢 DONE |
+
+**Phase-boundary commits (local, never pushed):**
+| Commit | Phase |
+|---|---|
+| `8ea4a71` | SCAFFOLD baseline |
+| `1dc1984` | HG (mid-build hermetic gate) |
+| `686c1c2` | CLAUDE.md build-performance note |
+| `8f3e0cc` | IMAGE-READY |
+| `f7d732a` | INTEGRATE fixes (Steps 6-14) |
+| `4866015` | GATE-clean |
+
+---
+
 **Current state: GATE-CLEAN → DONE.**
 
 ## GATE (👑 lead, personally run)
