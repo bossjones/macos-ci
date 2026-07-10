@@ -318,10 +318,17 @@ def evaluate(claim: dict[str, Any], index_cache: dict[str, dict[str, str]]) -> R
                 # "packer isn't installed" into a silent pass.
                 detail = f"UNREACHABLE: {argv[0]!r} not on PATH"
                 return Result(cid, kind, False, detail, src)
-            ok = check_contains(proc.stdout + proc.stderr, expect)
-            return Result(
-                cid, kind, ok, "" if ok else f"{' '.join(argv)} did not emit {expect!r}", src
-            )
+            combined = proc.stdout + proc.stderr
+            ok = check_contains(combined, expect)
+            if ok:
+                detail = ""
+            else:
+                preview = combined[:300].replace("\n", "\\n")
+                detail = (
+                    f"{' '.join(argv)} did not emit {expect!r} "
+                    f"(rc={proc.returncode}, output preview: {preview!r})"
+                )
+            return Result(cid, kind, ok, detail, src)
 
         if kind == "doc-index":
             site = claim["site"]
