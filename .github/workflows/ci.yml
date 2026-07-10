@@ -120,12 +120,12 @@ jobs:
       - name: Verify claims ledger
         run: |
           set +e
-          uv run tools/verify_claims.py
+          uv run tools/verify_claims.py --skip-local-only
           rc=$?
           set -e
           case "$rc" in
-            0) echo "All claims verified." ;;
-            3) echo "::warning title=verify-claims::Some evidence is UNREACHABLE on Linux (macOS-only binaries: tart/utmctl/packer). All portable claims verified -- treating as advisory." ;;
+            0) echo "All portable claims verified." ;;
+            3) echo "::warning title=verify-claims::Some evidence is UNREACHABLE (e.g. transient network). All other portable claims verified -- treating as advisory." ;;
             *) echo "::error title=verify-claims::Claim verification failed (exit $rc)."; exit "$rc" ;;
           esac
 

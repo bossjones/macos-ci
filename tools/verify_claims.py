@@ -525,6 +525,16 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     ap.add_argument("ledger", nargs="?", default=str(REPO / ".team" / "claims.jsonl"))
     ap.add_argument("--json", action="store_true", help="machine-readable output for agents")
+    ap.add_argument(
+        "--skip-local-only",
+        action="store_true",
+        help=(
+            "Exclude claims marked `local_only` (evidence under the author's own "
+            "~/dev clones, or macOS-only binaries like tart/utmctl/sheldon). These "
+            "can never resolve on a fresh CI runner regardless of OS — pass this "
+            "flag there. Omit it for a full local run."
+        ),
+    )
     args = ap.parse_args()
 
     ledger = Path(args.ledger)
@@ -537,6 +547,11 @@ def main() -> int:
         for ln in ledger.read_text().splitlines()
         if ln.strip() and not ln.startswith("//")
     ]
+    if args.skip_local_only:
+        skipped = sum(1 for c in claims if c.get("local_only"))
+        claims = [c for c in claims if not c.get("local_only")]
+        if skipped:
+            print(f"skipping {skipped} local_only claim(s)", file=sys.stderr)
     if not claims:
         print(
             "ledger is empty — a spec with no checkable claims is a spec nobody verified",

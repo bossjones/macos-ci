@@ -158,6 +158,16 @@ Two failure prefixes are never inverted by `must_fail`, because neither is evide
 index). The latter keeps "the page vanished" distinguishable from "the sentence vanished", and stops a
 control from silently "passing" because its page 404'd.
 
+**`local_only: true` marks a claim whose evidence only exists on the author's own machine** — a path
+under `~/dev/bossjones/zsh-dotfiles`, `~/dev/cirruslabs/*`, etc., or a macOS-only binary (`tart`,
+`utmctl`, `sheldon`, `just`, `cirrus`). These can never resolve on a fresh CI runner, on any OS — that's
+a missing-substrate problem, not a Linux-vs-macOS one. `just verify-claims` still runs the full ledger
+locally (that's the point of having them); CI passes `--skip-local-only` to exclude them entirely rather
+than tolerating them as `UNREACHABLE`, because for some of these claims (the `git -C <clone> grep`
+positive controls — see the "GB1 lesson" in their own `claim` prose in `.team/claims.jsonl`) a missing
+directory is deliberately a loud FAIL, not a soft one — a blanket "missing path = unreachable"
+reclassification would silently defeat that anti-footgun check.
+
 Exit codes: `0` verified · `2` a claim failed · `3` evidence unreachable · `4` usage.
 
 ## Conventions
