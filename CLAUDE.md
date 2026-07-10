@@ -11,6 +11,7 @@ for the `zsh-dotfiles` / `zsh-dotfiles-prep` install.
 | [specs/macos-ci/10-tart-vs-utm-adr.md](specs/macos-ci/10-tart-vs-utm-adr.md) | The decision: **tart is primary, UTM is the escape hatch**, and why |
 | [specs/macos-ci/11-sources.md](specs/macos-ci/11-sources.md) | Every URL, graded `[meaty]`/`[thin]`/`[404]`, with what it gave us |
 | [specs/macos-ci.md](specs/macos-ci.md) | The plan-format entry point; input to `/agent-harness:plan` |
+| [specs/plans/macos-ci.html](specs/plans/macos-ci.html) | **Derived HTML rendering** of the plan, pinned at `f0b434a` — a snapshot, not a 15th spec. The markdown specs above are authoritative; on conflict, trust them. See [specs/plans/README.md](specs/plans/README.md) |
 
 Settled facts that keep getting re-litigated — don't re-derive them:
 
