@@ -72,7 +72,11 @@ fallback_extensions = ["md", "html"]
 # Load-bearing for this repo: specs/macos-ci.md deep-links into its sub-specs by
 # heading anchor (e.g. 09-dotfiles-under-test.md#the-chezmoi-template-contract-g11).
 # Without this, renaming a heading silently breaks every inbound link.
-include_fragments = true
+#
+# lychee >=0.24 changed this from a bool to a string enum
+# (none|anchor-only|text-only|full); "anchor-only" preserves the prior
+# true-as-anchor-checking behavior without also checking text fragments.
+include_fragments = "anchor-only"
 
 #############################  Exclusions  ##########################
 

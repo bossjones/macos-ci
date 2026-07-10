@@ -174,8 +174,8 @@ Two facts make this safe rather than wishful:
 - `Justfile` — already exists with `default`, `link-check`, `link-check-verbose`, `link-check-fresh`
   (lychee, `GITHUB_TOKEN` from `gh auth token`). It stays the single source of truth; the harness
   recipes are **added** to it, not written into a new file. Keep `set shell := ["bash", "-uc"]`.
-- `lychee.toml` — already configured with `include_fragments = true`, so internal `#anchor` links are
-  validated. Do not weaken this; it has already caught broken anchors.
+- `lychee.toml` — already configured with `include_fragments = "anchor-only"`, so internal `#anchor`
+  links are validated. Do not weaken this; it has already caught broken anchors.
 - `CLAUDE.md` — already documents the doc-site search-index oracle and the link-hygiene rule. Extend it
   with the harness commands once they exist.
 

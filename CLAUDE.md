@@ -114,7 +114,8 @@ just link-check-fresh    # same, bypassing the 7-day cache
 
 Write every URL as a markdown link, never a bare backticked path — lychee only sees real links. Internal
 spec-to-spec links are checked too, **including `#anchor` fragments** (`scheme` includes `file`,
-`include_fragments = true`); that combination caught two broken anchors that shipped in the first PR.
+`include_fragments = "anchor-only"`); that combination caught two broken anchors that shipped in the
+first PR.
 
 ## The claims ledger
 
