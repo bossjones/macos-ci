@@ -372,6 +372,8 @@ The Justfile wraps CLI commands. Where a Justfile recipe exists, it is documente
 - `build-ipsw` recipe references a non-existent CLI command
 - `pull` recipe references a non-existent CLI command
 
+Tracked with reproduction evidence and claims-ledger entries in [specs/macos-ci/14-known-discrepancies.md](../../specs/macos-ci/14-known-discrepancies.md) — `just verify-claims` catches these directly.
+
 ---
 
 ## Sourcing

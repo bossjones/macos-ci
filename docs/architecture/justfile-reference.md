@@ -783,6 +783,8 @@ These recipes reference CLI commands that do not yet exist or are stubs:
 
 These follow the repo's convention of never presenting inference as fact — placeholder recipes that reference unimplemented CLI commands document the *intended* interface, but will fail if invoked.
 
+Tracked with reproduction evidence and claims-ledger entries (plus `images-cache`, absent from this Justfile entirely) in [specs/macos-ci/14-known-discrepancies.md](../../specs/macos-ci/14-known-discrepancies.md) — `just verify-claims` catches these directly.
+
 ---
 
 ## Sourcing
