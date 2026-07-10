@@ -38,7 +38,15 @@ verify-claims-json:
 # 60 req/hr unauthenticated cap instead of 5,000.
 
 # Build the golden Tart image, injecting HOMEBREW_GITHUB_API_TOKEN if one is available.
+# The template is deliberately UNAUTHORED: `packer build`/`packer init` are forbidden by the
+# verification run's scope, so not one line of it could be validated. Fail loudly rather than
+# let `packer build` emit its own error for a file we know is absent. Exit 4 = USAGE, matching
+# tools/verify_claims.py. See specs/macos-ci/13-build-secrets.md and OQ-04.
 build-golden:
+    @test -f packer/tart-golden-image.pkr.hcl || { \
+       echo "missing: packer/tart-golden-image.pkr.hcl" >&2; \
+       echo "see specs/macos-ci/13-build-secrets.md and OQ-04" >&2; \
+       exit 4; }
     @echo "📦 Building the golden image"
     @HOMEBREW_GITHUB_API_TOKEN="${HOMEBREW_GITHUB_API_TOKEN:-$(gh auth token 2>/dev/null || true)}" \
       packer build packer/tart-golden-image.pkr.hcl
