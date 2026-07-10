@@ -1,0 +1,9 @@
+default = "sequoia"
+
+[image.sequoia]
+source = "oci"
+ref    = "ghcr.io/cirruslabs/macos-sequoia-vanilla:latest"
+
+[image.tahoe]
+source = "oci"
+ref    = "ghcr.io/cirruslabs/macos-tahoe-vanilla:latest"

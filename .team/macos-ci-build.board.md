@@ -9,18 +9,30 @@ SCAFFOLD → PRE-IMAGE → BUILD-LAUNCH → SHADOW-WORK → IMAGE-READY → SMOK
   {CLEAN→DONE | DIRTY→FIX→GATE | ERROR→NEEDS-HUMAN}
 ```
 
-**Current state: SCAFFOLD** (writing this board + backlog, about to make the SCAFFOLD-baseline commit
-and dispatch Wave 1).
+**Current state: SHADOW-WORK.** SCAFFOLD baseline committed (`8ea4a71`). PRE-IMAGE → BUILD-LAUNCH:
+`packer validate` exited 0 at 2026-07-10 14:10:58; 📦 launched `just build-golden` into the 🏗 build pane,
+teed to `logs/packer-build-20260710-141058.log`. BUILD-LAUNCH → SHADOW-WORK: 📡 log-watcher armed on
+that file at 2026-07-10T18:17:52Z, confirmed via `.team/logwatch.md` (append-only, appending real
+timestamped heartbeats — build ~5% through the 23.7GB disk pull as of arm time). `cmux set-status state
+SHADOW-WORK` / `set-progress 0.3` / `notify` fired.
+
+**🐍 Step 3 TASK-DONE** (2026-07-10T18:0X): pyproject.toml + src/macos_ci/ scaffold + 3-stub handoff to
+🛠 (recorded in Handoff log below) + RED-FIRST tests for `parse_vnc_url`/`_config_core.load`/
+`_tart_core` argv builders/`_doctor_core.check` + `doctor.py`. 27/27 tests pass, `uvx ruff check .`
+clean, pure/impure boundary guard passes, `uv run macos-ci doctor` exits 0 and reports the G4 ceiling.
+Found a stranded/placeholder composer on this pane post-TASK-DONE (text sitting at the `❯` line); sent
+an explicit follow-up instruction rather than trust the ambiguous enter-press — 🐍 confirmed moving onto
+shadow work (`_harness_core`, `_triage_core`, `_gui_core` completion).
 
 ## Roster (surface UUIDs — re-resolve short refs via `cmux list-pane-surfaces --workspace workspace:12`)
 
 | pane | role | surface UUID | owns | pill |
 |---|---|---|---|---|
-| 🐍 | core-builder | `41F4D7B6-7940-46AB-B2F2-264865D84822` | pyproject.toml, `src/macos_ci/{cli,config,tart,doctor,artifacts}.py`, ALL `_{config,tart,doctor,harness,triage,gui}_core.py`, `tests/unit/**` | 🔵 not yet dispatched |
-| 📦 | packer-builder | `0E3A42D8-66CF-458A-9AE7-25B3D6306D60` | macos-versions.toml, `packer/**`, `.cirrus.yml`; creates `logs/packer-build-*.log` | 🔵 not yet dispatched |
-| 🛠 | harness-builder | `C22DBCCD-0588-4DA2-B1F7-D3A5CA765EF2` | Justfile, Makefile, `src/macos_ci/{harness,gui,vm_debug}.py` (after handoff), `harness/seed-config/**`, `tests/{integration,pty,gui,manual}/**` | 🔵 not yet dispatched |
-| ✅ | validator | `A37B8728-7F00-4347-872C-AC23171DA7FA` | `.claude/agents/**`, `.claude/commands/**` (step-12 rewrite); ANY other file only under a lead-issued LOAN TICKET | 🔵 not yet dispatched |
-| 📡 | log-watcher | `7B514CEE-1BAA-4D0B-AAA6-51F31CD78C9A` | `.team/logwatch.md` (append-only), nothing else | 🔵 not yet dispatched |
+| 🐍 | core-builder | `41F4D7B6-7940-46AB-B2F2-264865D84822` | pyproject.toml, `src/macos_ci/{cli,config,tart,doctor,artifacts}.py`, ALL `_{config,tart,doctor,harness,triage,gui}_core.py`, `tests/unit/**` | 🟢 Step 3 TASK-DONE (27/27 red-first) · 🔵 now on shadow work (_harness_core/_triage_core/_gui_core) |
+| 📦 | packer-builder | `0E3A42D8-66CF-458A-9AE7-25B3D6306D60` | macos-versions.toml, `packer/**`, `.cirrus.yml`; creates `logs/packer-build-*.log` | 🔵 dispatched (Step 5+6a, critical path) |
+| 🛠 | harness-builder | `C22DBCCD-0588-4DA2-B1F7-D3A5CA765EF2` | Justfile, Makefile, `src/macos_ci/{harness,gui,vm_debug}.py` (after handoff), `harness/seed-config/**`, `tests/{integration,pty,gui,manual}/**` | 🔵 dispatched (Step 4) |
+| ✅ | validator | `A37B8728-7F00-4347-872C-AC23171DA7FA` | `.claude/agents/**`, `.claude/commands/**` (step-12 rewrite); ANY other file only under a lead-issued LOAN TICKET | 🔵 dispatched (Step 12 + red-team) |
+| 📡 | log-watcher | `7B514CEE-1BAA-4D0B-AAA6-51F31CD78C9A` | `.team/logwatch.md` (append-only), nothing else | 🔵 dispatched (standing by) |
 | 🏗 | build (NO AGENT) | `A2E7C386-9B66-4483-939B-7363CD6FAB90` | plain shell; packer build tees here; only 📦 launches it, only 📡 tails the log file | idle |
 | 👑 | lead (you) | `D19A89AB-1B8B-4074-8DC0-B74C080328E3` | board, backlog, README (G4 record), CLAUDE.md | 🔵 working |
 
@@ -78,7 +90,15 @@ mounted as sub-apps in `cli.py`, then hands those 3 files to 🛠 harness-builde
 (pure cores) and `_gui_core.py`+`gui.py` throughout (gui.py stays with 🐍 per roster). Record the handoff
 timestamp here the moment it happens.
 
-**Handoff log:** _(none yet)_
+**Handoff log:**
+
+- **2026-07-10T18:09:06Z** — 🐍 core-builder created one-line typer-app stubs for `harness.py`,
+  `gui.py`, `vm_debug.py` (`src/macos_ci/{harness,gui,vm_debug}.py`), each raising `NotImplementedError`
+  in their placeholder commands, and mounted all three as sub-apps in `src/macos_ci/cli.py`
+  (`app.add_typer(...)`, verified importable: `uv run python -c "from macos_ci.cli import app"`).
+  Per the ownership table above: `harness.py`/`vm_debug.py` (impure shells) are now 🛠 harness-builder's
+  to implement. 🐍 core-builder retains `_harness_core.py`, `_triage_core.py`, and both `gui.py`/
+  `_gui_core.py` throughout.
 
 ## Wave 1 assignments (dispatched at SCAFFOLD→PRE-IMAGE transition)
 
@@ -97,7 +117,11 @@ Full detailed briefs: `.team/macos-ci-build.backlog.md`.
 Opens when: Step 1 preflight pasted (✅ done above) AND `packer validate` exits 0 on
 `packer/tart-golden-image.pkr.hcl`. Does NOT wait on steps 3/4.
 
-**Status: NOT YET OPEN** (waiting on 📦 packer-builder template + validate).
+**Status: OPEN** — `packer validate` exited 0 on `packer/tart-golden-image.pkr.hcl` at
+2026-07-10 14:10:58. 📦 packer-builder launched `just build-golden` into the 🏗 build pane
+(`A2E7C386-9B66-4483-939B-7363CD6FAB90`), teed to **`logs/packer-build-20260710-141058.log`**.
+Confirmed via `read-screen`: cloning the base VM, pulling disk (23.7 GB compressed). 📡 log-watcher:
+arm on that file. 📦 stepping back per protocol — not babysitting the build pane further.
 
 ## Circuit breaker (build failures)
 
@@ -107,10 +131,28 @@ Relaunch count: **0 / 2**. Third failure → board goes red, NEEDS-HUMAN OQ open
 
 | Commit | Phase | Status |
 |---|---|---|
-| SCAFFOLD baseline | board+backlog+README written | pending |
-| HG (mid-build hermetic gate) | `uv run pytest` + `just check` both 0 on pre-image tree | pending |
+| SCAFFOLD baseline | board+backlog+README written | **done** (`8ea4a71`) |
+| HG (mid-build hermetic gate) | `uv run pytest` + `just check` both 0 on pre-image tree | **done** — see below |
 | IMAGE-READY | build exits 0, confirmed via log tail | pending |
 | GATE-clean | `just check` + `uv run pytest` both 0, DONE | pending |
+
+## Mid-build hermetic gate (HG) — PASSED
+
+```
+just check       -> EXIT=0, 311/311 claims verified
+uv run pytest     -> 50 passed in 0.03s (7 test modules, unit tier only)
+```
+
+**Ledger note (OQ-02/OQ-04):** harness-builder's Step 4 (real `build-ipsw`/`images`/`pull` recipes +
+`build`/`build-golden` alias) legitimately falsified 8 claims that documented the *prior* absence of
+those recipes and of `packer/**` (📦's Step 5 landing). Escalated to the human (hard scope limit: never
+mutate `.team/claims.jsonl`) rather than deciding unilaterally — **human authorized retiring the 6
+genuinely-stale claims**, following this file's own established retraction precedent
+(`d1-justfile-build-golden-names-absent-template`, `d2-spec12-carries-the-phantom-recipe-retraction`).
+The other 2 needed no ledger edit — fixed by swapping which name (`build` vs `build-golden`) is the real
+recipe vs. the alias, since `just --summary` never lists aliases. Full resolution: OQ-04 in
+`.team/macos-ci-build.open-questions.md`. Also resolved OQ-03 (SSH auth mechanism gap — see OQ-05,
+two-phase bootstrap-then-key-auth design, no golden-image rebuild needed) and dispatched to 🛠.
 
 ## Deferred items
 

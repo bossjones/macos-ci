@@ -1,0 +1,27 @@
+# Local/CI parity wrapper around this repo's own harness, per
+# specs/macos-ci/03-tart-ci-and-orchard.md Part A and specs/macos-ci/12-tooling-and-agent-loop.md's
+# `ci` recipe.
+#
+# Deliberately NO `macos_instance:`. `just run` (the main loop: doctor -> up -> chezmoi diff ->
+# apply -> verify -> destroy) already drives its own `tart clone`/`tart run` of the golden image
+# built by packer/tart-golden-image.pkr.hcl. Nesting that inside a Cirrus-managed macos_instance
+# would mean a Tart guest launching a second Tart guest from within itself — Virtualization.framework
+# nested virtualization this repo does not rely on and has not verified. Running the task directly
+# on the current machine — the same self-hosted-runner shape spec 03's "How this repo would
+# eventually use it" describes (a Mac with Tart + Cirrus CLI installed) — is what makes `cirrus run`
+# and `just run` produce the identical pass/fail this repo's Step 14 parity leg checks for.
+#
+# `.gitignore` filtering and the working-directory copy (not mount, unless `cirrus run --dirty`) are
+# Cirrus CLI's own behavior, documented in specs/macos-ci/03 — irrelevant to a no-instance task like
+# this one, which runs directly in the current working directory.
+
+task:
+  name: dotfiles-install
+  script: just run
+  # `cirrus run --artifacts-dir artifacts` pulls this path out after the run, resolving to
+  # $PWD/artifacts/dotfiles-install/harness/artifacts on the host — the same
+  # artifacts/<run-id>/{state,verdict,pytest}.json contract specs/macos-ci/12 defines, whether
+  # inspected directly (this no-instance task already writes to the host filesystem) or via the
+  # Cirrus artifact-extraction path once a macos_instance-backed task exists.
+  harness_artifacts:
+    path: artifacts

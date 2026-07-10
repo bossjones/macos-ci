@@ -1,0 +1,15 @@
+# Pre-seeded chezmoi config (spec 08 §(b) Option A). Written into the guest at
+# ~/.config/chezmoi/chezmoi.yaml before `chezmoi init` runs.
+#
+# All seven feature-toggle fields explicit `true` — the opposite corner of the toggle matrix from
+# lean-baseline.yaml. Exercises every optional install path pinned in .chezmoi.yaml.tmpl's `data:`
+# block (spec 09 §"Template data block"): Ruby via asdf, a pyenv-managed Python, Node.js via fnm,
+# Kubernetes CLIs, CUDA, and OpenCV. Slow — expect a materially longer apply than the baseline run.
+data:
+  ruby: true
+  pyenv: true
+  nodejs: true
+  k8s: true
+  cuda: true
+  fnm: true
+  opencv: true

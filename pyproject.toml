@@ -1,0 +1,59 @@
+[project]
+name = "macos-ci"
+version = "0.1.0"
+description = "Virtualized macOS CI harness for testing zsh-dotfiles / zsh-dotfiles-prep installs on Tart"
+requires-python = ">=3.13"
+authors = [
+    { name = "Malcolm Jones", email = "bossjones@theblacktonystark.com" },
+]
+readme = "README.md"
+license = "MIT"
+dependencies = [
+    "typer>=0.15.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+macos-ci = "macos_ci.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.0",
+    "basedpyright>=1.29.1",
+    "pytest-sugar>=1.1.1",
+    "pytest-mock>=3.15.1",
+    "pytest-timeout>=2.4.0",
+    "pytest-retry>=1.7.0",
+    "pytest-subprocess>=1.5.3",
+    "pytest-skip-slow>=0.0.5",
+    "pytest-testinfra>=10.2.1",
+    "asyncvnc>=1.3.0",
+    "pexpect>=4.9.0",
+    "pytest-json-report>=1.5.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/macos_ci"]
+
+[tool.uv]
+package = true
+
+[tool.pytest.ini_options]
+addopts = "-ra -m 'not vm and not pty and not gui and not manual'"
+markers = [
+    "vm: needs a booted tart VM",
+    "pty: needs an interactive PTY (pexpect over `ssh -tt`)",
+    "gui: needs VNC framebuffer access",
+    "manual: prompts a human for a y/n verdict",
+]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"

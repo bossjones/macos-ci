@@ -1,0 +1,15 @@
+# Pre-seeded chezmoi config (spec 08 §(b) Option A). Written into the guest at
+# ~/.config/chezmoi/chezmoi.yaml before `chezmoi init` runs.
+#
+# All seven feature-toggle fields explicit `false` — the lean baseline (spec 09
+# §"Non-TTY default state"). Behaviourally identical to running with no seed file at all; this
+# fixture exists so the toggle-matrix has a named, explicit row for the default rather than an
+# implicit one.
+data:
+  ruby: false
+  pyenv: false
+  nodejs: false
+  k8s: false
+  cuda: false
+  fnm: false
+  opencv: false

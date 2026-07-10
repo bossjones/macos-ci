@@ -570,3 +570,6 @@ clusters/*/.flags.auto.tfvars.json
 # lychee link checker
 .lychee-report.md
 .lycheecache
+
+# macos-ci harness run state (spec 12 §"The artifacts contract")
+artifacts/
