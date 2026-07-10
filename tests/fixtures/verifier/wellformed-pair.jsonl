@@ -1,0 +1,5 @@
+// A negative WITH its positive control over the SAME target. Must be accepted and evaluated.
+// NB the target is a DIFFERENT fixture file: a ledger that greps itself for its own `expect`
+// can never satisfy an `absent` claim -- the token is in the record.
+{"id":"POSITIVE-target-is-non-empty","kind":"file-contains","file":"tests/fixtures/verifier/wellformed-pair.jsonl","target":"tests/fixtures/verifier/mustfail-inversion.jsonl","expect":"probe-out-of-range-line-is-inverted","claim":"fixture control: the target is genuinely non-empty and was really read"}
+{"id":"NEGATIVE-token-is-absent","kind":"absent","control":"POSITIVE-target-is-non-empty","file":"tests/fixtures/verifier/wellformed-pair.jsonl","target":"tests/fixtures/verifier/mustfail-inversion.jsonl","expect":"HOMEBREW_GITHUB_PACKAGES_TOKEN","claim":"fixture: a controlled negative is accepted and evaluated"}

@@ -9,9 +9,10 @@ Every URL fetched (or attempted) across the research pass, grouped by bucket, ea
 | `[thin]` | A stub, index, or TOC page — useful mainly as a pointer |
 | `[cited-as-exclusion]` | Read only to establish what it does **not** support; never cited as evidence |
 
-**Every source URL in this research is live.** Probed with
-`curl -sS -o /dev/null -w '%{http_code}' -L`: 47/47 return `200`. There is no `[404]` grade because
-nothing is dead — see the retraction below for the URL that was wrongly believed to be.
+**Every source URL in this research is live**, and there is no `[404]` grade because nothing is dead —
+see the retraction below for the URL that was wrongly believed to be. The live property is not asserted
+here as a frozen count; it is **re-checked on every run** by `just link-check`, which walks every
+markdown link in every spec (fragments included). Trust that, not a number in prose.
 
 **Every URL below is a live markdown link on purpose.** `just link-check` runs
 [lychee](https://github.com/lycheeverse/lychee) over this file; a bare-backtick URL would be invisible to
@@ -147,7 +148,7 @@ contract, the ledger for the fact.
 | [packer/docs/templates/hcl_templates/variables](https://developer.hashicorp.com/packer/docs/templates/hcl_templates/variables) | `[meaty]` | `sensitive` ("obfuscated from Packer's output"), `PKR_VAR_<name>` as a lowest-priority assignment, and the full precedence table — [13](13-build-secrets.md) |
 | [packer/docs/.../functions/contextual/env](https://developer.hashicorp.com/packer/docs/templates/hcl_templates/functions/contextual/env) | `[meaty]` | `env()` is "the only function callable from a variable block", and only in `default`. Direct source for choosing the unprefixed name over `PKR_VAR_` — [13](13-build-secrets.md) |
 | [packer/docs/.../functions/collection/compact](https://developer.hashicorp.com/packer/docs/templates/hcl_templates/functions/collection/compact) | `[thin]` | "returns a new list with any empty string elements removed" — the mechanism that makes the token optional — [13](13-build-secrets.md) |
-| [packer/docs/provisioners/shell](https://developer.hashicorp.com/packer/docs/provisioners/shell) | `[meaty]` | `environment_vars`, and the two defaults the whole design rests on: `use_env_var_file` (false — true writes a tempfile to the guest) and `skip_clean` (false — uploaded scripts are removed) — [13](13-build-secrets.md) |
+| [packer/docs/provisioners/shell](https://developer.hashicorp.com/packer/docs/provisioners/shell) | `[meaty]` | `environment_vars`; that `use_env_var_file = true` "writes your environment variables to a tempfile" **on the guest** — the behaviour [13](13-build-secrets.md) exists to avoid; and that `skip_clean` "defaults to false (clean scripts from the system)". **The page never states a default for `use_env_var_file`** — it states one for `skip_clean` and for `expect_disconnect`, so its silence here is not a house style. `false` is a strong inference from the documented `execute_command` branch, not a documented fact; [13](13-build-secrets.md) therefore sets the field explicitly rather than relying on it. See **OQ-24** |
 | [packer/docs/.../legacy_json_templates/user-variables](https://developer.hashicorp.com/packer/docs/templates/legacy_json_templates/user-variables) | `[cited-as-exclusion]` | The JSON-era `"sensitive-variables"` list. Read only to confirm it is the *legacy* spelling, superseded by HCL's `sensitive = true`; not the API we use |
 | [Homebrew/brew `docs/Manpage.md`](https://github.com/Homebrew/brew/blob/master/docs/Manpage.md) | `[meaty]` | `HOMEBREW_GITHUB_API_TOKEN` ("Homebrew doesn't require permissions for any of the scopes" — hence the scopeless-PAT advice), `HOMEBREW_GITHUB_PACKAGES_TOKEN` (GitHub Packages registry, i.e. private-tap bottles — which is why we don't need it), and `HOMEBREW_API_DOMAIN` (default `https://formulae.brew.sh/api`) — [13](13-build-secrets.md) |
 | [GitHub REST rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) | `[meaty]` | 60 requests/hour unauthenticated vs 5,000/hour authenticated — the entire justification for injecting a token — [13](13-build-secrets.md) |
@@ -175,7 +176,12 @@ child at [settings-apple/devices/devices/](https://docs.getutm.app/settings-appl
 `404` was manufactured by requesting a URL nobody had ever published, and its "deadness" was then
 generalized onto three live URLs sitting next to it in the list.
 
-Every one of the 47 URLs actually supplied for this research returns `200`.
+Not one URL actually supplied for this research is dead. The original write-up put a number on that
+("47/47") — but the supplied list is not on disk, so the count can be neither reproduced nor disproved
+from this repo, and it has since drifted — this file alone now cites well more than 47 (re-derive with
+`grep -ohE '\]\(https?://[^)]+\)' specs/macos-ci/11-sources.md | sort -u | wc -l`). A frozen count is
+exactly the kind of unfalsifiable number this section exists to warn about, so it has been replaced by
+the live check: `just link-check`. See **OQ-25**.
 
 Two things made the error durable:
 
@@ -192,6 +198,116 @@ The mis-pruned pages turned out to be mostly thin index/TOC pages, so little sub
 loss was `settings-apple/virtualization/`, now written up in [06](06-utm-macos-guest.md) §9. **G10 is
 retracted**; the ledger row in `.team/macos-ci.board.md` is marked accordingly. `just link-check` now
 guards against a repeat.
+
+## Further retractions — G10 was not the only one
+
+G10 is the famous one because it fabricated a URL. It is not the only ground truth the research brief got
+wrong, and the rest are recorded here so no reader has to rediscover them. **In every case the brief lost
+to a read-only command anyone could have run.**
+
+### D5 — the marker baseline, wrong twice over
+
+The brief asserted that `Justfile`'s marker count matched on the bare token with no `<!--` prefix, and
+that tightening the pattern to `<!-- UNVERIFIED` would drop 5 prose lines, leaving 17. Both halves are
+false. Counted both ways, the two patterns return the same **22** lines: every one of them already
+carries the literal `<!-- UNVERIFIED`, so the set difference is empty and the proposed "fix" is a no-op.
+
+The real discriminator is the **backtick**. A prose *mention* of the marker wraps it in a code span; an
+actual marker does not. Excluding lines that match the backticked form leaves **16** real markers — which
+is how `Justfile:63` counts today, and why this very paragraph does not inflate the budget it describes.
+
+And the brief's enumeration of the prose lines was short by one: it named five, there are six (it missed
+`specs/macos-ci.md:517`). Had that arithmetic been adopted, **17** would have become the baseline every
+later diff was measured against. The honest baseline is **16**. `Justfile:63` now discriminates on the
+backtick (ledger: `d5-justfile-63-discriminates-on-the-backtick`), which is sound today but fragile: a
+line carrying a real marker *and* a backticked mention would be silently dropped. See **OQ-05**. *A
+budget you can pay down by editing punctuation is not a budget.*
+
+### G13 — partially retracted: `vnc_port_min` / `vnc_port_max` do not exist
+
+The brief described VNC port-range fields on the Tart Packer builder. They are not in the builder's
+published field reference, and not in its generated config schema. Checked against the local clone at
+`c10d611`, not against memory (ledger: `g13-packer-tart-webdocs-has-no-vnc-port-fields`,
+`g13-packer-tart-hcl2spec-has-no-vnc-port-fields` — each paired with a positive control asserting the
+field `disable_vnc`, which the same files **do** document, so "no `vnc_port`" cannot pass against a
+gutted file). What survives of G13 is only the part about VNC itself being present. The rest of the
+`--vnc-experimental` question stays marked `<!-- UNVERIFIED -->` in
+[12](12-tooling-and-agent-loop.md) — see **OQ-02**.
+
+### G9 — the conclusion survives; the method that was prescribed would have failed
+
+G9 says neither dotfiles repo uses Ansible. The brief instructed proving it with an `absent` claim over
+the repos. That claim would **fail**: `ansible` appears twice in `zsh-dotfiles-prep`'s Brewfile — as
+`brew "ansible"` and as the VS Code extension `redhat.ansible` (ledger:
+`ansible-in-prep-brewfile-line-57`, `ansible-in-prep-brewfile-line-602`).
+
+Installing a tool is not being provisioned by it. The defensible claim — the one the ledger actually
+carries — is narrower: **neither repo is *provisioned by* Ansible.** There is no playbook
+(`prep-repo-has-no-ansible-playbook`), no `become:` key (`prep-repo-has-no-become-key`), and no
+`ansible` in `zsh-dotfiles`' tracked tree at all (`no-ansible-in-zsh-dotfiles-tracked`, plus an
+uppercase variant, because `grep` is case-sensitive and a negative that misses a case is a negative that
+lies). Each of those negatives ships a positive control on the same command shape.
+
+### G14 — the brief asserted a host fact that a one-word command refuted
+
+The research brief told every agent that `packer` was **not installed**, and pointed them at a
+`just doctor` recipe to remedy it. Both halves are false, and each dies to a single command:
+
+```bash
+packer version          # -> Packer v1.15.4
+just --summary          # -> build-golden check default link-check link-check-fresh
+                        #    link-check-verbose unverified-count verify-claims
+                        #    verify-claims-json verify-no-secrets
+```
+
+There is no `doctor` recipe (ledger: `synth-justfile-has-no-doctor-recipe`, paired with a positive
+control on the same file so it cannot pass against a gutted `Justfile`), and packer is present at
+**v1.15.4** (`synth-packer-version-is-1-15-4`). The sharp detail is the timing: **the ledger claim
+`packer-is-installed` was already passing when the draft asserting the opposite was written.** The
+evidence was sitting in the repo, green, and the prose contradicted it anyway.
+
+That is this repo's thesis stated as a fact rather than a slogan: **the briefing is not privileged over
+the evidence.** A ground truth is a hypothesis with good PR. When one contradicts a passing claim or a
+read-only command, the ground truth is what gives way.
+
+### The master brief itself — `must_fail` JOB 2, retracted in three rounds
+
+The brief's rule (`must_fail` JOB 2) required a positive control for one shape only: a **negative
+`cli-help` probe**. Each round of fixing it revealed the same hole one level further up. The progression
+is the lesson, so it is recorded as one retraction rather than three:
+
+| | The hole | Where it was |
+|---|---|---|
+| **GB2** | The rule is a **logical impossibility** for a `grep -c`-shaped probe. A true negative implies **empty output**, so no same-`argv` command can ever print anything to control against. | in the rule's wording |
+| **GB4** | The identical hazard existed for the `absent` kind, entirely unguarded. An `absent` claim passes against an **empty or gutted file** as readily as an honest one. Worse: a `must_fail` control whose **target file was deleted** went **green**, because the missing-file handler returned a bare `missing:` with no `UNREACHABLE:` prefix — so `must_fail` dutifully inverted it. **Deleting a control's target file turned the control green.** | in the kinds the rule forgot |
+| **GB5** | The GB4 fix then exempted the `doc-contains` **kind** rather than the **oracle records**, leaving exactly one `must_fail` `doc-contains` negative probe (`utm-no-tso-toggle-on-apple-virtualization`) guarded by prose alone. | in the fix's exemption clause |
+
+**The pattern: each round, the hole moved one level up the abstraction.** From the rule, to the kinds the
+rule omitted, to the exemption clause of the rule's own fix. **Every exemption clause is a place where
+enforcement stops and prose resumes** — and prose is what G10 was made of.
+
+So the invariant is not *"negatives need controls."* It is:
+
+> **Every claim satisfiable by the absence of evidence must name the positive claim that proves the probe
+> can see.**
+
+It now lives in [`tools/verify_claims.py`](../../tools/verify_claims.py) (`needs_control` →
+`check_structure` → exit `4`), not in a brief. Re-derived at HEAD rather than taken on trust:
+
+```
+absent claim, no `control` field                     -> exit 4   STRUCTURAL REJECTION
+must_fail doc-contains, no `control` field           -> exit 4   (the GB5 hole, now closed)
+must_fail file-line whose target file is DELETED     -> exit 3   UNREACHABLE, never inverted (the GB4 hole, now closed)
+```
+
+Two residual limits, stated because a fix nobody bounds becomes the next brief. First, the tool checks
+that a control **exists**, not that it probes the **same substrate** — an `absent` claim over an empty
+file is still accepted if its control names an unrelated target (see **OQ-36**). Second, the tool's own
+behaviour is the one thing in this repo no claim executes (see **OQ-35**).
+
+**The pattern across G10, G14, D5, G13, G9 and the brief's own `must_fail` rule is one pattern.** Each was
+a plausible sentence nobody had executed. Most would have been caught by the first read-only command a
+skeptic would type. The rest were caught only because something was built that runs the command every time.
 
 ## Local working trees (read directly, not fetched — G11)
 

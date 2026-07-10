@@ -72,9 +72,12 @@ $ mount_virtiofs share [mount point]
 
 (`[mount point]` can be any path, e.g. `/Volumes/Share`.) Unmount with `umount [mount point]` or via
 Finder. The docs show this as a manual, per-boot Terminal command — **no fstab/launchd example is given
-for auto-mounting on a macOS guest** the way one exists for the Linux Rosetta runtime (`05`/G7 territory);
-treat persistent auto-mount on the macOS guest side as <!-- UNVERIFIED --> and, if needed, solve it with
-a login item or LaunchAgent the harness provisions itself, not something UTM documents.
+for auto-mounting on a macOS guest.** The contrast is exact: [advanced/rosetta](https://docs.getutm.app/advanced/rosetta/)
+*does* publish a persistent recipe (`rosetta /media/rosetta virtiofs ro,nofail 0 0` in `/etc/fstab`) — but
+for a **Linux** guest (G7). Treat persistent auto-mount on the macOS guest side as
+<!-- UNVERIFIED: undocumented, not impossible; proving persistence needs a guest reboot. See OQ-11 --> and,
+if needed, solve it with a login item or LaunchAgent the harness provisions itself, not something UTM
+documents.
 
 ### 3.2 Network file sharing (works down to macOS 12)
 

@@ -51,6 +51,17 @@ Evidence kinds, cheapest first:
   absent         target does NOT contain `expect`. For negative claims, e.g.
                  "zsh-dotfiles has no macOS asdf installer".
 
+                 Like every negative, it is unfalsifiable alone: an EMPTY or
+                 GUTTED file satisfies it just as well as an honest one. So an
+                 `absent` record MUST carry a `control` naming a positive claim
+                 over the same target. The master brief stated this requirement
+                 for `cli-help` only (must_fail JOB 2); that was too narrow. It
+                 is a property of ALL negative evidence — including a must_fail
+                 `doc-contains` probe, which a page with EMPTY indexed text
+                 satisfies just as well as an honest one. `check_structure`
+                 enforces it, because a rule the tool does not enforce is a rule
+                 that will be forgotten — including an exemption clause.
+
 Any claim may set `"must_fail": true`. Its evidence is then required NOT to
 verify. This is how the ledger tests its own oracle: one control claim asserts
 the fabricated `settings-apple/devices/` URL, and if that ever starts passing,
@@ -60,7 +71,9 @@ worthless. A verifier nobody verifies is just a second thing to trust.
 Two failure prefixes are never inverted by `must_fail`, because neither is
 evidence about the claim itself:
 
-  UNREACHABLE:   network down, binary absent. Says nothing about the world.
+  UNREACHABLE:   network down, binary absent, or the target file does not exist.
+                 Says nothing about the world — and in particular, deleting a
+                 control's target must never turn that control green.
   STRUCTURE:     a doc-contains page is missing from the index. Distinguishes
                  "the page vanished" from "the sentence vanished" — an upstream
                  reword must not read as a fabricated URL, and a control must
@@ -247,11 +260,95 @@ def evaluate(claim: dict[str, Any], index_cache: dict[str, dict[str, str]]) -> R
         return Result(cid, kind or "?", False, f"unknown evidence kind {kind!r}", src)
 
     except FileNotFoundError as e:
-        return Result(cid, kind, False, f"missing: {e}", src)
+        # An absent target is not evidence about the claim, so it carries the
+        # UNREACHABLE prefix and `must_fail` must never invert it. Without this,
+        # DELETING a control's target file turns the control green: a must_fail
+        # file-line claim on a missing file would "pass" for the wrong reason.
+        # CONTROL-12-line-607-does-not-exist is exactly such a claim.
+        return Result(cid, kind, False, f"UNREACHABLE: missing file: {e}", src)
     except (urllib.error.URLError, TimeoutError, subprocess.TimeoutExpired) as e:
         return Result(cid, kind, False, f"UNREACHABLE: {e}", src)
     except (KeyError, ValueError) as e:
         return Result(cid, kind, False, f"malformed claim: {e}", src)
+
+
+def needs_control(claim: dict[str, Any]) -> bool:
+    """Does this claim rest on NEGATIVE evidence, and therefore require a positive control?
+
+    Negative evidence is unfalsifiable on its own. "The secret is absent from the
+    output" is equally satisfied by no output at all; "the string is absent from the
+    file" is equally satisfied by an EMPTY or GUTTED file. Either needs a control
+    proving the same probe, over the same substrate, DOES surface something.
+
+    Three shapes qualify:
+      absent                       -- a negative over a file
+      cli-help     + must_fail     -- a negative over a command's output
+      doc-contains + must_fail     -- a negative over an indexed page: a page whose
+                                      indexed text is EMPTY satisfies "the page does
+                                      not say X" just as well as an honest one
+      doc-index    + must_fail     -- a negative over a site's page list
+
+    EXEMPT: the oracle controls. Those are `CONTROL-*` records of a doc kind. They
+    ARE the controls -- they guard the doc oracles themselves -- and have no partner
+    by construction.
+
+    The exemption is on the ORACLE RECORD, not on the KIND. Exempting the whole
+    `doc-contains` kind would have exempted `utm-no-tso-toggle-on-apple-virtualization`,
+    a must_fail NEGATIVE PROBE whose pairing was stated in prose and enforced nowhere
+    (GB5 / OQ-19). Nor is the exemption a bare `CONTROL-` name check: two genuine
+    negatives are named `CONTROL-*` by history (`CONTROL-d1-packer-dir-does-not-exist`,
+    a cli-help probe, and `CONTROL-tart-builder-clone-step-ignores-disk-format`, an
+    absent probe). A name is not a warrant.
+    """
+    kind = claim.get("kind", "")
+    is_oracle_control = str(claim.get("id", "")).startswith("CONTROL-") and kind in ("doc-index", "doc-contains")
+    if is_oracle_control:
+        return False
+    if kind == "absent":
+        return True
+    return bool(claim.get("must_fail")) and kind in ("cli-help", "doc-contains", "doc-index")
+
+
+def check_structure(claims: list[dict[str, Any]]) -> list[str]:
+    """Reject a ledger whose negative claims lack a resolvable positive control.
+
+    A rule the tool does not enforce is a rule that will be forgotten. The master
+    brief stated the positive-control requirement for `cli-help` only; it is a
+    property of all negative evidence. This is where that is made structural.
+    """
+    ids = {c.get("id") for c in claims}
+    problems: list[str] = []
+    for c in claims:
+        cid = c.get("id", "<unnamed>")
+        ctl = c.get("control")
+        # A `control` is VALIDATED whenever it is present, even on a claim that does not
+        # require one. Otherwise a claim could name a control that does not exist — or a
+        # control that is itself a negative — and the pairing would be decoration.
+        if not needs_control(c) and not ctl:
+            continue
+        if needs_control(c) and not ctl:
+            problems.append(
+                f"{cid}: kind={c.get('kind')!r}"
+                f"{' must_fail' if c.get('must_fail') else ''} carries NEGATIVE evidence "
+                f"but no `control` field. A negative claim without a positive control is "
+                f"unfalsifiable — an empty file, an empty indexed page, or no output at "
+                f"all, satisfies it."
+            )
+            continue
+        names: list[str] = [ctl] if isinstance(ctl, str) else list(ctl or [])
+        for name in names:
+            if name not in ids:
+                problems.append(f"{cid}: `control` names {name!r}, which is not a claim id in this ledger")
+            elif name == cid:
+                problems.append(f"{cid}: `control` names itself; a claim cannot be its own control")
+            else:
+                partner = next(c2 for c2 in claims if c2.get("id") == name)
+                if partner.get("must_fail"):
+                    problems.append(
+                        f"{cid}: `control` names {name!r}, which is itself a must_fail claim. "
+                        f"A control must be a POSITIVE claim that verifies."
+                    )
+    return problems
 
 
 def main() -> int:
@@ -268,6 +365,20 @@ def main() -> int:
     claims = [json.loads(ln) for ln in ledger.read_text().splitlines() if ln.strip() and not ln.startswith("//")]
     if not claims:
         print("ledger is empty — a spec with no checkable claims is a spec nobody verified", file=sys.stderr)
+        return USAGE
+
+    structural = check_structure(claims)
+    if structural:
+        print("STRUCTURAL REJECTION — negative evidence without a positive control:", file=sys.stderr)
+        for p in structural:
+            print(f"  {p}", file=sys.stderr)
+        print(
+            f"\n{len(structural)} offending claim(s). Every `absent` record, and every must_fail "
+            f"`cli-help` / `doc-contains` / `doc-index` probe, must carry a `control` naming a "
+            f"positive claim id in this ledger. Only `CONTROL-*` records of a doc kind — the "
+            f"oracle guards, which have no partner by construction — are exempt.",
+            file=sys.stderr,
+        )
         return USAGE
 
     cache: dict[str, dict[str, str]] = {}

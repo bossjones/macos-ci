@@ -72,11 +72,24 @@ Concretely, for this repo:
    open-source license, and Cirrus Labs actively enforced it against a commercial violator in
    October 2025 ([04](04-tart-licensing-risk.md)§3). Personal/workstation use is unconditionally free;
    headless "server installation" use is free only up to **100 combined CPU cores** (Tart) / **4
-   workers** (Orchard) before paid tiers (Gold $12K/yr, Platinum $36K/yr, Diamond custom) apply. This
+   workers** (Orchard) before paid tiers apply: Gold $12,000/yr (500 cores, 20 workers), Platinum
+   $36,000/yr (3,000 cores, 200 workers), and a custom Diamond tier at **$12 per CPU core per year**
+   which "gives the ability to run unlimited Orchard Workers" — unlimited *workers*, not unlimited
+   *cores*, since the cores are what you pay per. This
    repo's recommended fleet size (2-3 hosts, 8-16 cores each) stays comfortably under both ceilings by
    design, with an explicit trigger condition to re-evaluate before adding a 4th host or approaching
    100 cores ([04](04-tart-licensing-risk.md)§4). **This requires human sign-off** — it is a real,
    monitored commercial term, not a footnote.
+
+   > **The free-tier Orchard ceiling is stated two different ways on the same page.**
+   > [tart.run/licensing](https://tart.run/licensing/) says organizations exceeding *"100 CPU cores for
+   > Tart and/or **4 hosts** for Orchard"* need a paid license, then says *"Free Tier license has a 100
+   > CPU core limit for Tart and **4 Orchard Workers** limit for Orchard."* A host and a worker are not
+   > the same unit. Both sentences are verbatim from the page (ledger:
+   > `tart-licensing-says-4-hosts-for-orchard`, `tart-free-tier-100-cores-4-workers`). The fleet plan
+   > above is under either reading, so this does not change the decision — but a reader sizing a fleet
+   > *at* the ceiling must not assume the two are interchangeable.
+
 2. **Loss of disposable-mode convenience.** Because UTM's disposable mode doesn't reach macOS guests
    anyway (G5), this is really a non-cost relative to UTM — but it does mean the harness must
    implement its own ephemeral-clone discipline (golden image + `tart clone`/`tart delete`) rather than

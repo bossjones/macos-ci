@@ -60,7 +60,7 @@ verify-no-secrets vm:
 # Count unverified markers. A spec's honesty budget: these must be justified, not ambient.
 unverified-count:
     @echo "🕵️  <!-- UNVERIFIED --> markers by file:"
-    @grep -rc 'UNVERIFIED' specs/ --include='*.md' | grep -v ':0$' || echo "  none"
+    @grep -rn 'UNVERIFIED' specs/ --include='*.md' | grep -v '`<!-- UNVERIFIED' || echo "  none"
 
 # The full truth gate. Everything an agent must pass before a spec is trustworthy.
 check: link-check verify-claims unverified-count

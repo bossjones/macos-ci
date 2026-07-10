@@ -11,8 +11,10 @@ walked through why neither fits cleanly: Vagrant needs a custom box format and p
 maintenance; Terraform/Pulumi "lack... essential use cases: explicitly start or stop machines — without
 creating or destroying them" and can only reach that behavior indirectly by editing config and
 re-applying. UTM maintainer `osy` replied (Apr 27, 2022): **"There are plans for this in #3718 but
-that's still a long way off."** ([issue #3718](https://github.com/utmapp/UTM/issues/3718) is the tracked
-IaC-support request; still open as of this writing.)
+that's still a long way off."** [Issue #3718](https://github.com/utmapp/UTM/issues/3718) is titled
+**"Vagrant support for macOS"** and is still `OPEN` (`gh issue view 3718 --repo utmapp/UTM`, created
+2022-03-04). It is a *Vagrant* request specifically — not a general IaC tracker — so "there are plans for
+this" covers less ground than the discussion it answers.
 
 So today, UTM automation means one of three things — and the first two are the *same* surface:
 
@@ -108,8 +110,10 @@ change a running VM's shared-directory registry entry without going through Conf
 **"Only supported on QEMU backend."** Same consequence as 2.2: this cannot be used to drive a macOS
 Apple-backend guest's UI programmatically. (The `utm://sendText` and `utm://click` URL-scheme actions —
 §6 below — carry no equivalent written restriction in
-[advanced/remote-control](https://docs.getutm.app/advanced/remote-control/); whether they work against
-an Apple-backend macOS guest is <!-- UNVERIFIED --> from the docs alone.)
+[advanced/remote-control](https://docs.getutm.app/advanced/remote-control/): that page's full text names
+no backend at all, mentioning neither "QEMU" nor "Apple". Whether they work against an Apple-backend
+macOS guest is <!-- UNVERIFIED: docs are silent, not permissive; settling it needs a booted guest. See
+OQ-09 --> from the docs alone.)
 
 ## 3. Cheat-sheet snippets
 
@@ -260,8 +264,15 @@ So `utmctl` **inherits every backend constraint in §2**. It is a more ergonomic
 five suites — not a new capability. Reading `utmctl --help` and concluding UTM can exec commands inside
 a macOS guest is the single most likely wrong turn in this whole document; §4.3 exists to prevent it.
 
-Observed on this host: `utmctl version` → `4.7.5`. Every subcommand accepts the global `--debug` and
-`--hide` (hide the main UTM window).
+Observed on this host: UTM.app is **4.7.5**. Read from the bundle's `Info.plist`
+(`CFBundleShortVersionString`), *not* from `utmctl version` — the latter dispatches an Apple Event and so
+launches UTM.app as a side effect, which the ledger's verifier must not do. Ledger claim:
+`utm-app-version-is-4-7-5`.
+
+Every **leaf** subcommand accepts the globals `--debug` and `--hide` (hide the main UTM window). The two
+**group** commands, `usb` and `file`, do **not** — they take only `-h/--help` and dispatch to their own
+subcommands, which do take the globals. (`utmctl usb --help` shows no `--debug`; `utmctl usb list --help`
+does. Ledger: `utmctl-usb-group-has-no-debug-flag` + `utmctl-usb-leaf-does-have-debug-flag`.)
 
 **Invoking `utmctl` launches UTM.app if it is not already running.** Verified by quitting UTM
 (`osascript -e 'quit app "UTM"'`), confirming via `pgrep` that it was down, then running `utmctl list`
@@ -401,7 +412,7 @@ the CI driver.
 | Recovery-mode boot (1TR) | Yes (macOS 13+) | `start --recovery` | `start vm with recovery` or GUI action menu — see `06` §4 |
 | File push/pull, remote command exec | **No** | `file`, `exec` — **parse, do not work** | Guest Suite requires QEMU guest agent (§2.2) — use SSH + VirtioFS instead (`06` §3) |
 | Guest IP query | **No** | `ip-address` — **parses, does not work** | Guest Suite `query ip` (§2.2). There is no UTM-lane `tart ip` |
-| Scripted keystrokes / mouse clicks | **No** (AppleScript path) / <!-- UNVERIFIED --> (`utm://` path) | — (no CLI verb) | Input Automation Suite is QEMU-only (§2.6) |
+| Scripted keystrokes / mouse clicks | **No** (AppleScript path) / <!-- UNVERIFIED: the `utm://` path carries no documented backend restriction either way. See OQ-09 --> (`utm://` path) | — (no CLI verb) | Input Automation Suite is QEMU-only (§2.6) |
 | USB device passthrough | **No** | `usb` — **parses, does not work** | Apple backend doesn't support USB sharing (§2.4, §4.3, `06` §2) |
 | Disposable ("run without saving") mode | **No** — G5 | `start --disposable` — **parses, does not work** | QEMU backend only (§4.3) |
 | Declarative create/destroy (Terraform-style) | **No** — G1 | — | No IaC exists; tracked in #3718, "a long way off" |

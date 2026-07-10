@@ -17,28 +17,37 @@ is the harness *design*; this file is the harness's *subject matter*.
   `home/` as the config root: `zsh-dotfiles/.chezmoiroot:1`). This is what actually lays down
   `~/.zshrc`, `~/.sheldon`, etc.
 
-**Neither repo uses Ansible.** `zsh-dotfiles-prep/bin/zsh-dotfiles-prereq-installer` is a plain
-POSIX/bash script (strap.sh-derived — see its own header comment,
+**Neither repo is *provisioned by* Ansible.** `zsh-dotfiles-prep/bin/zsh-dotfiles-prereq-installer` is a
+plain POSIX/bash script (strap.sh-derived — see its own header comment,
 `zsh-dotfiles-prep/bin/zsh-dotfiles-prereq-installer:4`); `zsh-dotfiles` is driven end-to-end by
-`chezmoi init --apply`. `ansible` appears exactly once in the whole stack, as one of 500+ Homebrew
-packages in `zsh-dotfiles-prep/Brewfile:57` — it's an *installable tool*, not the mechanism that
-installs anything else. This is G9, confirmed against the tree, not inferred.
+`chezmoi init --apply`. No playbook, role, or inventory exists in either tree.
+
+`ansible` does appear in the stack, **twice**, both in `zsh-dotfiles-prep/Brewfile`: `:57` (`brew
+"ansible"`, one of 500+ formulae) and `:602` (`vscode "redhat.ansible"`). Both are *installable tools*,
+not the mechanism that installs anything else. This is G9 — but note that G9 therefore **cannot** be
+stated as *"the string `ansible` is absent"*, only as *"no Ansible playbook drives either repo"*.
+The ledger proves the second, not the first.
 
 ## Bootstrap, verbatim (G9)
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/bossjones/zsh-dotfiles-prep/main/bin/zsh-dotfiles-prereq-installer | bash -s -- --debug
 ```
-(`zsh-dotfiles-prep/README.md:12`, matches `docs/quickstart.md:10`)
+(`zsh-dotfiles-prep/README.md:12`. `docs/quickstart.md:10` is a **different** bootstrap — it curls
+`zsh-dotfiles-prep/install.sh`, not the prereq installer, and passes no `--debug`.)
+
+The prereq installer's own closing "next steps" line
+(`zsh-dotfiles-prep/bin/zsh-dotfiles-prereq-installer:1135`) is:
 
 ```sh
-sh -c "$(curl -fsLS chezmoi.io/get)" -- init -R --debug -v --apply https://github.com/bossjones/zsh-dotfiles.git
+chezmoi init -R --debug -v --apply https://github.com/bossjones/zsh-dotfiles.git
 ```
-(this is the *documented* end-state command the prereq installer prints as "next steps",
-`zsh-dotfiles-prep/bin/zsh-dotfiles-prereq-installer:1135`; for a source-checkout run — which is
-what a VM harness actually does — the equivalent is
+
+It is a bare `chezmoi init` — the installer has already put the binary on `$PATH` at `:1132`
+(`sh -cx "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME"/.bin -t v2.31.1`), which is an *install* step, not
+an init. For a source-checkout run — which is what a VM harness actually does — the equivalent is
 `chezmoi init -R --debug -v --apply --force --source=.` per
-`zsh-dotfiles/scripts/smoke-test-docker.sh:361-365`, see below).
+`zsh-dotfiles/scripts/smoke-test-docker.sh:361-365`, see below.
 
 The macOS prereq installer (`zsh-dotfiles-prep/bin/zsh-dotfiles-prereq-installer`) is heavyweight:
 Xcode CLT (`xcode-select --install`), Homebrew, ~25 brew formulae including compiled deps for Ruby
@@ -112,9 +121,10 @@ Mutual exclusion is enforced in two places. At the **file** level, `home/.chezmo
 `{{ if eq .version_manager "mise" }}` ignores the asdf scripts, `{{ else }}` ignores the mise ones — so
 selecting one lane prevents the other's scripts from ever rendering. At the **shell-init** level,
 `zsh-dotfiles/scripts/smoke-test-docker.sh` never sources `asdf.sh` or sets `ASDF_DIR` when
-`VERSION_MANAGER=mise`, and vice versa (`smoke-test-docker.sh:222-224`, citing
-`specs/migrate-asdf-to-mise.md:15-27` in that repo). A harness that runs both lanes must preserve this:
-never let both managers' shell initialization run in the same test.
+`VERSION_MANAGER=mise`, and vice versa — the invariant is stated in the comment at
+`smoke-test-docker.sh:222-224` (citing `specs/migrate-asdf-to-mise.md:15-27` in that repo) and *enforced*
+by the `if [[ "$VERSION_MANAGER" == "asdf" ]]` branch at `:245`. A harness that runs both lanes must
+preserve this: never let both managers' shell initialization run in the same test.
 
 ### What `zsh-dotfiles` cannot bootstrap on macOS
 
@@ -127,13 +137,16 @@ on arm64 — slow, and a hard Xcode CLT dependency), `bun`, `deno`, `uv`, and `w
 
 **It never installs:**
 
-- **Homebrew.** `install.sh:206` hard-errors when brew is missing. Every `brew install` in the repo
-  assumes it is already present.
-- **Xcode Command Line Tools.** `xcode-select` appears nowhere in the repo.
-- **asdf, on macOS.** There is no `run_*-macos-install-asdf*` script — the asdf installers exist only
-  for `centos` and `ubuntu`. The macOS asdf-*plugins* script
-  (`run_onchange_after_50-macos-install-asdf-plugins.sh.tmpl:20-34`) explicitly exits 0 when the binary
-  is absent: `"asdf not available - skipping asdf plugin install"`.
+- **Homebrew.** `install.sh:206-209` hard-errors when brew is missing (`:206` opens the guard,
+  `:209` is the `exit 1`). Every `brew install` in the repo assumes it is already present.
+- **Xcode Command Line Tools.** `xcode-select` appears in no *tracked* file of `zsh-dotfiles`
+  (`git grep -c xcode-select` → no output). An untracked `.venv/` vendors npm's `node-gyp` docs, which
+  do mention it — which is why the ledger claim probes the tracked tree, not the working tree.
+- **asdf, on macOS.** There is no `run_*-macos-install-**asdf.sh**` *installer* — the `02-*-install-asdf`
+  scripts exist only for `centos` and `ubuntu`. A macOS asdf-***plugins*** script *does* exist
+  (`run_onchange_after_50-macos-install-asdf-plugins.sh.tmpl`), and it explicitly exits 0 at `:32` when
+  the binary is absent: `"asdf not available - skipping asdf plugin install"`. So the macOS asdf lane is
+  a plugin installer with no installer beneath it.
 - **chezmoi.** Chicken-and-egg; it is bootstrapped by `install.sh`, CI, or the prereq installer.
 
 **Consequences for this harness.** The golden image must own Homebrew, Xcode CLT, chezmoi, and the brew
@@ -180,9 +193,11 @@ correctly"). The harness must reuse this ordering: `chezmoi diff` pre-apply as a
 `zsh-dotfiles-prep` already has three Dockerfiles —
 `Dockerfile-centos-9`, `Dockerfile-debian-12`, `Dockerfile-ubuntu-2204` — each building a
 non-interactive test user (`tester`, passwordless sudo via `/etc/sudoers.d/tester`,
-`Defaults:tester !authenticate`) and installing the prereqs (`zsh-dotfiles-prep/Makefile:35-67`
-`smoke*` targets; `zsh-dotfiles/scripts/smoke-test-docker.sh` drives the equivalent for the
-downstream `zsh-dotfiles` repo, on `ubuntu:24.04`, per `zsh-dotfiles/Dockerfile:12`).
+`Defaults:tester !authenticate`) and installing the prereqs. They are driven from
+`zsh-dotfiles-prep/Makefile`'s `docker-buildx` / `docker-run-test{,-debug,-bash}` /
+`docker-full-pipeline` targets — that Makefile has **no `smoke*` target**; the word does not occur in it.
+`zsh-dotfiles/scripts/smoke-test-docker.sh` drives the equivalent for the downstream `zsh-dotfiles` repo,
+on `ubuntu:24.04`, per `zsh-dotfiles/Dockerfile:12`.
 **There is no macOS equivalent** — Docker cannot run a macOS guest, full stop. GitHub Actions does
 run this repo's CI on `macos-14`/`macos-latest` hosted runners
 (`zsh-dotfiles/.github/workflows/tests.yml`, matrix includes `os` and `version_manager`), but that
@@ -201,11 +216,14 @@ queue — is this whole `macos-ci` repo's reason to exist.** Spec 08 designs the
   echo ok; [[ -n "$PROMPT" || -n "$PS1" ]] && echo ok'` — i.e. zsh loads without erroring *and* a
   prompt variable is set. This is a stronger, more portable signal than grepping for a specific
   alias.
-- `zsh-dotfiles/test_dotfiles.py` has a tmux-based prompt-loaded check
-  (`test_dotfiles.py:239-270`, `TestDotfiles` class): spawn a real tmux pane, wait for shell init,
-  assert prompt content appears (`">" in pane_contents`). Most of its alias-content tests are marked
-  `@pytest.mark.skip(reason="These tests are meant to only run locally on laptop...")` — **do not**
-  treat those as CI-grade assertions; they are developer-only and explicitly marked as such.
+- `zsh-dotfiles/test_dotfiles.py` is **not** a model for this layer, and its tmux test is the clearest
+  reason why. `TestDotfiles.test_pure_prompt` (`:246-270`) reads like a prompt-loaded check, but `:254`
+  spawns `env zsh -f` — `-f` suppresses **every** rcfile — and `:265` then types `PS1='> '` by hand
+  before `:270` asserts `">" in pane_contents`. It verifies that tmux echoes a string the test itself
+  just sent; it exercises no line of `zsh-dotfiles`. It is also `@pytest.mark.skip`ped (`:245`), as are
+  the alias-content tests, with `reason="These tests are meant to only run locally on laptop..."`.
+  **Do not port any of it.** The upstream probe worth porting is `smoke-test-docker.sh:388-404`'s
+  `source ~/.zshrc` check above, which loads the real rcfile.
 - `zsh-dotfiles/scripts/smoke-test-docker.sh:326-350` (`run_build`) is the fullest existing
   "smoke" definition: `brew doctor` non-fatal-warn, `mise doctor` if present, `chezmoi init --apply`
   must exit 0, `post-install-chezmoi` with retry, then the zsh init check above. 08(c) builds the

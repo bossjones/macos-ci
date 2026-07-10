@@ -49,13 +49,13 @@ AppleScript/JXA plus the `utm://` URL scheme, both of which are lifecycle-only f
 | 04 | `04-tart-licensing-risk.md` | tart-ci | Fair Source tier table, Oct-2025 enforcement, accepted-risk recommendation (G4) |
 | 05 | `05-utm-automation.md` | utm | Why UTM has no IaC (G1); AppleScript suites; the QEMU-guest-agent gate (G3); `utm://` scheme |
 | 06 | `06-utm-macos-guest.md` | utm | macOS-guest requirements, missing-features list (G5/G6/G7), VirtioFS as the real automation channel |
-| 07 | `07-utm-settings-appendix.md` | utm | Thin settings-page index; 4 pruned dead URLs (G10) |
+| 07 | `07-utm-settings-appendix.md` | utm | Thin settings-page index. **No dead links** — the four URLs the research brief ordered pruned as `404` were not dead; see the G10 retraction in [11](11-sources.md#retraction--the-g10-prune-list-was-wrong) |
 | 08 | `08-dotfiles-test-harness.md` | harness | The harness design: golden image, non-interactive chezmoi run, assertions, teardown, Ansible rejection |
 | 09 | `09-dotfiles-under-test.md` | harness | What's actually installed; the chezmoi template contract (G11); reused assertion vocabulary |
 | 10 | `10-tart-vs-utm-adr.md` | synth | The ADR recording the house stance |
-| 11 | `11-sources.md` | synth | Every source URL, grouped, graded meaty/thin/404/cited-as-exclusion. Checked by `just link-check` |
+| 11 | `11-sources.md` | synth | Every source URL, grouped, graded meaty/thin/cited-as-exclusion — there is no `404` grade because nothing is dead. Also the retraction log. Checked by `just link-check` |
 | 12 | `12-tooling-and-agent-loop.md` | harness | The Justfile/`macos-ci` CLI surface, the pure/impure split that makes it TDD-able, the four test tiers, the `artifacts/` contract, and the `.claude/` agent loop |
-| 13 | `13-build-secrets.md` | harness | Injecting `HOMEBREW_GITHUB_API_TOKEN` without it reaching the artifact; why deleting a secret from the guest does not erase it |
+| 13 | `13-build-secrets.md` | secrets | Injecting `HOMEBREW_GITHUB_API_TOKEN` without it reaching the artifact; why deleting a secret from the guest does not erase it |
 
 Suggested reading order for a newcomer: **00 → 10 → 01 → 02 → 13 → 08 → 09 → 12 → 03 → 04 → 05 → 06 → 07 → 11.**
 Start with the decision (why Tart), then the primitives it composes (01/02), then the harness that
@@ -64,6 +64,17 @@ then the audit trail (11).
 
 ## Scope note
 
-This is a **docs-only** research/spec pass. No VM was booted, no `brew install` was run, and no host
-was mutated to produce these specs — see each file's inline citations and `<!-- UNVERIFIED -->`
-markers for what is confirmed from a source versus composed from documented primitives.
+No VM was booted, no `brew install` was run, and no host was mutated to produce these specs. But
+"docs-only" would undersell how they are checked. Three layers, weakest first:
+
+1. **Inline citations.** Every non-obvious sentence names its source.
+2. **`<!-- UNVERIFIED -->` markers.** What is composed from documented primitives rather than quoted
+   from a source, each citing an entry in [`.team/macos-ci.open-questions.md`](../../.team/macos-ci.open-questions.md).
+   `just unverified-count` is the honesty budget: it may fall only because a claim got verified.
+3. **The claims ledger.** [`.team/claims.jsonl`](../../.team/claims.jsonl) pins each load-bearing
+   assertion to evidence a machine re-executes — reading local files, running read-only probes
+   (`packer inspect`, `git config`, `tart --help`, `curl`), and querying the tart/UTM doc search
+   indexes. `just check` = `link-check` + `verify-claims` + `unverified-count`, and **it is the only
+   definition of done.** A claim that cannot be written as a ledger entry is a claim that needs a
+   marker. See [CLAUDE.md](../../CLAUDE.md) for the evidence kinds and why negative evidence always
+   ships a positive control.

@@ -70,7 +70,17 @@ Registry/pull:
 |---|---|---|
 | `allow_insecure` | bool | Connect to the OCI registry over insecure HTTP when cloning. |
 | `always_pull` | bool | Always `tart pull` before `tart clone` so the base image is up to date before building. |
-| `pull_concurrency` | number* | Number of layers to pull concurrently from the OCI registry. <!-- UNVERIFIED: HashiCorp page lists this as boolean, which looks like a docs typo for a concurrency count; flagged rather than silently "corrected". --> |
+| `pull_concurrency` | number | Number of layers to pull concurrently from the OCI registry. Default `4`. The docs page annotates this **`(boolean)`** — that is an upstream docs bug, see below. |
+
+> **`pull_concurrency` is a count, not a flag.** The field reference annotates it `(boolean)` and then, in
+> the same sentence, says *"Default is 4 for Tart 2.0.0+"* — a boolean with a default of 4. The plugin's
+> own source settles it: it is declared
+> [`PullConcurrency uint16`](https://github.com/cirruslabs/packer-plugin-tart/blob/main/builder/tart/builder.go)
+> (`builder/tart/builder.go:36`), typed `cty.Number` in the generated HCL2 spec
+> (`builder/tart/builder.hcl2spec.go:190`), and forwarded verbatim to `tart clone --concurrency %d`
+> (`builder/tart/step_clone_vm.go:24`) — whose own default is 4 per `tart clone --help`. Writing
+> `pull_concurrency = true` would be rejected by the HCL decoder. The `(boolean)` annotation is an
+> upstream documentation bug and is still live; it is recorded here rather than silently corrected.
 
 VM resources (override `tart create` defaults when using `from_ipsw`/`from_iso`; override VM settings
 when using `vm_base_name`):
@@ -85,15 +95,23 @@ Disk/storage:
 
 | Field | Type | Description |
 |---|---|---|
-| `disk_format` | string | `"raw"` (default) or `"asif"`. ASIF (Apple Sparse Image Format) is faster but requires macOS 26 (Tahoe)+. |
-| `recovery_partition` | string | `"delete"` (allows disk resize, smaller image, breaks OS updates) / `"keep"` (blocks resize, larger image, updates work) / `"relocate"` (moves partition to end of disk). |
+| `disk_format` | string | `"raw"` (default) or `"asif"`. ASIF (Apple Sparse Image Format) is faster but requires macOS 26 (Tahoe)+. **Only applies when using `from_ipsw` or `from_iso`.** |
+| `recovery_partition` | string | `"delete"` (allows disk resize, smaller image, breaks OS updates) / `"keep"` (blocks resize, larger image, updates work) / `"relocate"` (moves partition to end of disk). Defaults to `""`, *"currently equivalent to `"delete"`"* — upstream reserves the right to change that, so set it explicitly. |
+
+> **`disk_format` does not reach a clone-from-base build.** The field reference states *"Only applies when
+> using `from_ipsw` and `from_iso`."* The golden-image sketch below builds from `vm_base_name`, so its disk
+> inherits the base image's format and `disk_format` is inert. This scopes
+> [OQ-01](../../.team/macos-ci.open-questions.md): the question of whether `asif`'s sparse allocation
+> preserves deleted-secret residue only arises for a `from_ipsw`/`from_iso` build, not for the clone-from-
+> `ghcr.io` path this harness actually takes. `tart create --help` corroborates the format list and the
+> macOS 26 floor independently of the HashiCorp page.
 
 Display/boot:
 
 | Field | Type | Description |
 |---|---|---|
 | `display` | string | `<width>x<height>`, e.g. `1200x800`. |
-| `headless` | bool | Hide the GUI. Useful to disable when debugging `boot_command`. |
+| `headless` | bool | `true` hides the GUI. Useful to disable when debugging `boot_command`. (The field reference's wording, *"Whether to show graphics interface of a VM"*, reads as the inverse of the field's name; the source settles it — `Headless` ⇒ `tart run --no-graphics`.) |
 | `boot_command` | []string | Keystrokes typed on first boot — enough to kick off the OS installer, not the full install. |
 | `boot_wait` | duration | Wait after boot before typing `boot_command`. Default `10s`. |
 | `boot_key_interval` | duration | Delay between individual key presses. |
@@ -109,12 +127,21 @@ Runtime/behavior:
 | `run_extra_args` | list(string) | Extra args passed to `tart run`, e.g. `["--net-bridged=en0"]` for bridged networking. |
 | `ip_extra_args` | list(string) | Extra args passed to `tart ip`, e.g. `["--resolver=arp"]` when using bridged networking. |
 
+> **`headless = false` may not work against tart 2.32.1.** When `headless` is false the plugin appends
+> `--graphics` to `tart run` (`builder/tart/step_run.go:43`, plugin v1.21.0), but `tart run --help` on
+> tart 2.32.1 advertises `--no-graphics` and **no `--graphics` option at all**. Whether tart's argument
+> parser silently accepts `--graphics` as the inverse half of a flag pair, or rejects it, cannot be
+> settled without invoking `tart run`, which this run's scope forbids.
+> <!-- UNVERIFIED: whether `tart run --graphics` parses on tart 2.32.1; settling it requires invoking `tart run`, which scope forbids. See OQ-15. -->
+> Keep `headless = true` (the harness default) and the question never arises.
+
 SSH communicator:
 
 | Field | Type | Description |
 |---|---|---|
 | `ssh_username` | string | SSH user for provisioning steps. |
 | `ssh_password` | string | SSH password for provisioning steps. |
+| `ssh_timeout` | duration | Not listed in the field reference's own table, but used by its own example (`ssh_timeout = "120s"`) and by every `vanilla-*` template in `macos-image-templates`. |
 
 **Do not mark `ssh_password` `sensitive`.** Packer's masking is value-based and global, not
 variable-scoped: it redacts every occurrence of the *string*, wherever it appears. Since the value here
@@ -142,7 +169,18 @@ VNC:
 |---|---|---|
 | `disable_vnc` | bool | Disable the VNC connection used to drive `boot_command`. Default `false`. Cannot use `boot_command` when `true`. |
 
+> **There are no `vnc_port_min` / `vnc_port_max` fields.** The builder's entire VNC surface is
+> `disable_vnc` plus `boot_key_interval`. No `vnc_port*` key appears in the field reference, nor anywhere
+> in the plugin's source — including `builder/tart/builder.hcl2spec.go`, the generated spec that
+> enumerates *every* field the builder accepts. Any spec asserting those fields is citing something that
+> does not exist; see the CONFLICT filed against
+> [12-tooling-and-agent-loop.md](12-tooling-and-agent-loop.md):330.
+
 — all fields: [developer.hashicorp.com](https://developer.hashicorp.com/packer/integrations/cirruslabs/tart/latest/components/builder/tart)
+(rendered from the plugin repo's own
+[`.web-docs/`](https://github.com/cirruslabs/packer-plugin-tart/tree/main/.web-docs) — this page is
+**absent from HashiCorp's sitemap yet returns HTTP 200**; see [11-sources.md](11-sources.md) on the G19
+sitemap exception. Do not "refute" it by grepping the sitemap.)
 
 ### Golden-image build sketch
 

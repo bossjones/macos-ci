@@ -3,9 +3,17 @@
 The other files in this directory describe *what* the harness does. This one describes *how you drive
 it* — and, more importantly, how an autonomous agent knows whether the last thing it did worked.
 
-Everything here is a design specification, not yet built. Where a claim is composed from documented
-primitives rather than observed on a running system, it carries an `<!-- UNVERIFIED -->` marker, per
-this repo's convention ([00-overview.md](00-overview.md#scope-note)).
+**Most — not all — of this is a design specification.** The split, against `just --summary` and
+`ls tools/ tests/` as of 2026-07-09:
+
+| | |
+|---|---|
+| **Built and passing today** | `link-check`, `link-check-verbose`, `link-check-fresh`, `verify-claims`, `verify-claims-json`, `unverified-count`, `check`, `verify-no-secrets`, `build-golden`; `tools/verify_claims.py`; `tests/fixtures/packer-sensitive/` |
+| **Built but broken** | `build-golden` — `Justfile:44` invokes `packer/tart-golden-image.pkr.hcl`, and **no `packer/` directory exists**. See [13](./13-build-secrets.md) and OQ-04. |
+| **Designed, not built** | everything under *The `macos-ci` package*, *The four test tiers*, *The artifacts contract*, and the lifecycle/inspection/testing recipe tables below. `src/` does not exist. |
+
+Where a claim is composed from documented primitives rather than observed on a running system, it carries
+an `<!-- UNVERIFIED -->` marker, per this repo's convention ([00-overview.md](00-overview.md#scope-note)).
 
 ## Why this file exists
 
@@ -138,7 +146,8 @@ url    = "https://updates.cdn-apple.com/.../UniversalMac_15.6.1_..._Restore.ipsw
 sha256 = "..."
 ```
 
-`just up` uses `default`. `just build-ipsw sequoia-15.6.1` drives `packer/ipsw/*.pkr.hcl` with
+Once built, `just up` would use `default`, and `just build-ipsw sequoia-15.6.1` would drive
+`packer/ipsw/*.pkr.hcl` with
 `from_ipsw = <url>` and verifies the `sha256` before building.
 
 `_config_core.load()` is a pure function and validates: unknown `source` values, an `ipsw` entry missing
@@ -150,11 +159,12 @@ and the `sha256` is what makes that pin trustworthy.
 
 ## The Justfile
 
-A `Justfile` already exists at the repo root. It sets `set shell := ["bash", "-uc"]` and carries
-`default`, `link-check`, `link-check-verbose`, and `link-check-fresh` — lychee over every `*.md`, with
-`GITHUB_TOKEN` sourced from `gh auth token` because unauthenticated lychee scrapes GitHub HTML and
-rate-limits into spurious 404s. The harness recipes are **added** to that file; it remains the single
-source of truth. `Makefile` is a shim, so no recipe is ever written twice:
+A `Justfile` already exists at the repo root. It sets `set shell := ["bash", "-uc"]` and carries ten
+recipes today (`just --summary`): `default`, the three `link-check*` variants — lychee over every `*.md`,
+with `GITHUB_TOKEN` sourced from `gh auth token` because unauthenticated lychee scrapes GitHub HTML and
+rate-limits into spurious 404s — plus `verify-claims`, `verify-claims-json`, `unverified-count`, `check`,
+`verify-no-secrets`, and `build-golden`. The harness recipes below are **added** to that file; it remains
+the single source of truth. `Makefile` is a shim, so no recipe is ever written twice:
 
 ```make
 JUST ?= just
@@ -196,12 +206,17 @@ help text; private helpers take a leading `_`; non-trivial bodies delegate to `u
 
 **Images**
 
-| Recipe | Purpose |
-|---|---|
-| `build [IMAGE]` | Packer build the golden image via the OCI lane. |
-| `build-ipsw VERSION` | Packer build from a pinned IPSW. Verifies `sha256` first. |
-| `images` | Print `macos-versions.toml` alongside `tart list`. |
-| `pull IMAGE` | `tart pull` the OCI ref. |
+> ⚠️ An earlier revision of this table documented `build [IMAGE]`, `build-ipsw VERSION`, `images`, and
+> `pull IMAGE` **as though they existed**. None of the four ever did. The one real image recipe is
+> `build-golden`, and it is broken (`Justfile:44` invokes a `packer/` template that is not on disk).
+> This table is a **proposal**; the `Status` column says what is true today.
+
+| Recipe | Purpose | Status |
+|---|---|---|
+| `build-golden` | Packer build the golden image. Injects `HOMEBREW_GITHUB_API_TOKEN` via the environment ([13](./13-build-secrets.md)). | **Exists; broken** — its template is absent (OQ-04). |
+| `build-ipsw VERSION` | Packer build from a pinned IPSW. Verifies `sha256` first. | Proposed. |
+| `images` | Print `macos-versions.toml` alongside `tart list`. | Proposed. |
+| `pull IMAGE` | `tart pull` the OCI ref. | Proposed. |
 
 **Inspection**
 
@@ -230,9 +245,13 @@ help text; private helpers take a leading `_`; non-trivial bodies delegate to `u
 
 | Recipe | Purpose |
 |---|---|
-| `lint` / `fmt` / `typecheck` | `ruff check`, `ruff format`, `basedpyright`. |
-| `link-check{,-verbose,-fresh}` | **Already implemented.** lychee over every `*.md`, including internal `#anchor` fragments. |
-| `ci` | `cirrus run` for local/CI parity. |
+| `lint` / `fmt` / `typecheck` | Proposed. `ruff check`, `ruff format`, `basedpyright`. |
+| `link-check{,-verbose,-fresh}` | **Exists.** lychee over every `*.md`, including internal `#anchor` fragments. |
+| `verify-claims` / `verify-claims-json` | **Exists.** Re-executes `.team/claims.jsonl` via `tools/verify_claims.py`. |
+| `unverified-count` | **Exists.** The honesty budget. Prints marker lines, not a count (OQ-06). |
+| `check` | **Exists.** `link-check` + `verify-claims` + `unverified-count`. The truth gate. |
+| `verify-no-secrets VM` | **Exists.** Scans `~/.tart/vms/<vm>/` for the Homebrew token ([13](./13-build-secrets.md)). Deliberately *not* part of `check` — it needs a built VM. |
+| `ci` | Proposed. `cirrus run` for local/CI parity. |
 
 ## The four test tiers
 
@@ -411,9 +430,14 @@ just build-golden       # build the image, injecting HOMEBREW_GITHUB_API_TOKEN v
 just verify-no-secrets <vm>  # assert that token appears nowhere in ~/.tart/vms/<vm>/
 ```
 
+`just build-golden` **does not work today.** `Justfile:44` runs
+`packer build packer/tart-golden-image.pkr.hcl`, and there is no `packer/` directory in this repo. Whether
+to author the template or guard the recipe is **OQ-04 (NEEDS-HUMAN)**. See
+[13-build-secrets.md](./13-build-secrets.md).
+
 `verify-no-secrets` is a canary, and a canary nobody has seen fail is decoration. Plant the token under
 the VM directory and confirm it exits `2` before believing the `0`. Same discipline as the `must_fail`
-control claims below. See [13-build-secrets.md](./13-build-secrets.md).
+control claims below.
 
 `.team/claims.jsonl` holds one record per load-bearing assertion. `tools/verify_claims.py` re-executes
 its evidence. Evidence kinds, cheapest first:
@@ -425,7 +449,17 @@ its evidence. Evidence kinds, cheapest first:
 | `absent` | a string is *not* present | unfalsifiable negative claims |
 | `cli-help` | `argv` emits a string, optionally under an `env` overlay | remembered flags that don't exist; and, when it probes behaviour rather than `--help` (e.g. `packer inspect` printing `<sensitive>`), unverified claims about what a tool *does* |
 | `doc-index` | a path appears in the doc site's own search index | **fabricated URLs (the G10 failure)** |
+| `doc-contains` | that page's indexed text contains a given sentence | a real URL cited for a sentence it does not contain |
 | — | every URL and internal `#anchor` resolves | dead links, broken anchors (lychee) |
+
+`cli-help` is **unsound for backend questions** and `doc-contains` is its antidote: `utmctl start --help`
+advertises `--disposable` on a host that can only run Apple-backend macOS guests, while
+[`advanced/disposable`](https://docs.getutm.app/advanced/disposable/) says *"Disposable mode is only
+supported on QEMU backend."* A flag in `--help` proves the argument parser accepts it — nothing more. So
+any `cli-help` claim about what a flag *does* is paired with the `doc-contains` claim that settles it, and
+each names its partner. `sheldon lock --check` — cited by an earlier revision of
+[08](./08-dotfiles-test-harness.md) — is the failure this catches from the other direction: a flag nobody
+ran `--help` against at all.
 
 The `doc-index` kind is the direct antidote. Both doc sites publish the static JSON index their search
 box uses — `https://tart.run/search/search_index.json` (101 pages) and
@@ -451,8 +485,16 @@ A verifier nobody verifies is just a second thing to trust. Any claim may set `"
 inverting the verdict: its evidence is required *not* to reproduce. One control claim asserts the
 fabricated `settings-apple/devices/` URL. If it ever starts passing, the `doc-index` oracle has silently
 broken and every other `doc-index` claim is worthless — so the run fails loudly instead of going green
-on a dead check. (An `UNREACHABLE` result is never inverted; a network failure must not masquerade as a
-successful control.)
+on a dead check. (Neither an `UNREACHABLE` nor a `STRUCTURE` result is ever inverted: a network failure or
+a vanished page must not masquerade as a successful control — `tools/verify_claims.py:289`.)
+
+`must_fail` does double duty. Because `absent` takes a *file*, it is also the only way to write a negative
+assertion over a **command's output**. Such a claim is worthless alone — *"the secret is not in the
+output"* is equally satisfied by *no output at all* — so **every negative probe ships a positive control
+running the same `argv` and `env` and asserting a non-sensitive literal** *is* **present.** The pair
+`packer-sensitive-hides-secret` ↔ `CONTROL-packer-inspect-prints-plain-literals` is the worked example;
+`sheldon-lock-has-no-check-flag` ↔ `CONTROL-sheldon-lock-help-prints-reinstall` is the same shape applied
+to a flag that does not exist. A pair whose control is vacuous is a green check that means nothing.
 
 ### Rule of thumb
 

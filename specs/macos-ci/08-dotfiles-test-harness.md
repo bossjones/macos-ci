@@ -24,9 +24,17 @@ under test; it's fixed cost that would otherwise be repeated on every single tes
 
 **What the golden image contains is a scoping decision, not a convenience.** It supplies exactly what
 `zsh-dotfiles` assumes but never installs: **Xcode CLT, Homebrew, chezmoi ≥ 2.20.0**
-(`zsh-dotfiles/.chezmoiversion:1`), and the brew prereq list from `smoke-test-docker.sh:142-157`
-(`wget curl retry go trash openssl@3 readline libyaml gmp autoconf tmux`). `retry` is load-bearing — the
-ported apply command is `retry -t 4 -- chezmoi init …`.
+(`zsh-dotfiles/.chezmoiversion:1`), and the brew prereq list from `smoke-test-docker.sh:142-143` — ten
+formulae, exactly: `wget curl kadwanev/brew/retry go` (`:142`) and `openssl@3 readline libyaml gmp
+autoconf tmux` (`:143`). The remainder of that function (`:144-157`) installs ~50 further formulae and is
+deliberately **not** part of the golden image.
+
+`retry` is load-bearing, and the reason is sharper than "the ported apply command uses it": upstream's
+apply is *conditionally* wrapped. `smoke-test-docker.sh:360` guards on `command -v retry`, and `:364-365`
+is an un-retried `else` arm. Upstream degrades when `retry` is missing; the harness must not, because a
+flaky Sheldon or brew-tap fetch would then be indistinguishable from a dotfiles regression. So the golden
+image **installs** `retry` (from the `kadwanev/brew` tap, as both `smoke-test-docker.sh:142` and
+`zsh-dotfiles-prep/bin/zsh-dotfiles-prereq-installer:589` do) rather than inheriting it.
 
 **It does not run `zsh-dotfiles-prep/bin/zsh-dotfiles-prereq-installer`.** That installer additionally
 provides a git-cloned asdf v0.11.2, a full Rust toolchain via rustup, and two parallel Python installs
@@ -45,7 +53,9 @@ exercise the dotfiles' own `mise` install path from a cold start; it exercises i
 already-present `mise`. The `-vanilla` variant (same family, no preinstalled software) would be the
 cold-start substrate. Whether that fidelity is worth re-adding the Homebrew/Xcode-CLT bootstrap cost
 this section just argued away is exactly the scoping decision named above — **it is recorded here as
-open, and deliberately not resolved; `macos-versions.toml` is unchanged.**
+open, and deliberately not resolved; `macos-versions.toml` is unchanged.** It is now tracked as
+**OQ-18 (NEEDS-HUMAN)** in [`.team/macos-ci.open-questions.md`](../../.team/macos-ci.open-questions.md),
+because an open question buried in a spec is not one the human reads.
 
 Design:
 
@@ -170,9 +180,13 @@ tests for, reused rather than reinvented (see
 | Prompt configured | same probe, `[[ -n "$PROMPT" \|\| -n "$PS1" ]]` | `smoke-test-docker.sh:396-402` |
 | Login shell is zsh | `dscl . -read /Users/<user> UserShell` (macOS-specific — Linux upstream
   has no equivalent, so this check is **new** for this harness, not reused) | — |
-| Sheldon lock resolves | `sheldon lock --check` (or equivalent non-mutating verify) exits 0 | inferred
-  from Sheldon's own CLI contract — <!-- UNVERIFIED: confirm exact non-mutating flag against sheldon
-  0.6.6's `--help`, the pinned version in `.chezmoi.yaml.tmpl:131` --> |
+| Sheldon plugins resolve | **No non-mutating verify exists.** `sheldon lock --check` was never a real
+  flag: sheldon `0.6.6` — the exact version pinned at `.chezmoi.yaml.tmpl:131`, and the one installed on
+  this host — gives `lock` only `--update` / `--reinstall`, and its own help calls it *"Install the plugin
+  sources and generate the lock file"*. There is no `verify` subcommand. Assert on the outcome instead
+  (`zsh -c 'source ~/.zshrc'` exits 0, below), not on a lock-file check | `sheldon lock --help`,
+  `sheldon --version`; ledger `sheldon-lock-has-no-check-flag` + `CONTROL-sheldon-lock-help-prints-reinstall`.
+  Whether `sheldon source` lazily re-locks is <!-- UNVERIFIED: needs a booted guest with a stale lock file; see OQ-17 --> |
   | nvim headless sanity | `nvim --headless '+qa' ` exits 0 (loads config without erroring, does no work) | standard neovim smoke pattern, not upstream-sourced |
 | tmux present | `tmux -V` exits 0 and prints the expected version | general tool-presence check |
 | PATH ordering | `zsh -lc 'echo $PATH'` contains asdf/mise shims (whichever lane) ahead of system
@@ -217,10 +231,15 @@ rule, not an abstract preference — G5 forces it specifically here.
 **Recommendation: no Ansible.** The burden of proof is on adding it, and nothing in this stack meets
 that burden.
 
-- Neither dotfiles repo uses Ansible today (G9). `zsh-dotfiles-prep` is a bash installer;
-  `zsh-dotfiles` is driven end-to-end by `chezmoi init --apply`. `ansible` appears once, as one of
-  500+ Homebrew formulae in `Brewfile:57` — an installable tool, not infrastructure the harness would
-  be plugging into.
+- Neither dotfiles repo is *provisioned by* Ansible (G9). `zsh-dotfiles-prep` is a bash installer;
+  `zsh-dotfiles` is driven end-to-end by `chezmoi init --apply`; neither repo contains a playbook, a
+  role, or an inventory. `ansible` does appear — **twice**, both in `zsh-dotfiles-prep/Brewfile`: as one
+  of 500+ Homebrew formulae (`:57`, `brew "ansible"`) and as a VS Code extension (`:602`,
+  `vscode "redhat.ansible"`). It is an installable tool, not infrastructure the harness would be plugging
+  into. Note the phrasing this forces: G9 cannot be proven with a bare `absent` claim over the string,
+  because the string is present. The checkable form is *"no `hosts:`/`become:` key in any tracked YAML"*,
+  which — being a negative over a command's output — needs a positive control to mean anything
+  (ledger: `prep-repo-has-no-ansible-playbook` ↔ `CONTROL-prep-grep-c-emits-colon-when-present`).
 - Upstream's own smoke test — the thing this harness is explicitly modeled on
   (`zsh-dotfiles/scripts/smoke-test-docker.sh`) — is a plain shell script that shells out to
   `chezmoi init --apply` directly, with no orchestration layer above it. Introducing Ansible here
