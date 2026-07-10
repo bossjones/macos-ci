@@ -142,6 +142,9 @@ Two facts make this safe rather than wishful:
   networking, headless keychain requirement (G8).
 - `specs/macos-ci/02-packer-tart-builder.md` — full Packer builder field reference; golden-image
   build sketch.
+- `specs/macos-ci/13-build-secrets.md` — how `HOMEBREW_GITHUB_API_TOKEN` reaches the build without
+  reaching the artifact; why `HOMEBREW_GITHUB_PACKAGES_TOKEN`, an SSH key, `~/.gitconfig`, and
+  `~/.ssh/config` are all unnecessary; and why deleting a secret from the guest does not erase it.
 - `specs/macos-ci/03-tart-ci-and-orchard.md` — `cirrus run` local/CI parity; Orchard multi-host
   scale-out (not needed at current scope).
 - `specs/macos-ci/04-tart-licensing-risk.md` — Fair Source tier table and accepted-risk sign-off
@@ -188,7 +191,12 @@ Two facts make this safe rather than wishful:
 - `tests/unit/` — hermetic; `pytest-subprocess` fakes the `tart` binary. No VM, no network.
 - `tests/integration/`, `tests/pty/`, `tests/gui/`, `tests/manual/` — the four opt-in tiers.
 - `packer/tart-golden-image.pkr.hcl` — the OCI-lane Packer template
-  ([02](macos-ci/02-packer-tart-builder.md)'s field reference).
+  ([02](macos-ci/02-packer-tart-builder.md)'s field reference), including the sensitive
+  `homebrew_github_api_token` variable and the env-only secret injection from
+  [13](macos-ci/13-build-secrets.md).
+- `tests/fixtures/packer-sensitive/fixture.pkr.hcl` — a two-variable template, one `sensitive`, one
+  plain. Built only to be probed by `packer inspect` from the claims ledger, proving masking is on
+  *and* (via the plain control) that the probe would have shown the secret had it been off.
 - `packer/ipsw/<version>.pkr.hcl` — the IPSW lane, `from_ipsw` + Setup Assistant `boot_command`.
 - `harness/seed-config/chezmoi.yaml.tmpl` — the pre-seeded config file for Option A toggle-matrix runs
   ([08-dotfiles-test-harness.md §b](macos-ci/08-dotfiles-test-harness.md)).
@@ -231,8 +239,9 @@ local-network-permission workaround and unlock/create the login keychain for hea
 [01](macos-ci/01-tart-core.md#headless-mode-and-the-macos-15-keychain-requirement-g8)) if the host is
 macOS 15+.
 
-At time of writing, this host has `tart` 2.32.1, `just`, `uv`, and `cirrus` — and **is missing
-`packer`**. That missing tool is the first acceptance test for Step 3.
+This host now has `tart` 2.32.1, `just`, `uv`, `cirrus`, and `packer` 1.15.4. `packer` was the last
+one missing, and installing it was the first acceptance test for Step 3 — now met. `just doctor` must
+still report a missing `packer` on a host without it, so keep that path tested.
 
 ### 2. Read and sign off the licensing section
 
@@ -280,6 +289,21 @@ typo'd `<wai7s>` wait token as a cautionary tale, and validate every token.
 
 Run `just build`, then manually `tart clone` it once, boot it, and confirm `chezmoi --version` and
 `brew doctor` succeed inside the clone before automating anything further.
+
+### 6a. Inject the Homebrew token without letting it reach the artifact
+
+Per [13](macos-ci/13-build-secrets.md). Declare `homebrew_github_api_token` as `sensitive = true` with
+`default = env("HOMEBREW_GITHUB_API_TOKEN")`, and pass it — plus the `GIT_CONFIG_*` rewrite that sends
+`zsh-dotfiles-prep/Brewfile`'s one `git@github.com:` tap over anonymous HTTPS — through the shell
+provisioner's `environment_vars`, wrapped in `compact()` so an unset token omits the variable entirely.
+Leave `use_env_var_file` at its default of `false`; setting it true writes the secret to a file **on the
+guest**, which is the one thing this design exists to avoid.
+
+Then prove it: `just verify-no-secrets <vm>`. Do not trust a canary you have not seen fail — plant the
+token in a scratch file under the VM directory first and confirm the recipe exits `2`, exactly as the
+ledger's masking claims are paired with a control. Do **not** add a cleanup provisioner that `rm`s a
+secret from the guest; `rm` unlinks an inode without zeroing the blocks, so it would look like hygiene
+while leaving the plaintext recoverable from the disk image.
 
 ### 7. Implement the harness (`up` / `run` / `destroy`)
 
@@ -404,6 +428,11 @@ human reading a log.
 - A Packer build produces a tagged, bootable golden Tart image with Xcode CLT, Homebrew, `retry`, and
   chezmoi ≥ 2.20.0 preinstalled and verified (`chezmoi --version` exits 0). It does **not** contain
   `zsh-dotfiles-prep`'s output.
+- The build succeeds **both** with `HOMEBREW_GITHUB_API_TOKEN` set and with it unset, proving the token
+  is an optimisation against GitHub's 60 req/hr cap and not a dependency ([13](macos-ci/13-build-secrets.md)).
+- `just verify-no-secrets <vm>` exits 0 on the built image, and exits 2 when the token is deliberately
+  planted under the VM directory. A canary that has never failed has not been tested.
+- The token appears nowhere in `artifacts/latest/*.log`, including under `PACKER_LOG=1`.
 - `just run` runs unattended end-to-end (doctor → clone → apply → assert → delete) against a local
   working tree of `zsh-dotfiles`, with no interactive prompts at any point, and exits non-zero on any
   assertion failure.
@@ -434,9 +463,9 @@ uv run ruff check . && uv run ruff format --check .
 uv run basedpyright src/
 uv run python -c "import macos_ci._tart_core, macos_ci._doctor_core, macos_ci._gui_core"
 
-# The doctor must report the genuinely-missing tool on this host.
-just doctor --json | jq '.[] | select(.ok == false)'   # => expect `packer`
-brew install hashicorp/tap/packer && just doctor       # => exit 0
+# Every host prereq is now installed, so the doctor must be clean.
+just doctor --json | jq '.[] | select(.ok == false)'   # => expect no rows
+just doctor                                            # => exit 0
 
 # Confirm Tart + Packer are installed and the plugin is initialized.
 tart --version

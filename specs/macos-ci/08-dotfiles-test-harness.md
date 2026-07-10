@@ -248,6 +248,8 @@ tooling becomes worth re-litigating — not before.
 - What is under test and why: [09-dotfiles-under-test.md](./09-dotfiles-under-test.md)
 - Tart primitives this design composes: [01-tart-core.md](./01-tart-core.md)
 - Golden-image build pattern: [02-packer-tart-builder.md](./02-packer-tart-builder.md)
+- Getting the Homebrew token into that build without baking it into the image:
+  [13-build-secrets.md](./13-build-secrets.md)
 - UTM disposable-mode limitation (G5) in full: [06-utm-macos-guest.md](./06-utm-macos-guest.md)
 - Fleet-scale future (Orchard): [03-tart-ci-and-orchard.md](./03-tart-ci-and-orchard.md)
 - ADR recording the tart-primary decision this spec assumes: [10-tart-vs-utm-adr.md](./10-tart-vs-utm-adr.md)

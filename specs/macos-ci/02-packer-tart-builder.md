@@ -116,6 +116,16 @@ SSH communicator:
 | `ssh_username` | string | SSH user for provisioning steps. |
 | `ssh_password` | string | SSH password for provisioning steps. |
 
+**Do not mark `ssh_password` `sensitive`.** Packer's masking is value-based and global, not
+variable-scoped: it redacts every occurrence of the *string*, wherever it appears. Since the value here
+is `admin` — the public, documented credential for every prebuilt tart image
+([01](./01-tart-core.md)) — marking it sensitive would rewrite every build log's `admin` to
+`<sensitive>` and protect nothing. See [13-build-secrets.md](./13-build-secrets.md#sensitive-masks-values-not-variables).
+
+**Build-time secrets** (`HOMEBREW_GITHUB_API_TOKEN` and friends) are injected through the shell
+provisioner's environment and never written to the guest disk:
+[13-build-secrets.md](./13-build-secrets.md).
+
 HTTP server (for serving install-time payloads to the guest, e.g. autoinstall/cloud-init files):
 
 | Field | Type | Description |

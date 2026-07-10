@@ -55,8 +55,9 @@ AppleScript/JXA plus the `utm://` URL scheme, both of which are lifecycle-only f
 | 10 | `10-tart-vs-utm-adr.md` | synth | The ADR recording the house stance |
 | 11 | `11-sources.md` | synth | Every source URL, grouped, graded meaty/thin/404/cited-as-exclusion. Checked by `just link-check` |
 | 12 | `12-tooling-and-agent-loop.md` | harness | The Justfile/`macos-ci` CLI surface, the pure/impure split that makes it TDD-able, the four test tiers, the `artifacts/` contract, and the `.claude/` agent loop |
+| 13 | `13-build-secrets.md` | harness | Injecting `HOMEBREW_GITHUB_API_TOKEN` without it reaching the artifact; why deleting a secret from the guest does not erase it |
 
-Suggested reading order for a newcomer: **00 → 10 → 01 → 02 → 08 → 09 → 12 → 03 → 04 → 05 → 06 → 07 → 11.**
+Suggested reading order for a newcomer: **00 → 10 → 01 → 02 → 13 → 08 → 09 → 12 → 03 → 04 → 05 → 06 → 07 → 11.**
 Start with the decision (why Tart), then the primitives it composes (01/02), then the harness that
 uses them (08/09), then how you actually drive it (12), then the supporting detail (03/04/05/06/07),
 then the audit trail (11).

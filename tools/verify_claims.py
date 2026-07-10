@@ -25,8 +25,16 @@ Evidence kinds, cheapest first:
                  Catches hallucinated line:number citations — the single most
                  common way a plausible spec turns out to be fiction.
 
-  cli-help       `argv` (a read-only --help/--version probe) emits `expect`.
+  cli-help       `argv` (a read-only probe) emits `expect`. Runs from the repo
+                 root, so `argv` may name a repo-relative path. An optional
+                 `env` dict is layered over the environment for that one call.
                  Proves a CLI flag exists rather than being remembered.
+
+                 A probe that only shows a flag *parses* is weak evidence — see
+                 doc-contains. A probe that observes behaviour (`packer inspect`
+                 printing `<sensitive>` instead of a secret) is strong evidence,
+                 provided it is paired with a control proving the probe would
+                 have shown the secret had masking been off.
 
   doc-index      `expect` (a doc path) appears in the site's own search index.
                  The index IS the authoritative page list: if a path is absent,
@@ -69,6 +77,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -199,7 +208,18 @@ def evaluate(claim: dict[str, Any], index_cache: dict[str, dict[str, str]]) -> R
             argv = claim["argv"]
             if isinstance(argv, str):
                 argv = argv.split()
-            proc = subprocess.run(argv, capture_output=True, text=True, timeout=30)  # noqa: S603
+            env = {**os.environ, **claim.get("env", {})}
+            try:
+                # cwd=REPO so argv may reference a repo-relative fixture path.
+                proc = subprocess.run(  # noqa: S603
+                    argv, capture_output=True, text=True, timeout=30, env=env, cwd=REPO
+                )
+            except FileNotFoundError:
+                # The binary is absent. That is not evidence about the claim, so it must
+                # carry the UNREACHABLE prefix — otherwise `must_fail` would invert
+                # "packer isn't installed" into a silent pass.
+                detail = f"UNREACHABLE: {argv[0]!r} not on PATH"
+                return Result(cid, kind, False, detail, src)
             ok = check_contains(proc.stdout + proc.stderr, expect)
             return Result(cid, kind, ok, "" if ok else f"{' '.join(argv)} did not emit {expect!r}", src)
 

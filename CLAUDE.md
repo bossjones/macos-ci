@@ -26,6 +26,16 @@ Settled facts that keep getting re-litigated — don't re-derive them:
   See `05` §4.
 - **Tart is Fair Source, not open source**, and is actively enforced. Free below 100 CPU cores.
 - **Non-interactive chezmoi is already solved upstream** via `stdinIsATTY`. See `09` §"template contract".
+- **Deleting a secret from the guest does not erase it.** `rm` unlinks an inode; it does not zero the
+  blocks, so the plaintext survives in `~/.tart/vms/<name>/`'s disk image and `strings` still finds it.
+  Never write a build secret to the guest filesystem — pass it through the shell provisioner's
+  `environment_vars` (with `use_env_var_file = false`) and there is nothing to clean up. See `13`.
+- **Packer's `sensitive = true` masks *values*, not variables.** It redacts every occurrence of the
+  string, anywhere in the output, including under `PACKER_LOG=1`. So never mark a common word sensitive:
+  `ssh_password = "admin"` marked sensitive would rewrite every `admin` in every log to `<sensitive>`.
+- **The build needs no SSH key, `~/.gitconfig`, or `~/.ssh/config`**, and no
+  `HOMEBREW_GITHUB_PACKAGES_TOKEN`. Every repo and tap involved is public; the one `git@github.com:` tap
+  URL is rewritten to anonymous HTTPS via `GIT_CONFIG_COUNT`/`KEY_n`/`VALUE_n`. See `13`.
 
 ## Verifying a claim against the upstream docs
 
@@ -99,9 +109,9 @@ just verify-claims-json # same, for an agent to read instead of scraping prose
 ```
 
 Evidence kinds: `file-contains`, `file-line` (catches hallucinated `file:line` citations), `absent`
-(negative claims), `cli-help` (proves a flag exists), `doc-index` (proves a doc page exists, via the
-search index above — this is what would have caught the fabricated `settings-apple/devices/` URL), and
-`doc-contains` (proves a page *says* a given sentence).
+(negative claims), `cli-help` (runs `argv` from the repo root, optionally under an `env` overlay),
+`doc-index` (proves a doc page exists, via the search index above — this is what would have caught the
+fabricated `settings-apple/devices/` URL), and `doc-contains` (proves a page *says* a given sentence).
 
 **`cli-help` is unsound for backend questions, and `doc-contains` is the antidote.** `utmctl start
 --help` advertises `--disposable` on a host that can only run Apple-backend macOS guests, while
@@ -111,10 +121,17 @@ the ledger pairs each such `cli-help` claim with the `doc-contains` claim that s
 names the refutation in the `claim` prose. `doc-index` proves a page exists; `doc-contains` proves it
 says it.
 
-Two `must_fail` control claims guard the two doc oracles: one asserts the fabricated
-`settings-apple/devices/` URL (`doc-index`), one asserts that the disposable page claims Apple-backend
-support (`doc-contains`). If either ever starts passing, that oracle has broken and every claim of its
-kind is unreliable. A verifier nobody verifies is just a second thing to trust.
+`must_fail` claims guard the doc oracles: one asserts the fabricated `settings-apple/devices/` URL
+(`doc-index`), one asserts that the disposable page claims Apple-backend support (`doc-contains`). If
+either ever starts passing, that oracle has broken and every claim of its kind is unreliable. A verifier
+nobody verifies is just a second thing to trust.
+
+`must_fail` does double duty: it is also the only way to write a **negative assertion** over a `cli-help`
+probe, since `absent` takes a file. `packer-sensitive-hides-secret` asserts a secret does *not* appear in
+`packer inspect` output. Such a claim is worthless alone — "no secret in the output" is equally satisfied
+by *no output* — so **every negative probe must be paired with a positive control** running the same
+command and asserting a non-sensitive literal *is* present. Both live next to each other in the ledger,
+and the control names its partner. See `13`.
 
 Two failure prefixes are never inverted by `must_fail`, because neither is evidence about the claim:
 `UNREACHABLE:` (network down, binary missing) and `STRUCTURE:` (a `doc-contains` page is absent from the

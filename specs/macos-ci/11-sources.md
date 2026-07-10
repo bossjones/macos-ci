@@ -136,6 +136,25 @@ suffix on doc pages (404), and a few guessed content/registry API paths (all 404
 | [settings-qemu/drive/drive/](https://docs.getutm.app/settings-qemu/drive/drive/) | `[meaty]` | Contrast-only: QEMU drive creation, importing, deletion, boot order, removable, interface, image type, raw images |
 | [guest-support/sharing/sharing/](https://docs.getutm.app/guest-support/sharing/sharing/) | `[thin]` | Index over Clipboard / Directory / USB sharing; the children carry the content (SPICE WebDAV, VirtFS backends) |
 
+## Build-time secrets
+
+Consumed by [13](13-build-secrets.md). Everything in this bucket about Packer's own behaviour was also
+**executed** against `packer` v1.15.4 and pinned in `.team/claims.jsonl`; the docs are cited for the
+contract, the ledger for the fact.
+
+| URL | Grade | What it gave us |
+|---|---|---|
+| [packer/docs/templates/hcl_templates/variables](https://developer.hashicorp.com/packer/docs/templates/hcl_templates/variables) | `[meaty]` | `sensitive` ("obfuscated from Packer's output"), `PKR_VAR_<name>` as a lowest-priority assignment, and the full precedence table — [13](13-build-secrets.md) |
+| [packer/docs/.../functions/contextual/env](https://developer.hashicorp.com/packer/docs/templates/hcl_templates/functions/contextual/env) | `[meaty]` | `env()` is "the only function callable from a variable block", and only in `default`. Direct source for choosing the unprefixed name over `PKR_VAR_` — [13](13-build-secrets.md) |
+| [packer/docs/.../functions/collection/compact](https://developer.hashicorp.com/packer/docs/templates/hcl_templates/functions/collection/compact) | `[thin]` | "returns a new list with any empty string elements removed" — the mechanism that makes the token optional — [13](13-build-secrets.md) |
+| [packer/docs/provisioners/shell](https://developer.hashicorp.com/packer/docs/provisioners/shell) | `[meaty]` | `environment_vars`, and the two defaults the whole design rests on: `use_env_var_file` (false — true writes a tempfile to the guest) and `skip_clean` (false — uploaded scripts are removed) — [13](13-build-secrets.md) |
+| [packer/docs/.../legacy_json_templates/user-variables](https://developer.hashicorp.com/packer/docs/templates/legacy_json_templates/user-variables) | `[cited-as-exclusion]` | The JSON-era `"sensitive-variables"` list. Read only to confirm it is the *legacy* spelling, superseded by HCL's `sensitive = true`; not the API we use |
+| [Homebrew/brew `docs/Manpage.md`](https://github.com/Homebrew/brew/blob/master/docs/Manpage.md) | `[meaty]` | `HOMEBREW_GITHUB_API_TOKEN` ("Homebrew doesn't require permissions for any of the scopes" — hence the scopeless-PAT advice), `HOMEBREW_GITHUB_PACKAGES_TOKEN` (GitHub Packages registry, i.e. private-tap bottles — which is why we don't need it), and `HOMEBREW_API_DOMAIN` (default `https://formulae.brew.sh/api`) — [13](13-build-secrets.md) |
+| [GitHub REST rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) | `[meaty]` | 60 requests/hour unauthenticated vs 5,000/hour authenticated — the entire justification for injecting a token — [13](13-build-secrets.md) |
+| [git-config(1)](https://git-scm.com/docs/git-config) | `[meaty]` | `GIT_CONFIG_COUNT` / `GIT_CONFIG_KEY_<n>` / `GIT_CONFIG_VALUE_<n>`: git configured wholly from the environment. This is why no `~/.gitconfig` or `~/.ssh/config` is copied into the guest — [13](13-build-secrets.md) |
+| [tart.run/faq/#vm-location-on-disk](https://tart.run/faq/#vm-location-on-disk) | `[thin]` | "Local images that you can run are stored in `~/.tart/vms/`" — the directory `just verify-no-secrets` scans. Notably it does *not* name the disk file, which is why the canary globs the directory — [13](13-build-secrets.md) |
+| [ivobeerens.nl — pass a GitHub variable to a Packer provisioner](https://www.ivobeerens.nl/blog/2024/06/pass-github-variable-to-packer-powershell-provisioner/) | `[thin]` | Prior art for the shape (sensitive var → provisioner env). PowerShell/Windows-flavoured, so the mechanism transfers but none of the commands do — [13](13-build-secrets.md) |
+
 ## Retraction — the G10 prune list was wrong
 
 The research brief carried a ground truth **G10** instructing every agent that four URLs were 404 and

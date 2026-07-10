@@ -406,7 +406,14 @@ The fix is to make truth executable:
 just check              # link-check + verify-claims + unverified-count
 just verify-claims      # re-run the evidence behind every claim
 just verify-claims-json # the same, for an agent to read
+
+just build-golden       # build the image, injecting HOMEBREW_GITHUB_API_TOKEN via the environment
+just verify-no-secrets <vm>  # assert that token appears nowhere in ~/.tart/vms/<vm>/
 ```
+
+`verify-no-secrets` is a canary, and a canary nobody has seen fail is decoration. Plant the token under
+the VM directory and confirm it exits `2` before believing the `0`. Same discipline as the `must_fail`
+control claims below. See [13-build-secrets.md](./13-build-secrets.md).
 
 `.team/claims.jsonl` holds one record per load-bearing assertion. `tools/verify_claims.py` re-executes
 its evidence. Evidence kinds, cheapest first:
@@ -416,7 +423,7 @@ its evidence. Evidence kinds, cheapest first:
 | `file-contains` | a local working tree contains a string | claims about repos nobody opened |
 | `file-line` | line *N* of a file contains a string | **hallucinated `file:line` citations** |
 | `absent` | a string is *not* present | unfalsifiable negative claims |
-| `cli-help` | `<tool> --help` emits a flag | remembered flags that don't exist |
+| `cli-help` | `argv` emits a string, optionally under an `env` overlay | remembered flags that don't exist; and, when it probes behaviour rather than `--help` (e.g. `packer inspect` printing `<sensitive>`), unverified claims about what a tool *does* |
 | `doc-index` | a path appears in the doc site's own search index | **fabricated URLs (the G10 failure)** |
 | — | every URL and internal `#anchor` resolves | dead links, broken anchors (lychee) |
 

@@ -33,6 +33,30 @@ verify-claims:
 verify-claims-json:
     @uv run tools/verify_claims.py --json
 
+# The token reaches the guest only as a provisioner env var, never a file (specs/macos-ci/13).
+# It is an optimisation, not a dependency: without it the build still works, against GitHub's
+# 60 req/hr unauthenticated cap instead of 5,000.
+
+# Build the golden Tart image, injecting HOMEBREW_GITHUB_API_TOKEN if one is available.
+build-golden:
+    @echo "📦 Building the golden image"
+    @HOMEBREW_GITHUB_API_TOKEN="${HOMEBREW_GITHUB_API_TOKEN:-$(gh auth token 2>/dev/null || true)}" \
+      packer build packer/tart-golden-image.pkr.hcl
+
+# `rm` inside a guest unlinks an inode; it does not zero the blocks, so a secret written to
+# the guest survives in the disk image. This proves we never wrote one. Scans the whole VM
+# directory rather than a named disk file: tart documents ~/.tart/vms/ but not the file
+# inside it, and disk_format may be raw or asif.
+
+# Leak canary: assert the Homebrew token appears nowhere in a built VM's artifact.
+verify-no-secrets vm:
+    @tok="${HOMEBREW_GITHUB_API_TOKEN:-$(gh auth token 2>/dev/null || true)}"; \
+     if [ -z "$tok" ]; then echo "⚠️  no token in the environment — nothing to search for"; exit 0; fi; \
+     if [ ! -d ~/.tart/vms/{{vm}} ]; then echo "no such VM: {{vm}}" >&2; exit 4; fi; \
+     if LC_ALL=C grep -r -a -l -F "$tok" ~/.tart/vms/{{vm}}/ 2>/dev/null; then \
+       echo "🚨 LEAK: the token is present in the artifact above"; exit 2; \
+     else echo "✅ clean: token absent from ~/.tart/vms/{{vm}}/"; fi
+
 # Count unverified markers. A spec's honesty budget: these must be justified, not ambient.
 unverified-count:
     @echo "🕵️  <!-- UNVERIFIED --> markers by file:"
