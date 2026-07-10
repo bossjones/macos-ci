@@ -38,6 +38,24 @@ Settled facts that keep getting re-litigated — don't re-derive them:
   `HOMEBREW_GITHUB_PACKAGES_TOKEN`. Every repo and tap involved is public; the one `git@github.com:` tap
   URL is rewritten to anonymous HTTPS via `GIT_CONFIG_COUNT`/`KEY_n`/`VALUE_n`. See `13`.
 
+## Build performance
+
+The golden-image Packer build's wall-clock is dominated by the base OCI image pull, not the
+provisioner: cloning `ghcr.io/cirruslabs/macos-sequoia-vanilla` pulls ~23.7GB compressed over the
+network every time, and that alone can run to the majority of an hour-scale build (observed directly
+during the 2026-07-10 macos-ci-build run, including several transient "network connection was lost"
+layer retries that tart's own retry logic absorbed without failing the build).
+
+**The image is immutable, so it only needs to be pulled once per host.** Pre-pulling/caching it —
+`tart pull ghcr.io/cirruslabs/macos-sequoia-vanilla` (or a `just images-cache` recipe wrapping the same
+call for every lane in `macos-versions.toml`) — lets every subsequent golden-image build clone from the
+local cache in seconds instead of re-pulling, turning future builds into a minutes-scale provisioner run
+rather than an hour-scale network pull. This is a deferred speed optimization, not a correctness change:
+the golden-image smoke test and the `verify-no-secrets` canary (plant-then-fail-then-clean) still apply
+in full regardless of whether the base image came from cache or a fresh pull. See
+[specs/macos-ci/02-packer-tart-builder.md](specs/macos-ci/02-packer-tart-builder.md) for the builder
+field reference this applies to.
+
 ## Verifying a claim against the upstream docs
 
 **Don't guess a URL. Query the site's search index.** Both doc sites ship a static JSON index — the same

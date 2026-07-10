@@ -28,11 +28,11 @@ shadow work (`_harness_core`, `_triage_core`, `_gui_core` completion).
 
 | pane | role | surface UUID | owns | pill |
 |---|---|---|---|---|
-| 🐍 | core-builder | `41F4D7B6-7940-46AB-B2F2-264865D84822` | pyproject.toml, `src/macos_ci/{cli,config,tart,doctor,artifacts}.py`, ALL `_{config,tart,doctor,harness,triage,gui}_core.py`, `tests/unit/**` | 🟢 Step 3 TASK-DONE (27/27 red-first) · 🔵 now on shadow work (_harness_core/_triage_core/_gui_core) |
-| 📦 | packer-builder | `0E3A42D8-66CF-458A-9AE7-25B3D6306D60` | macos-versions.toml, `packer/**`, `.cirrus.yml`; creates `logs/packer-build-*.log` | 🔵 dispatched (Step 5+6a, critical path) |
-| 🛠 | harness-builder | `C22DBCCD-0588-4DA2-B1F7-D3A5CA765EF2` | Justfile, Makefile, `src/macos_ci/{harness,gui,vm_debug}.py` (after handoff), `harness/seed-config/**`, `tests/{integration,pty,gui,manual}/**` | 🔵 dispatched (Step 4) |
-| ✅ | validator | `A37B8728-7F00-4347-872C-AC23171DA7FA` | `.claude/agents/**`, `.claude/commands/**` (step-12 rewrite); ANY other file only under a lead-issued LOAN TICKET | 🔵 dispatched (Step 12 + red-team) |
-| 📡 | log-watcher | `7B514CEE-1BAA-4D0B-AAA6-51F31CD78C9A` | `.team/logwatch.md` (append-only), nothing else | 🔵 dispatched (standing by) |
+| 🐍 | core-builder | `41F4D7B6-7940-46AB-B2F2-264865D84822` | pyproject.toml, `src/macos_ci/{cli,config,tart,doctor,artifacts}.py`, ALL `_{config,tart,doctor,harness,triage,gui}_core.py`, `tests/unit/**` | 🟢 Step 3 + shadow-work TASK-DONE (_harness_core/_triage_core/_gui_core, 23/23 red-first) · 🔵 now on OQ-01 fix, then standing by for IMAGE-GATED gui/pty work |
+| 📦 | packer-builder | `0E3A42D8-66CF-458A-9AE7-25B3D6306D60` | macos-versions.toml, `packer/**`, `.cirrus.yml`; creates `logs/packer-build-*.log` | 🟢 Step 5+6a TASK-DONE (packer init+validate both lanes, build-golden launched) · 🔵 shadow work (.cirrus.yml done, IPSW lane polish) · standing by for IMAGE-READY |
+| 🛠 | harness-builder | `C22DBCCD-0588-4DA2-B1F7-D3A5CA765EF2` | Justfile, Makefile, `src/macos_ci/{harness,gui,vm_debug}.py` (after handoff), `harness/seed-config/**`, `tests/{integration,pty,gui,manual}/**` | 🟢 Step 4 TASK-DONE (Justfile+Makefile) · 🔵 shadow work in flight (seed-config done, assertion layer in progress, pty/gui/manual tier files + harness.py/vm_debug.py impl + OQ-05 SSH bootstrap pending) |
+| ✅ | validator | `A37B8728-7F00-4347-872C-AC23171DA7FA` | `.claude/agents/**`, `.claude/commands/**` (step-12 rewrite); ANY other file only under a lead-issued LOAN TICKET | 🟢 Step 12 TASK-DONE (13/13 red-first, .claude/ rewrite complete) · 🔵 ongoing red-team of core/harness/packer deliverables |
+| 📡 | log-watcher | `7B514CEE-1BAA-4D0B-AAA6-51F31CD78C9A` | `.team/logwatch.md` (append-only), nothing else | 🔵 armed, tailing `logs/packer-build-20260710-141058.log` — build ~15%, absorbing transient layer-pull network retries (not fatal) |
 | 🏗 | build (NO AGENT) | `A2E7C386-9B66-4483-939B-7363CD6FAB90` | plain shell; packer build tees here; only 📦 launches it, only 📡 tails the log file | idle |
 | 👑 | lead (you) | `D19A89AB-1B8B-4074-8DC0-B74C080328E3` | board, backlog, README (G4 record), CLAUDE.md | 🔵 working |
 
@@ -158,6 +158,28 @@ two-phase bootstrap-then-key-auth design, no golden-image rebuild needed) and di
 
 - The "build also succeeds WITHOUT the token" leg — a second hour-scale build. Explicit **DEFERRED
   post-DONE** item; not run silently during this pass.
+- **DEFERRED (orchestrator learnings, for NEXT build — do NOT apply to this in-flight one):**
+  1. **Biggest win: pre-pull/cache the immutable base OCI image.** This build's wall-clock is ~90% spent
+     re-pulling the same 23.7GB `ghcr.io/cirruslabs/macos-sequoia-vanilla` layers over the network.
+     A `just images-cache` (or `tart pull ghcr.io/cirruslabs/macos-*-base`) step, run once, would let
+     every future golden-image build clone from a local cache in seconds instead of re-pulling.
+     📦 packer-builder to document this as a recipe + note it in `specs/macos-ci/02-packer-tart-builder.md`
+     as a stated optimization — not required for this pass's correctness, purely a future speed-up.
+  2. **Log-watcher should self-arm.** Today it waited for the board to name the exact
+     `logs/packer-build-*.log` path, costing a round-trip (dispatch → orchestrator flagged it idle →
+     re-dispatch). Next time: 📡 polls for `logs/packer-build-*.log` appearing on disk itself and arms
+     the instant one shows up, no board dependency.
+  3. **Flag claim-tripping spec steps in the backlog up front.** A step that renames/aliases a recipe
+     (`build-golden` → `build`) predictably trips `absent`/`must_fail` ledger guard claims that were
+     written to prove the *prior* state. Next time: decide the alias direction (which name stays the
+     *real* recipe vs. which becomes the alias, since `just --summary` never lists aliases) BEFORE the
+     first `just check`, in the backlog brief itself — not after the first red run. This exact class of
+     defect happened this run (see OQ-02/OQ-04) and cost a real diagnostic detour; it was fully knowable
+     in advance from `just --summary`'s documented behavior.
+
+  Nothing above changes any correctness gate for this run — the golden-image smoke test and the
+  `verify-no-secrets` canary (plant-then-fail-then-clean) still apply in full once the current build
+  (59%+, healthy, absorbing transient OCI layer-pull network retries via tart's own retry) completes.
 
 ## Open questions
 
