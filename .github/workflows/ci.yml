@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint-type-test:
+    name: lint / type / test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write   # to upsert the coverage comment on PRs
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      # ADVISORY, not hard-gating: 44 pre-existing errors live in tests/unit/test_doctor_core.py
+      # (a loosely-typed dict fixture unpacked into a strict dataclass), none in src/. Fixing that
+      # is real but separate work from wiring up CI -- so this reports rather than blocks for now.
+      # Flip to a plain `run: uv run basedpyright` once that debt is paid down.
+      - name: Type check (basedpyright)
+        run: |
+          set +e
+          uv run basedpyright
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "::warning title=basedpyright::basedpyright reported errors (exit $rc) -- advisory only for now, see tests/unit/test_doctor_core.py. Not blocking the build."
+          fi
+
+      - name: Spell check
+        run: uv run codespell src tests tools
+
+      # pytest-sugar (already a dev dep) auto-activates for compact output; pytest-cov
+      # (already a dev dep) prints the term-missing table. Capture both to a file, but
+      # don't let a test failure abort the job -- we still want to post the comment, then
+      # fail explicitly at the end.
+      - name: Run tests with coverage
+        id: pytest
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          uv run pytest --cov=macos_ci --cov-report=term-missing 2>&1 | tee coverage-report.txt
+
+      - name: Post coverage comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('coverage-report.txt', 'utf8');
+            const passed = '${{ steps.pytest.outcome }}' === 'success';
+            const icon = passed ? '✅' : '❌';
+            const label = passed ? 'Tests passed' : 'Tests failed';
+            const marker = '<!-- unit-test-coverage -->';
+            const body = `${marker}\n## ${icon} ${label}\n\n\`\`\`\n${report.trim()}\n\`\`\``;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
+            }
+
+      - name: CLI smoke test
+        run: uv run macos-ci --help
+
+      - name: Fail job if tests failed
+        if: steps.pytest.outcome == 'failure'
+        run: exit 1
+
+  truth-gate:
+    name: truth gate (links + claims)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Link check (lychee)
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: "--config lychee.toml '**/*.md'"
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify claims ledger
+        run: |
+          set +e
+          uv run tools/verify_claims.py
+          rc=$?
+          set -e
+          case "$rc" in
+            0) echo "All claims verified." ;;
+            3) echo "::warning title=verify-claims::Some evidence is UNREACHABLE on Linux (macOS-only binaries: tart/utmctl/packer). All portable claims verified -- treating as advisory." ;;
+            *) echo "::error title=verify-claims::Claim verification failed (exit $rc)."; exit "$rc" ;;
+          esac
+
+      - name: Unverified-marker count (informational)
+        run: |
+          echo "### Unverified markers" >> "$GITHUB_STEP_SUMMARY"
+          grep -rn 'UNVERIFIED' specs/ --include='*.md' | grep -v '`<!-- UNVERIFIED' \
+            >> "$GITHUB_STEP_SUMMARY" || echo "  none" >> "$GITHUB_STEP_SUMMARY"

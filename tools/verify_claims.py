@@ -195,10 +195,16 @@ def check_line(text: str, line_no: int, expect: str) -> tuple[bool, str]:
 
     elsewhere = [i for i, ln in enumerate(lines, 1) if expect in ln and i != line_no]
     if len(elsewhere) == 1:
-        return False, f"MOVED: {expect!r} is not at line {line_no}; it is at line {elsewhere[0]}. The citation rotted; the text did not."
+        return (
+            False,
+            f"MOVED: {expect!r} is not at line {line_no}; it is at line {elsewhere[0]}. The citation rotted; the text did not.",
+        )
     if elsewhere:
         where = ", ".join(str(i) for i in elsewhere)
-        return False, f"MOVED: {expect!r} is not at line {line_no}; it is at lines {where}. The citation rotted; the text did not."
+        return (
+            False,
+            f"MOVED: {expect!r} is not at line {line_no}; it is at lines {where}. The citation rotted; the text did not.",
+        )
 
     # Not anywhere in the file. This, and only this, means deleted or reworded.
     return False, f"line {line_no} is {actual.strip()[:70]!r}, expected to contain {expect!r}"
@@ -284,7 +290,13 @@ def evaluate(claim: dict[str, Any], index_cache: dict[str, dict[str, str]]) -> R
 
         if kind == "absent":
             ok = check_absent(_read(claim["target"]), expect)
-            return Result(cid, kind, ok, "" if ok else f"{claim['target']} unexpectedly contains {expect!r}", src)
+            return Result(
+                cid,
+                kind,
+                ok,
+                "" if ok else f"{claim['target']} unexpectedly contains {expect!r}",
+                src,
+            )
 
         if kind == "file-line":
             ok, detail = check_line(_read(claim["target"]), int(claim["line"]), expect)
@@ -307,7 +319,9 @@ def evaluate(claim: dict[str, Any], index_cache: dict[str, dict[str, str]]) -> R
                 detail = f"UNREACHABLE: {argv[0]!r} not on PATH"
                 return Result(cid, kind, False, detail, src)
             ok = check_contains(proc.stdout + proc.stderr, expect)
-            return Result(cid, kind, ok, "" if ok else f"{' '.join(argv)} did not emit {expect!r}", src)
+            return Result(
+                cid, kind, ok, "" if ok else f"{' '.join(argv)} did not emit {expect!r}", src
+            )
 
         if kind == "doc-index":
             site = claim["site"]
@@ -315,7 +329,11 @@ def evaluate(claim: dict[str, Any], index_cache: dict[str, dict[str, str]]) -> R
                 index_cache[site] = _fetch_index(site)
             want = norm_path(expect)
             ok = want in index_cache[site]
-            hint = "" if ok else f"{want!r} is not in the {site} search index ({len(index_cache[site])} pages) — fabricated or moved"
+            hint = (
+                ""
+                if ok
+                else f"{want!r} is not in the {site} search index ({len(index_cache[site])} pages) — fabricated or moved"
+            )
             return Result(cid, kind, ok, hint, src)
 
         if kind == "doc-contains":
@@ -325,9 +343,19 @@ def evaluate(claim: dict[str, Any], index_cache: dict[str, dict[str, str]]) -> R
             page = norm_path(claim["page"])
             if page not in index_cache[site]:
                 # Not a verdict on the sentence: the page itself is gone. Never inverted by must_fail.
-                return Result(cid, kind, False, f"STRUCTURE: page {page!r} is not in the {site} index — fabricated or moved", src)
+                return Result(
+                    cid,
+                    kind,
+                    False,
+                    f"STRUCTURE: page {page!r} is not in the {site} index — fabricated or moved",
+                    src,
+                )
             ok = norm_text(expect) in index_cache[site][page]
-            hint = "" if ok else f"page {page} exists but does not contain {expect!r} — upstream may have reworded; re-read it"
+            hint = (
+                ""
+                if ok
+                else f"page {page} exists but does not contain {expect!r} — upstream may have reworded; re-read it"
+            )
             return Result(cid, kind, ok, hint, src)
 
         if kind == "http-status":
@@ -335,15 +363,27 @@ def evaluate(claim: dict[str, Any], index_cache: dict[str, dict[str, str]]) -> R
             # and prefer http-contains wherever the page is plain text.
             status, _ = _http_get(claim["url"])
             ok = str(status) == str(expect)
-            return Result(cid, kind, ok, "" if ok else f"{claim['url']} returned {status}, expected {expect}", src)
+            return Result(
+                cid,
+                kind,
+                ok,
+                "" if ok else f"{claim['url']} returned {status}, expected {expect}",
+                src,
+            )
 
         if kind == "http-contains":
             status, body = _http_get(claim["url"])
             if not 200 <= status < 300:
                 # The page is gone. Not a verdict on the sentence. Never inverted by must_fail.
-                return Result(cid, kind, False, f"STRUCTURE: {claim['url']} returned {status}, not 2xx", src)
+                return Result(
+                    cid, kind, False, f"STRUCTURE: {claim['url']} returned {status}, not 2xx", src
+                )
             ok = check_contains(body, expect)
-            hint = "" if ok else f"{claim['url']} is 2xx but does not contain {expect!r} — upstream may have moved it; re-read the source"
+            hint = (
+                ""
+                if ok
+                else f"{claim['url']} is 2xx but does not contain {expect!r} — upstream may have moved it; re-read the source"
+            )
             return Result(cid, kind, ok, hint, src)
 
         return Result(cid, kind or "?", False, f"unknown evidence kind {kind!r}", src)
@@ -390,7 +430,10 @@ def needs_control(claim: dict[str, Any]) -> bool:
     absent probe). A name is not a warrant.
     """
     kind = claim.get("kind", "")
-    is_oracle_control = str(claim.get("id", "")).startswith("CONTROL-") and kind in ("doc-index", "doc-contains")
+    is_oracle_control = str(claim.get("id", "")).startswith("CONTROL-") and kind in (
+        "doc-index",
+        "doc-contains",
+    )
     if is_oracle_control:
         return False
     # AUTHOR-SET, never inferred. `needs_control` below reads syntax: `kind == "absent"`, or the
@@ -422,7 +465,9 @@ def check_structure(claims: list[dict[str, Any]]) -> list[str]:
 
         pol = c.get("polarity")
         if pol is not None and pol not in ("negative", "positive"):
-            problems.append(f"{cid}: `polarity` is {pol!r}; only 'negative' or 'positive' are meaningful")
+            problems.append(
+                f"{cid}: `polarity` is {pol!r}; only 'negative' or 'positive' are meaningful"
+            )
 
         # A `logs/` directory is agent-writable scratch. An `absent` claim over it can pass because
         # some agent once typed the very string the claim asserts is missing — and this run's own
@@ -461,7 +506,9 @@ def check_structure(claims: list[dict[str, Any]]) -> list[str]:
         names: list[str] = [ctl] if isinstance(ctl, str) else list(ctl or [])
         for name in names:
             if name not in ids:
-                problems.append(f"{cid}: `control` names {name!r}, which is not a claim id in this ledger")
+                problems.append(
+                    f"{cid}: `control` names {name!r}, which is not a claim id in this ledger"
+                )
             elif name == cid:
                 problems.append(f"{cid}: `control` names itself; a claim cannot be its own control")
             else:
@@ -485,14 +532,23 @@ def main() -> int:
         print(f"no ledger at {ledger}", file=sys.stderr)
         return USAGE
 
-    claims = [json.loads(ln) for ln in ledger.read_text().splitlines() if ln.strip() and not ln.startswith("//")]
+    claims = [
+        json.loads(ln)
+        for ln in ledger.read_text().splitlines()
+        if ln.strip() and not ln.startswith("//")
+    ]
     if not claims:
-        print("ledger is empty — a spec with no checkable claims is a spec nobody verified", file=sys.stderr)
+        print(
+            "ledger is empty — a spec with no checkable claims is a spec nobody verified",
+            file=sys.stderr,
+        )
         return USAGE
 
     structural = check_structure(claims)
     if structural:
-        print("STRUCTURAL REJECTION — negative evidence without a positive control:", file=sys.stderr)
+        print(
+            "STRUCTURAL REJECTION — negative evidence without a positive control:", file=sys.stderr
+        )
         for p in structural:
             print(f"  {p}", file=sys.stderr)
         print(
@@ -520,7 +576,9 @@ def main() -> int:
                     r.id,
                     r.kind,
                     not r.ok,
-                    "" if not r.ok else "CONTROL PASSED — the oracle is broken; every other claim of this kind is now unreliable",
+                    ""
+                    if not r.ok
+                    else "CONTROL PASSED — the oracle is broken; every other claim of this kind is now unreliable",
                     r.file,
                 )
         results.append(r)
@@ -529,7 +587,16 @@ def main() -> int:
     unreachable = [r for r in failed if r.detail.startswith("UNREACHABLE")]
 
     if args.json:
-        print(json.dumps({"total": len(results), "failed": len(failed), "claims": [asdict(r) for r in results]}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "total": len(results),
+                    "failed": len(failed),
+                    "claims": [asdict(r) for r in results],
+                },
+                indent=2,
+            )
+        )
     else:
         for r in results:
             mark = "PASS" if r.ok else "FAIL"
