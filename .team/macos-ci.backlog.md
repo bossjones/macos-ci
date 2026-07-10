@@ -3444,3 +3444,139 @@ Nothing committed.
 `uv run tools/verify_claims.py .team/proposed/<role>.jsonl` exits `4` for proposals whose negatives name
 controls in `claims.jsonl`. → 👑 lead. And `raw.githubusercontent.com` is a new `just check` network
 dependency that belongs in `12-tooling-and-agent-loop.md` → 🧪 harness.
+
+### 👑 lead — GB3's prophecy came true during the run. The evidence held; the *name* did not.
+
+When GB3 was filed, `12-tooling-and-agent-loop.md` was **577** lines and I wrote that
+`CONTROL-12-line-607-does-not-exist` was *"30 lines from accidental validity."* It is now **exactly 607
+lines.** The boundary arrived.
+
+**The control still passes, and for the right reason** — because 🔬 ledger reshaped it during GB3, from
+`expect: "UNVERIFIED"` (which would have fired on any unrelated marker landing at 607) to the specific
+literal ``<!-- UNVERIFIED: `--vnc-experimental` ``. Traced through the real code:
+
+```
+file has 607 lines          -> line 607 is IN RANGE now (the out-of-range branch no longer applies)
+line 607 contains expect?   -> False        (the marker actually lives at line 364)
+                            -> plain False, no never-inverted prefix
+must_fail inverts it        -> [PASS]
+```
+
+Had we left `expect: "UNVERIFIED"` alone, this is the round it would have started screaming *"CONTROL
+PASSED — the oracle is broken"* at a file that merely grew. **The fix landed one round before the failure
+it was written to prevent.**
+
+**What did rot, exactly as predicted, is the prose and the identifier:**
+
+| | says | truth |
+|---|---|---|
+| the id | `CONTROL-12-line-607-does-not-exist` | line 607 **does** exist |
+| the `claim` prose | *"The file is 577 lines today"* | it is **607** |
+
+The prose already carries ledger's correction — *"THE ASSERTION IS: the marker is NOT at line 607 … It is
+NOT the assertion that 'line 607 does not exist'"* — so the claim is **semantically sound and its evidence
+is correct.** Only the name and a parenthetical number are stale.
+
+This is the **fifth** appearance of one class in this run: a prose citation (`:607→:340→:359→:364`), a doc
+count (`47/47`), a claim's `expect` (S3's `337`), a claim's **identifier** (`d1-justfile-44…`), and now a
+claim's **narrative**. Each time the *evidence* survived because something re-executed it, and each time the
+*words around the evidence* decayed silently because nothing did.
+
+> **The rule, now earned five times over:** the only part of a claim that is true is the part the tool
+> re-executes. Everything else — the id, the prose, the count in the parenthesis — is commentary, and
+> commentary rots. Put no number in a name. Put no fact in prose that the `expect` does not already assert.
+
+→ 🔬 ledger, non-blocking: rename to `CONTROL-12-vnc-marker-is-not-at-line-607` and drop the line-count
+parenthetical from its prose. **Not a gate blocker; the evidence is correct.** Filed because *the gate going
+green is precisely what hides it.*
+
+---
+
+### 🔬 ledger — OQ-38 remediation
+
+**The proposed rule is REJECTED as padding. The tool-side fix dominates it, costs zero new claims, and
+needs no schema change.** Ledger **305 → 311** (+6 claims that EXECUTE the tool; **not** the ~46 partners).
+
+#### Why the rule was rejected — audited, not assumed
+
+The ledger holds **50** `file-line` claims and **30** `file-contains` claims, of which only **19** share a
+target with any `file-line` claim. The rule would have added roughly **46 near-duplicate claims** to derive,
+per run, a fact the record's own `expect` already makes derivable. 📚 synth's cross-audit question settles it:
+*a ledger padded with easy claims is exactly as worthless as the vacuous control we removed.*
+
+#### The fix: `check_line()` searches for `expect` and says where it went
+
+```
+MOVED: 'SENTINEL_MOVED_HERE' is not at line 3; it is at line 5. The citation rotted; the text did not.
+MOVED: 'SENTINEL_TWICE' is not at line 3; it is at lines 7, 9. The citation rotted; the text did not.
+line 3 is 'ordinary prose, line 3', expected to contain 'SENTINEL_NEVER_PRESENT'     <- deleted, NOT moved
+```
+
+The third message is **unchanged on purpose**. That, and only that, means deleted or reworded — and for an
+`<!-- UNVERIFIED -->` marker a deletion is a budget paydown that must be a **CONFLICT**, never a reassuring
+*"the citation rotted"*. The out-of-range branch is untouched.
+
+#### 🔴 THE TRAP — and it was worse than the brief said. TWO controls at risk, not one.
+
+`MOVED:` is a **MESSAGE**, not a verdict class. `UNREACHABLE:` and `STRUCTURE:` are never inverted because
+**neither is evidence about the claim**. `MOVED:` **is** evidence — it says the pin is wrong. So it stays an
+ordinary `False` that `must_fail` still inverts, and it is **not** in the `startswith()` tuple at the
+inversion site.
+
+The brief predicted `CONTROL-spec12-line-330-is-not-the-vnc-port-mention` would break, and assumed
+`CONTROL-12-line-607-does-not-exist` was protected by the out-of-range branch. **It is not.**
+`12-tooling-and-agent-loop.md` is now **exactly 607 lines**, so line 607 is *in range* and that control takes
+the MOVED branch too. Proven by executing `check_line()` against the live file:
+
+```
+CONTROL-spec12-line-330-is-not-the-vnc-port-mention   branch=MOVED  today=PASS   if MOVED never-inverted=FAIL <- GATE BREAKS
+  MOVED: 'vnc_port' is not at line 330; it is at line 354.
+CONTROL-12-line-607-does-not-exist                    branch=MOVED  today=PASS   if MOVED never-inverted=FAIL <- GATE BREAKS
+  MOVED: '<!-- UNVERIFIED: `--vnc-experimental`' is not at line 607; it is at line 364.
+```
+
+Both still `[PASS]` in the live gate. Neither was weakened, deleted, or had its `expect` touched.
+
+#### Fixtures + six claims that EXECUTE the tool (OQ-35: honesty is not an evidence kind)
+
+`tests/fixtures/verifier/`: `sample-doc.md`, `line-moved.jsonl`, `line-moved-multi.jsonl`,
+`line-deleted.jsonl`, `mustfail-moved.jsonl`.
+
+```
+[PASS] verifier-file-line-moved-names-the-new-line          MOVED: names line 5
+[PASS] verifier-file-line-moved-lists-every-line            MOVED: lists lines 7, 9 — an ambiguous repin is a human's call
+[PASS] verifier-file-line-deleted-keeps-the-old-message     deleted text keeps the pre-OQ-38 message
+[PASS] verifier-file-line-deleted-is-not-reported-as-moved  (must_fail) a DELETED marker is never reported as MOVED
+[PASS] verifier-mustfail-still-inverts-a-moved-plain-false  the inversion survives
+[PASS] verifier-moved-is-not-a-never-inverted-prefix        (must_fail) no [FAIL] — pins the trap above
+```
+
+Each negative probe carries its positive control on the **same argv**; both new probes are `polarity: negative`.
+
+#### One correction to my own docstring
+
+I first wrote *"the four line-agnostic claims"*. I could not substantiate **four**, so I removed the number
+rather than ship an unverified count: 50 `file-line`, 30 `file-contains`, 19 sharing a target. The docstring
+now names the exemplar (`oq02-vnc-marker-exists-regardless-of-line`, green through 340 → 359 → 364) and states
+that such partners are **a convenience, not a requirement** — the tool derives the same fact for free.
+No partner claims added; the four existing line-agnostic claims are kept.
+
+#### Gate
+
+```
+$ uvx ruff check tools/verify_claims.py
+All checks passed!
+
+$ just check
+🚀 Checking all links in markdown files using lychee
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci.md
+   [... 652 lines elided: lychee [200] lines + PASS lines + marker list ...]
+311/311 claims verified
+$ echo $?
+0
+```
+
+`0` FAIL lines. **311 records**, markers **15**, `must_fail` **37 → 39** (the two new negative probes; none
+deleted, none weakened). All six original `must_fail` controls PRESENT, `must_fail: true`, `expect` untouched.
+`MOVED` appears nowhere in a never-inverted prefix tuple. **Nothing committed, nothing pushed.**

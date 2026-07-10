@@ -8,54 +8,98 @@
 
 ---
 
-## THE GATE — run personally by the lead, after human decisions
+## THE GATE — run personally by the lead (final, after OQ-38)
 
 ```
-$ just verify-claims ; echo "EXIT=$?"     # must exit 0 BEFORE anything else proceeds
+$ just verify-claims ; echo "EXIT=$?"     # must exit 0 BEFORE anything else
 EXIT=0
 
 $ just check ; echo "EXIT=$?"
 EXIT=0
 ```
 
-Complete unedited **650-line** capture: [`.team/gate-final-full.txt`](gate-final-full.txt).
-
-**Elision declared.** Lines **1–278** are `link-check`: a header plus exactly **277** `[200]` lines.
-**Zero non-200** (`grep -cE '^\[(4|5)[0-9][0-9]\]|ERROR'` → `0`). Lines **279–650** are pasted
-**verbatim and complete** below: all **305** `[PASS]`, **0** `[FAIL]`, the `305/305` line, and the full
+Unedited **656-line** capture: [`.team/gate-final-full.txt`](gate-final-full.txt).
+**Elision declared:** lines **1–278** are `link-check` — a header plus exactly **277** `[200]` lines,
+**zero non-200** (`grep -cE '^\[(4|5)[0-9][0-9]\]|ERROR'` → `0`). Lines **279–656** are pasted
+**verbatim and complete** below: all **311** `[PASS]`, **0** `[FAIL]`, the `311/311` line, and the full
 `unverified-count` output.
 
-### The honesty budget — the arithmetic, stated explicitly
+### Delta — and where it differs from what was expected
+
+| | before OQ-38 | after | note |
+|---|---|---|---|
+| `just check` | exit 0 | **exit 0** | |
+| claims | 305 | **311** | **+6, not unchanged.** The fixtures are separate files, but the six `cli-help` claims that *execute the tool against them* do live in `claims.jsonl`. |
+| `must_fail` | 37 | **39** | +2, from those six. None deleted or weakened. |
+| markers | 15 | **15** | unchanged |
+| duplicate evidence groups | 0 | **0** | |
+| six original `must_fail` controls | intact | **intact** | `expect` untouched |
+| negatives without a control | none | **none** | |
+
+The six new claims, each executing `verify_claims.py` against a checked-in fixture:
 
 ```
-markers before human decisions                                        15
-  08-dotfiles-test-harness.md  sheldon marker RETIRED (OQ-17)         -1   -> 14
-      paid for by 6 new claims incl. CONTROL-sheldon-lock-help-prints-reinstall
-      and sheldon-lock-is-mutating ("Install the plugins sources and generate the lock file")
-  04-tart-licensing-risk.md    enforcement-contact marker ADDED (OQ-20) +1   -> 15
-      cites OQ-20, as every added marker must
-markers after                                                         15
+verifier-file-line-moved-names-the-new-line          "MOVED: 'SENTINEL_MOVED_HERE' is not at line "
+verifier-file-line-moved-lists-every-line            "it is at lines 7, 9."
+verifier-file-line-deleted-keeps-the-old-message     "expected to contain 'SENTINEL_NEVER_PRESENT'"
+verifier-file-line-deleted-is-not-reported-as-moved  "MOVED:"          (negative; control = the line above)
+verifier-mustfail-still-inverts-a-moved-plain-false  "2/2 claims verified"
+verifier-moved-is-not-a-never-inverted-prefix        "[FAIL]"          (negative; control = the line above)
 ```
 
-Proven as a **per-file set difference**, not a count: `08` 4→3, `04` 0→1, every other file unchanged.
-**No marker vanished without a claim being added. No CONFLICT.**
+### OQ-38 — the rule was rejected; the tool absorbed the job
 
-### Integrity sweep (lead, independent of any agent's report)
+`MOVED:` now distinguishes *"the citation rotted"* from *"the text was deleted"*, at **zero new claims**.
+Re-executed by the lead, not read:
 
 ```
-six original must_fail controls          INTACT, expect untouched
-claims with polarity=negative            54   — every one names a control
-negative claims with no control          NONE  (7 CONTROL-* doc oracles exempt by construction)
-duplicate evidence groups                0
-evidence targets with a `logs` component NONE
-total claims / must_fail                 305 / 37
+line-moved.jsonl       -> MOVED: 'SENTINEL_MOVED_HERE' is not at line 3; it is at line 5.   exit 2
+line-deleted.jsonl     -> line 3 is 'ordinary prose, line 3', expected to contain ...       exit 2   (no MOVED:)
+line-moved-multi.jsonl -> MOVED: 'SENTINEL_TWICE' is not at line 3; it is at lines 7, 9.    exit 2
+mustfail-moved.jsonl   -> [PASS] mustfail-over-moved-text-still-inverts                     exit 0
+                          [PASS] POSITIVE-sample-doc-really-holds-the-sentinel
+verify_claims.py:513   -> startswith(("UNREACHABLE","STRUCTURE"))   'MOVED' NOT in tuple.   ruff clean
 ```
 
-Adversarially re-tested by the lead, not read:
-```
-polarity=negative with no control  -> exit 4      logs/ evidence target -> exit 4
-well-formed negative + control     -> exit 0
-```
+The proposed rule would have authored **~46 near-duplicate claims** (50 `file-line` total; 19 with no
+`file-contains` on the same target, 49 with none sharing `target`+`expect`, 42 with none even overlapping).
+**Padding.** `expect` was already in the record; the tool can search for it for free.
+
+**`MOVED:` is a message, not a verdict class.** It must stay an ordinary `False` that `must_fail` inverts,
+because — unlike `UNREACHABLE:` and `STRUCTURE:` — it *is* evidence about the claim: it says the pin is
+wrong. **Two** `must_fail` `file-line` controls now route through it, and both would flip to FAIL if it
+joined the never-inverted tuple.
+
+---
+
+## Two non-blocking findings, recorded so they are not lost
+
+**1. GB3's prophecy arrived during the run — and the fix beat it by one round.**
+`12-tooling-and-agent-loop.md` has reached **exactly 607 lines**. `CONTROL-12-line-607-does-not-exist` is
+therefore **in range** and no longer shielded by the out-of-range branch. It still PASSES, and for the right
+reason, *only because* GB3 narrowed its `expect` from the bare substring `UNVERIFIED` to the specific
+literal ``<!-- UNVERIFIED: `--vnc-experimental` ``. Left alone, this is the round it would have begun
+screaming *"CONTROL PASSED — the oracle is broken"* at a file that merely grew.
+
+**2. The claim id and the claim prose have rotted, though the evidence has not.**
+
+| | says | truth |
+|---|---|---|
+| id | `CONTROL-12-line-607-does-not-exist` | line 607 **does** exist |
+| prose | *"The file is 577 lines today"* | it is **607** |
+| id | `d1-justfile-44-invokes-absent-template` (renamed) | pinned at line **52** |
+| id | `justfile-verify-no-secrets-starts-at-line-60` | id and pin agree **today** — the trap already armed |
+
+The same defect appeared **five times** in this run: a prose citation (`:607 → :340 → :359 → :364`), a doc
+count (`47/47`), a claim's `expect` (CONFLICT S3's `337`), a claim's **identifier**, and a claim's
+**narrative**. Each time the evidence survived because something re-executed it; each time the words around
+it decayed silently because nothing did.
+
+> **The only part of a claim that is true is the part the tool re-executes.** The id, the prose, the number
+> in the parenthesis are commentary, and **commentary rots. The 46 claims would have been commentary too.**
+
+→ 🔬 ledger, at leisure: never put a line number in an identifier. Not a gate blocker — *the gate going
+green is precisely what hides it.*
 
 ### `just check` — verify-claims + unverified-count, verbatim
 
@@ -414,8 +458,14 @@ well-formed negative + control     -> exit 0
 [PASS] justfile-build-golden-guard-exits-4  (file-line)
          line 49: exit 4; }
 [PASS] synth-sitemap-substring-packer-also-matches-hcp-packer  (cli-help)
+[PASS] verifier-file-line-moved-names-the-new-line  (cli-help)
+[PASS] verifier-file-line-moved-lists-every-line  (cli-help)
+[PASS] verifier-file-line-deleted-keeps-the-old-message  (cli-help)
+[PASS] verifier-file-line-deleted-is-not-reported-as-moved  (cli-help)
+[PASS] verifier-mustfail-still-inverts-a-moved-plain-false  (cli-help)
+[PASS] verifier-moved-is-not-a-never-inverted-prefix  (cli-help)
 
-305/305 claims verified
+311/311 claims verified
 🕵️  <!-- UNVERIFIED --> markers by file:
 specs/macos-ci/07-utm-settings-appendix.md:25:| [qemu](https://docs.getutm.app/settings-qemu/qemu/) | Logging, UEFI boot, RNG ("entropy") device, balloon device, TPM 2.0, hypervisor/TSO toggles, PS/2 fallback, UEFI variable reset, raw QEMU machine properties/arguments | Inside the `Use TSO` bullet, verbatim: "This option is not supported on macOS however when using the Apple virtualization backend, **a similar option is available**." UTM thus asserts the Apple-backend equivalent **exists**, then never names it. No page in the 78-page index documents it: [settings-apple/virtualization](https://docs.getutm.app/settings-apple/virtualization/) publishes its own complete section list (8 toggles: balloon, entropy, sound, keyboard, pointer, trackpad, Rosetta, clipboard) and TSO is not among them <!-- UNVERIFIED: the page's silence is proven (ledger: utm-no-tso-toggle-on-apple-virtualization, a must_fail probe with a positive control). Inferring from that silence that no such toggle EXISTS is inference from absence, and stays unverified. See OQ-10 --> |
 specs/macos-ci/12-tooling-and-agent-loop.md:364:<!-- UNVERIFIED: `--vnc-experimental` is labelled experimental by Tart itself, and the exact stdout

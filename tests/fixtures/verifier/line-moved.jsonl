@@ -1,0 +1,3 @@
+// The pinned line is WRONG but the text still exists, one line away.
+// Correct behaviour: MOVED:, naming the line it actually moved to.
+{"id":"pin-whose-text-moved","kind":"file-line","file":"tests/fixtures/verifier/line-moved.jsonl","target":"tests/fixtures/verifier/sample-doc.md","line":3,"expect":"SENTINEL_MOVED_HERE","claim":"fixture: the citation rotted; the text did not"}

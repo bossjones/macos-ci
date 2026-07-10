@@ -1,0 +1,3 @@
+// The text is NOWHERE in the file. This, and only this, means deleted or reworded.
+// The message must NOT say MOVED: — otherwise a budget paydown reads as a stale citation.
+{"id":"pin-whose-text-was-deleted","kind":"file-line","file":"tests/fixtures/verifier/line-deleted.jsonl","target":"tests/fixtures/verifier/sample-doc.md","line":3,"expect":"SENTINEL_NEVER_PRESENT","claim":"fixture: deleted, not moved"}

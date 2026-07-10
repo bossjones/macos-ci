@@ -481,8 +481,8 @@ it at **`08:47-58`**. `12`'s `macos-versions.toml` now pins
 
 ---
 
-## OQ-38 · harness · OPEN · A cross-file `file-line` pin has no owner, and rots whenever *anyone* edits the target above it.
-**Status:** OPEN
+## OQ-38 · harness · ANSWERED · A cross-file `file-line` pin has no owner, and rots whenever *anyone* edits the target above it.
+**Status:** ANSWERED (rule REJECTED as padding; closed by 🔬 ledger with a tool-side fix)  
 **Spec:** .team/claims.jsonl — `oq02-vnc-marker-pinned-at-12-*`, `spec12-vnc-port-mention-is-at-*`
 **Question:** `file-line` exists to kill hallucinated `file:line` citations, and it works — it caught the fabricated `12:607`. But it is **brittle against any edit above the pinned line**, so it renders two opposite findings identically: *"the citation rotted"* and *"the marker was deleted."* Is that trade acceptable, or must every `file-line` claim ship an edit-stable `file-contains` partner?
 **What I tried:** I have now broken the same pin **twice in one run**, both times by making edits I was *instructed* to make.
@@ -511,6 +511,77 @@ The second failure is the worse one. `spec12-vnc-port-mention-is-at-349` sits in
 <!-- 🔐 secrets: OQ-08 and OQ-09 were taken concurrently by tart-ci/ledger/harness and utm/harness.
      Per _RULES.md §6 ("if you race, renumber yours upward") mine are OQ-13 and OQ-14. -->
 
+**Resolution (🔬 ledger, lead ruling) — the proposed RULE is REJECTED as padding; the tool-side fix dominates it.**
+
+The proposal was: *every `file-line` claim must ship a `file-contains` partner.* Audited before deciding:
+the ledger holds **50** `file-line` claims and **30** `file-contains` claims, of which only **19** share a
+target with any `file-line` claim. Depending on how an edit-stable partner is defined, **42 to 49** pins lack
+one. The rule would mean adding roughly **46 near-duplicate claims**. 📚 synth's own cross-audit question —
+*are these claims load-bearing, or trivia?* — answers it: **a ledger padded with easy claims is exactly as
+worthless as the vacuous control we removed.**
+
+**The record already carries `expect`.** So `check_line()` now searches the file itself and reports where the
+text went. Zero new claims for the 46 pins, no schema change, and the fact is derived on every run rather
+than asserted by a partner that can rot in its own way:
+
+```
+MOVED: 'SENTINEL_MOVED_HERE' is not at line 3; it is at line 5. The citation rotted; the text did not.
+MOVED: 'SENTINEL_TWICE' is not at line 3; it is at lines 7, 9. The citation rotted; the text did not.
+line 3 is 'ordinary prose, line 3', expected to contain 'SENTINEL_NEVER_PRESENT'      <- deleted, NOT moved
+```
+
+The third message is unchanged on purpose. **That, and only that, means deleted or reworded** — and for an
+`<!-- UNVERIFIED -->` marker a deletion is a budget paydown that must be a CONFLICT, never a reassuring
+*"the citation rotted"*.
+
+**THE TRAP, and it was worse than the brief said.** `MOVED:` is a MESSAGE, not a verdict class. `UNREACHABLE:`
+and `STRUCTURE:` are never inverted because **neither is evidence about the claim**; `MOVED:` **is** evidence —
+it says the pin is wrong. It therefore stays an ordinary `False` that `must_fail` still inverts. The brief
+predicted one `must_fail` file-line control would break if `MOVED` joined the never-inverted tuple. **Both do.**
+`12-tooling-and-agent-loop.md` is now EXACTLY **607** lines, so `CONTROL-12-line-607-does-not-exist` is *in
+range* and takes the MOVED branch too — it is no longer protected by the out-of-range case. Proven by
+executing `check_line()` against the live file:
+
+```
+CONTROL-spec12-line-330-is-not-the-vnc-port-mention  branch=MOVED  today=PASS   if MOVED never-inverted=FAIL <- GATE BREAKS
+CONTROL-12-line-607-does-not-exist                   branch=MOVED  today=PASS   if MOVED never-inverted=FAIL <- GATE BREAKS
+```
+
+Four new fixtures under `tests/fixtures/verifier/` and **six** `cli-help` claims that EXECUTE the tool pin all
+of it — `verifier-file-line-moved-names-the-new-line`, `-moved-lists-every-line`, `-deleted-keeps-the-old-message`,
+`-deleted-is-not-reported-as-moved` (must_fail), `verifier-mustfail-still-inverts-a-moved-plain-false`, and
+`verifier-moved-is-not-a-never-inverted-prefix` (must_fail). Each negative probe carries its positive control on
+the same argv. **OQ-35: honesty is not an evidence kind** — the behaviour is executed, not asserted in prose.
+
+The existing line-agnostic partners are **kept as a convenience, not a requirement**, and the docstring says so.
+`oq02-vnc-marker-exists-regardless-of-line` stayed green while its pin moved 340 → 359 → 364, which is how we
+knew the marker had moved rather than been deleted. The tool now derives that same fact for free.
+**Status: ANSWERED.** No partner claims added. `just check` exit 0, `311/311`.
+
+
+**Lead's resolution (👑), confirming 🔬 ledger's by execution, not by reading.** I re-ran every fixture myself rather than accept the report:
+
+```
+line-moved.jsonl        -> MOVED: 'SENTINEL_MOVED_HERE' is not at line 3; it is at line 5.  exit 2
+line-deleted.jsonl      -> line 3 is 'ordinary prose, line 3', expected to contain ...      exit 2   (correctly does NOT say MOVED:)
+line-moved-multi.jsonl  -> MOVED: 'SENTINEL_TWICE' is not at line 3; it is at lines 7, 9.   exit 2
+mustfail-moved.jsonl    -> [PASS] mustfail-over-moved-text-still-inverts                    exit 0   (inversion preserved)
+                           [PASS] POSITIVE-sample-doc-really-holds-the-sentinel                      (probe is not vacuous)
+verify_claims.py:513    -> startswith(("UNREACHABLE","STRUCTURE"))   — 'MOVED' NOT in tuple. Correct.
+uvx ruff check          -> All checks passed!
+```
+
+**The rule OQ-38 proposed was rejected as padding, and the audit is why.** 50 `file-line` claims; **19** have no `file-contains` on the same target at all, **49** none with the same `target`+`expect`, **42** none with even an overlapping `expect`. Under any reading the rule authors ~46 near-duplicates. 📚 synth's cross-audit question — *load-bearing, or trivia?* — settles it.
+
+**Why the tool-side fix dominates.** `expect` was already in the record. The tool can search the file for it and name the new line, distinguishing *"the citation rotted"* from *"the text was deleted"* at zero new claims and no schema change. **The 46 partner claims were doing work the tool does for free.**
+
+**The trap needed a fixture, not an argument.** `MOVED:` is a *message*, not a verdict class. `UNREACHABLE:` and `STRUCTURE:` are never inverted because neither is evidence *about the claim*; `MOVED:` **is** — it says the pin is wrong. Two `must_fail` `file-line` controls pass today by inverting a plain failure, and **both** now route through the `MOVED:` branch: `CONTROL-spec12-line-330-is-not-the-vnc-port-mention` (line 330 exists, lacks `vnc_port`, which lives at 354) and `CONTROL-12-line-607-does-not-exist` — because `12-tooling-and-agent-loop.md` **reached exactly 607 lines during this run**, so it is now IN range and no longer shielded by the out-of-range branch. Add `MOVED:` to the never-inverted tuple and both flip to FAIL and the gate breaks. Ledger's docstring names both. *It also corrected the orchestrator, who assumed the 607 control still passed by out-of-range inversion. It does not.*
+
+**The four line-agnostic claims stay — as a convenience, not a requirement.** `oq02-vnc-marker-exists-regardless-of-line` stayed green through all three moves of the marker (`340 → 359 → 364`), so we knew it had **moved**, never been **deleted**. Genuinely diagnostic; the tool now derives the same fact unaided.
+
+**The epitaph, earned five times in this run.** The identical defect surfaced in a prose citation (`:607 → :340 → :359 → :364`), a doc count (`47/47`), a claim's `expect` (CONFLICT S3's `337`), a claim's **identifier** (`d1-justfile-44-invokes-absent-template`, pinned at line 52), and a claim's **narrative** (`CONTROL-12-line-607-does-not-exist`'s prose still reads *"the file is 577 lines"* — it is 607, and line 607 now exists). Each time the *evidence* survived because something re-executed it. Each time the *words around the evidence* decayed silently, because nothing did.
+
+> **The only part of a claim that is true is the part the tool re-executes.** The id, the prose, the number in the parenthesis are commentary, and **commentary rots. The 46 claims would have been commentary too.**
 ## OQ-13 · secrets · NEEDS-HUMAN · May `just check` take a network dependency on `raw.githubusercontent.com`?
 **Status:** ANSWERED (human decision YES; implemented by 🔬 ledger)  
 **Spec:** specs/macos-ci/13-build-secrets.md:104 (`use_env_var_file = false   # default; ... true writes a tempfile to the GUEST`)

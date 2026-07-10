@@ -162,12 +162,45 @@ def check_absent(haystack: str, expect: str) -> bool:
 
 
 def check_line(text: str, line_no: int, expect: str) -> tuple[bool, str]:
+    """Is `expect` on line `line_no` of `text`? If not, say whether it MOVED or vanished.
+
+    A `file-line` pin is a tripwire, not a fact: the text it cites drifts as the file is
+    edited (spec 12's vnc marker moved 340 -> 359 -> 364). Two failures look identical from
+    the outside and demand opposite responses: the citation ROTTED (repin it) versus the text
+    was DELETED (that is a finding, and for an UNVERIFIED marker it is a budget paydown that
+    must be a CONFLICT). The record already carries `expect`, so the tool searches for it and
+    reports the line it moved to. This is why a mandatory `file-contains` partner per
+    `file-line` claim was rejected as padding (OQ-38): ~46 near-duplicate claims to derive,
+    per run, a fact the tool derives for free — and a ledger padded with easy claims is
+    exactly as worthless as a vacuous control. The line-agnostic partners that already exist
+    (e.g. `oq02-vnc-marker-exists-regardless-of-line`, which stayed green while its pin moved
+    340 -> 359 -> 364) are kept as a CONVENIENCE. They are no longer a REQUIREMENT: this
+    function now derives the same MOVED-vs-DELETED fact on its own.
+
+    `MOVED:` is a MESSAGE, not a verdict class. It must never join the never-inverted prefixes
+    (`UNREACHABLE:`, `STRUCTURE:`), because those two are not evidence about the claim, while
+    `MOVED:` IS: it says the pin is wrong. Two `must_fail` file-line controls pass today by
+    inverting exactly this plain `False`, and both take this branch:
+    `CONTROL-spec12-line-330-is-not-the-vnc-port-mention` (line 330 exists, lacks `vnc_port`,
+    which lives at 354) and `CONTROL-12-line-607-does-not-exist` (the file is now exactly 607
+    lines, so it is IN range). Add `MOVED:` to that tuple and both flip to FAIL and the gate
+    breaks. tests/fixtures/verifier/mustfail-moved.jsonl pins the inversion.
+    """
     lines = text.splitlines()
     if not 1 <= line_no <= len(lines):
         return False, f"line {line_no} out of range (file has {len(lines)})"
     actual = lines[line_no - 1]
     if expect in actual:
         return True, f"line {line_no}: {actual.strip()[:70]}"
+
+    elsewhere = [i for i, ln in enumerate(lines, 1) if expect in ln and i != line_no]
+    if len(elsewhere) == 1:
+        return False, f"MOVED: {expect!r} is not at line {line_no}; it is at line {elsewhere[0]}. The citation rotted; the text did not."
+    if elsewhere:
+        where = ", ".join(str(i) for i in elsewhere)
+        return False, f"MOVED: {expect!r} is not at line {line_no}; it is at lines {where}. The citation rotted; the text did not."
+
+    # Not anywhere in the file. This, and only this, means deleted or reworded.
     return False, f"line {line_no} is {actual.strip()[:70]!r}, expected to contain {expect!r}"
 
 
