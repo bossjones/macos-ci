@@ -92,13 +92,29 @@ brief states:
 ---
 
 ## OQ-04 · secrets · NEEDS-HUMAN
-**Status:** NEEDS-HUMAN  
+**Status:** ANSWERED  
 **Spec:** (meta — decision required)  
 **Question:** Should `build-golden` be guarded to fail loudly when the template is missing, or should the template be authored?  
 **What I tried:** None; this is a human decision about scope.  
 **Why it is stuck:** Justfile:44 invokes `packer/tart-golden-image.pkr.hcl`, which does not exist. This run's scope forbids authoring it and forbids running `packer build` to validate it. We can only document that it is absent.  
 **My best guess:** Guard `build-golden` with a check: test for template existence before invoking `packer build`.  
-**Cost of guessing:** If the template should exist but doesn't, CI is broken. If it shouldn't exist, the guard is noise.  
+**Cost of guessing:** If the template should exist but doesn't, CI is broken. If it shouldn't exist, the guard is noise.
+
+**Resolution (human decision, implemented by 👑 lead):** **guard it.** The template stays unauthored — `packer build` / `packer init` are forbidden by scope, so not one line of it could be validated. Only the *failure mode* changes. `Justfile:build-golden` now opens with a `test -f` guard that exits **4** (USAGE, matching `verify_claims.py`) before `packer build` is ever reached.
+
+Verified by execution, after first confirming `packer/` does not exist so `packer build` was provably unreachable — that precondition is what made running a previously-forbidden recipe safe:
+
+```
+$ just build-golden ; echo "EXIT=$?"
+missing: packer/tart-golden-image.pkr.hcl
+see specs/macos-ci/13-build-secrets.md and OQ-04
+error: Recipe `build-golden` failed on line 49 with exit code 4
+EXIT=4
+```
+
+Two ledger claims pin it: `justfile-build-golden-guards-on-missing-template` (`Justfile:46`) and `justfile-build-golden-guard-exits-4` (`:49`, before `packer build` at `:52`). Both PASS.
+
+**Note the blast radius, recorded because the gate hides it.** This six-line edit invalidated the `file-line` pin `d1-justfile-44-invokes-absent-template` (line 44 → 52). 🔬 ledger re-derived and renamed it `d1-justfile-build-golden-names-absent-template`. **The `line` field is evidence; the `id` is prose, and prose rots.** See the lead's backlog entry: *never put a line number in an identifier.*  
 
 ---
 
@@ -350,8 +366,8 @@ guest — where G15 says `rm` will not erase it. The spec's central promise ("th
 build secret", HOUSE STANCE) would be false, and the ledger would be **green while being wrong**: seven
 passing claims that all probe the one command that cannot exercise the failure.
 
-## OQ-17 · harness · NEEDS-HUMAN · Sheldon 0.6.6 has no non-mutating verify verb — what should the "Sheldon lock resolves" assertion actually run?
-**Status:** NEEDS-HUMAN
+## OQ-17 · harness · ANSWERED · Sheldon 0.6.6 has no non-mutating verify verb — what should the "Sheldon lock resolves" assertion actually run?
+**Status:** ANSWERED
 **Renumbered from OQ-08 (🧪 harness):** three agents — 🏭 tart-ci, 🔬 ledger, 🧪 harness — each filed an `OQ-08`, and two filed an `OQ-09`. Per `_RULES.md` §6 (*"if you race, renumber yours upward"*) mine move to **OQ-17** / **OQ-18**. The `OQ-08` and `OQ-09` blocks above belong to other agents. **Two `OQ-08` blocks still collide (tart-ci ↔ ledger) — 👑 lead must adjudicate; `02-packer-tart-builder.md:135` cites a bare "OQ-08" and is now ambiguous three ways.**
 **Spec:** specs/macos-ci/08-dotfiles-test-harness.md:189
 **Question:** 08's assertion layer says `sheldon lock --check` (or equivalent non-mutating verify) exits 0. The existing `<!-- UNVERIFIED -->` marker asks to "confirm exact non-mutating flag against sheldon 0.6.6's `--help`". Confirmed: **there is no such flag, and no such verb.**
@@ -379,8 +395,43 @@ $ sheldon --help | sed -n '/SUBCOMMANDS/,$p'
 
 ---
 
-## OQ-18 · harness · NEEDS-HUMAN · Should the golden image build on `-base` (which preinstalls mise) or `-vanilla` (cold start)?
-**Status:** NEEDS-HUMAN
+**Resolution (human, 2026-07-10) — YES: run the mutating `sheldon lock` in-guest and assert exit 0.**
+
+The instinct behind this OQ — reach for the least-invasive probe — was the wrong instinct, and naming why
+is the point of recording it. **The disposable clone exists precisely so that mutation is free.** `sheldon
+lock` runs inside a tart clone that `08(d)` destroys moments later. Running the real installer tests
+strictly *more* than a hypothetical read-only verb would, because installing the plugin sources **is** the
+behaviour under test. A check that avoided the side effect would also have avoided the thing it checks.
+
+My "best guess" above was *"drop the lock-file check entirely."* **That guess was wrong**, and wrong in an
+instructive direction: it would have deleted a signal to preserve a purity the VM was already paying for.
+The half I got right was the factual half — there is no non-mutating verb.
+
+**Evidence added (all dry-run PASS).** The human asked for a `cli-help` on `sheldon lock --help` expecting
+`--reinstall`. **That claim already existed**, merged, as `CONTROL-sheldon-lock-help-prints-reinstall`
+(same `argv`, same `expect`) — so it was not re-proposed; duplicating it would be noise, and I am saying so
+rather than quietly padding the count. What was genuinely missing is the *stronger* claim, now proposed:
+
+- `sheldon-help-has-no-verify-subcommand` (`cli-help`, `must_fail`, `polarity: negative`) — sheldon 0.6.6
+  exposes `init | add | edit | remove | lock | source | completions | version` and **no `verify` verb at
+  all**, not merely no `--check` on `lock`. Paired with the positive control
+  `CONTROL-sheldon-help-lists-lock-subcommand` (same `argv`, `expect: "lock"`), so *"no verify in the
+  output"* cannot be satisfied by an empty `--help`. Mutation-tested: swapping the probe's pattern to one
+  known present flips it to `FAIL` with `CONTROL PASSED — the oracle is broken`.
+- If `sheldon` ever leaves `PATH`, both report `UNREACHABLE:` — never a silent pass, and never a
+  refutation. That is the behaviour the human asked for, and it is `verify_claims.py`'s existing
+  guarantee, not something I had to add.
+
+**Marker retired.** `08`'s `<!-- UNVERIFIED: ... whether sheldon source lazily re-locks -->` is **deleted**,
+because the question is moot: the harness does not run `sheldon source`. Per the honesty-budget rule, this
+qualifies only because claims were *added* alongside it. The brief cited the marker at `08:174`; it was
+actually at **`08:189`** (re-derived with `grep -n`) — the fourth false line number traced to the master
+brief chain this run. See the backlog.
+
+---
+
+## OQ-18 · harness · ANSWERED · Should the golden image build on `-base` (which preinstalls mise) or `-vanilla` (cold start)?
+**Status:** ANSWERED
 **Renumbered from OQ-09 (🧪 harness)** — see the note in OQ-17. 🖥 utm's `OQ-09` keeps the number.
 **Spec:** specs/macos-ci/08-dotfiles-test-harness.md:39-48
 **Question:** 08 already names this as "recorded here as open, and deliberately not resolved" but it has never had an OQ number, so it is invisible in the one file the human reads. Filing it. `ghcr.io/cirruslabs/macos-*-base` preinstalls Homebrew, **mise**, rbenv and node@24. The claims ledger's own `base-image-preinstalls-mise` and `mise-installed-by-dotfiles-on-macos` are therefore in direct tension: the default `mise` lane never exercises its own install path from cold.
@@ -395,13 +446,73 @@ Both claims pass. Neither is wrong. They just describe two facts that make the d
 **My best guess, explicitly labelled a guess:** build the golden image on `-vanilla`, install CLT + Homebrew + chezmoi + `retry` there, and deliberately do **not** install mise — that keeps the golden image's cost amortised while leaving the one path under test cold.
 **Cost of guessing wrong:** on `-base`, `run_onchange_before_02-macos-install-mise.sh.tmpl` short-circuits on `command -v mise` and the harness reports green having never run `brew install mise`. A regression in the dotfiles' own mise bootstrap would be invisible to the suite whose entire purpose is to catch it.
 
+**Resolution (human, 2026-07-10) — YES: build the golden image on `-vanilla`, and deliberately OMIT `mise`.**
+
+The guess above was **upheld in full**, and the reasoning now lives in
+[`08`](../specs/macos-ci/08-dotfiles-test-harness.md) rather than only here. The decisive point is that
+this is not a fidelity preference — it is a **hole**:
+
+> `-base` preinstalls `mise`. The dotfiles' installer short-circuits on `command -v mise`. So on `-base`,
+> `run_onchange_before_02-macos-install-mise.sh.tmpl` **never runs**, and the suite reports **green having
+> never executed `brew install mise`.** A regression in the dotfiles' own `mise` bootstrap would be
+> **invisible to the suite whose entire purpose is to catch it.**
+
+**Golden image: built once on `-vanilla`, carrying Xcode CLT + Homebrew + chezmoi + `retry`. Not `mise`.**
+That amortises the expensive, stable bootstrap while leaving the one path under test **cold**.
+
+**The two claims in tension both stay, because both are true.** `base-image-preinstalls-mise` and
+`mise-installed-by-dotfiles-on-macos` are not a contradiction to resolve — they are the premises. `08` now
+says the harness uses `-vanilla` **because** they are both true. What was missing is the third premise,
+and it is the load-bearing one:
+
+- `dotfiles-mise-script-short-circuits-on-existing-mise` (`file-line`, `:9`) — **new**. Without it, (1)+(2)
+  merely look like redundancy. With it they compose into the hole above.
+- `vanilla-image-preinstalls-no-software` / `base-image-is-derived-from-vanilla` (`file-line` on upstream's
+  README `:8`, `:9`) — `-base` *is* `-vanilla` plus `brew`, so choosing `-vanilla` steps one rung down
+  upstream's own line rather than forking off it.
+- `vanilla-sequoia-template-installs-no-mise` (`absent`, `polarity: negative`) ↔
+  `CONTROL-vanilla-sequoia-template-is-a-tart-cli-build` — *"no mise in the template"* would otherwise be
+  satisfied by a wrong path returning an empty string. Mutation-tested: swapping the pattern to `tart-cli`
+  (known present) flips it to `FAIL`.
+
+**"Recorded here as open" is retired from `08`.** The brief cited that passage at `08:39-48`; `sed -n` puts
+it at **`08:47-58`**. `12`'s `macos-versions.toml` now pins
+`ghcr.io/cirruslabs/macos-{sequoia,tahoe}-vanilla:latest`.
+
+---
+
+## OQ-38 · harness · OPEN · A cross-file `file-line` pin has no owner, and rots whenever *anyone* edits the target above it.
+**Status:** OPEN
+**Spec:** .team/claims.jsonl — `oq02-vnc-marker-pinned-at-12-*`, `spec12-vnc-port-mention-is-at-*`
+**Question:** `file-line` exists to kill hallucinated `file:line` citations, and it works — it caught the fabricated `12:607`. But it is **brittle against any edit above the pinned line**, so it renders two opposite findings identically: *"the citation rotted"* and *"the marker was deleted."* Is that trade acceptable, or must every `file-line` claim ship an edit-stable `file-contains` partner?
+**What I tried:** I have now broken the same pin **twice in one run**, both times by making edits I was *instructed* to make.
+
+```
+# after the D2/D4 fix:
+[FAIL] oq02-vnc-marker-pinned-at-12-340   line 340 is '`_gui_core.parse_vnc_url()` turns that line…'
+# after the OQ-13/OQ-18 edits:
+[FAIL] oq02-vnc-marker-pinned-at-12-359   line 359 is 'prefer the `pty` tier whenever…'
+[FAIL] spec12-vnc-port-mention-is-at-349  line 349 is ''
+```
+
+`git diff` confirms **neither line's text ever changed.** The marker is byte-identical; it moved 340 → 359 → 364. Its edit-stable partner `oq02-vnc-marker-exists-regardless-of-line` (`file-contains`) **never failed once.**
+
+The second failure is the worse one. `spec12-vnc-port-mention-is-at-349` sits in **🍎 tart-core's** `file` scope (`02-packer-tart-builder.md`) but pins a line in **🧪 harness's** `12-tooling-and-agent-loop.md`. **Neither agent owns both ends.** tart-core cannot know when harness edits 12; harness has no mandate to renumber tart-core's evidence. I proposed the re-pin anyway (`spec12-vnc-port-mention-is-at-354`) because leaving the gate red was worse — but that is one agent editing another's evidence, which `_RULES.md` §5 does not contemplate.
+
+**Why it is stuck:** the fix is a policy choice with a real cost. Requiring a `file-contains` partner on every `file-line` claim roughly doubles those records and makes the ledger noisier. Not requiring it means the gate goes red for reasons that are not findings — and **a red gate that cries wolf gets suppressed**, the exact failure the human named in the OQ-37 reasoning. `tools/verify_claims.py` is 🔬 ledger's file alone.
+
+**My best guess, explicitly labelled a guess:** require the pair only where the pinned line is an `<!-- UNVERIFIED -->` marker, or where the `target` lives outside the claim's own `file`. Those are the two cases where *moved* vs *deleted* changes what a reader should do. Elsewhere a bare `file-line` is fine: a rotted pin inside your own file is a defect you caused and can see.
+
+**Cost of guessing wrong:** the next agent to add a paragraph to spec 12 turns the gate red, cannot tell whether a marker vanished or slid, and — under time pressure, one `expect` edit away from green — "fixes" the line number without checking whether the marker is still there. That is an honesty budget paid down with punctuation (OQ-05), one layer up.
+
+
 ---
 
 <!-- 🔐 secrets: OQ-08 and OQ-09 were taken concurrently by tart-ci/ledger/harness and utm/harness.
      Per _RULES.md §6 ("if you race, renumber yours upward") mine are OQ-13 and OQ-14. -->
 
 ## OQ-13 · secrets · NEEDS-HUMAN · May `just check` take a network dependency on `raw.githubusercontent.com`?
-**Status:** NEEDS-HUMAN
+**Status:** ANSWERED (human decision YES; implemented by 🔬 ledger)  
 **Spec:** specs/macos-ci/13-build-secrets.md:104 (`use_env_var_file = false   # default; ... true writes a tempfile to the GUEST`)
 **Question:** Spec 13's central safety property — that `use_env_var_file = true` writes the secret **into the guest** — is a statement about Packer's behaviour that no *local* evidence kind can reach. Should the ledger prove it by `curl`-ing Packer's own source pinned at tag `v1.15.4`, accepting that `just check` then fails without network egress to GitHub?
 **What I tried:**
@@ -435,6 +546,28 @@ whole difference between a citation and a moving target. `just check` already re
 **Cost of guessing wrong:** if the human wants `just check` hermetic, two of my twelve proposals must be
 withdrawn and 13's single most load-bearing sentence — *why `use_env_var_file` must stay `false`* — drops
 back to `<!-- UNVERIFIED -->`.
+
+**Resolution (🔬 ledger, human decision YES) — `http-contains` kind added; spec 13's central property is now executable.**
+Grepping HashiCorp's rendered HTML is unsound (they split sentences across `<code>`/`<span>`), and there is no
+HashiCorp search-JSON oracle. Packer's pinned source is plain text and answers it directly.
+**Tag-pinned at `v1.15.4`, never `main`:**
+
+```
+https://raw.githubusercontent.com/hashicorp/packer/v1.15.4/provisioner/shell/provisioner.go   -> 200, 14,446 bytes
+  :273  if err := comm.Upload(remoteVFName, r, nil); err != nil {      -> packer-shell-uploads-the-varfile-into-the-guest
+  :401  Command: fmt.Sprintf("rm -f %s", path),                       -> packer-shell-cleans-the-varfile-with-an-unlink
+```
+
+The varfile is **uploaded into the guest** — which is why 13 mandates `use_env_var_file = false` — and it is
+cleaned up with an **unlink, not a shred**, which is G15's whole point: `rm` drops the directory entry and
+leaves the blocks, so the plaintext survives in `~/.tart/vms/<name>/` and `strings` still finds it.
+Spec 13's central rule (never write the secret to the guest at all) is now proved by evidence a machine
+re-executes, not by a docs page that never stated it.
+
+A non-2xx yields `STRUCTURE:`, never a verdict on the sentence — verified: a 404 under `must_fail` is **not**
+inverted into a pass. `just check` already needed network (lychee + the tart/utm oracles); this adds
+`raw.githubusercontent.com`. Recording the new host in `12-tooling-and-agent-loop.md` is 🧪 harness's job;
+noted in the backlog. **ANSWERED.**
 
 ---
 
@@ -501,7 +634,7 @@ tart --version                                       -> 2.32.1
 ---
 
 ## OQ-16 · tart-core · NEEDS-HUMAN · The `pre_tool_use` / `post_tool_use` hooks write the text of every command into `logs/*.json` under the CWD. Does that poison this run's own greps?
-**Status:** NEEDS-HUMAN
+**Status:** ANSWERED (human decision YES; implemented by 🔬 ledger)  
 **Spec:** (meta — verification infrastructure)
 **Question:** A repo-wide `grep -rn '<string>'` run by an agent will match the hook's *own log of the agent typing that string*. Is any existing or proposed claim relying on such a grep, and should `logs/` be excluded repo-wide?
 **What I tried:** while refuting G13 I ran, inside the `packer-plugin-tart` clone:
@@ -517,6 +650,22 @@ The same artefact exists in this repo: `specs/macos-ci/logs/pre_tool_use.json` m
 **Why it is not currently a live bug:** the `absent` evidence kind takes a **single file** target, never a directory, so no existing claim can be poisoned this way. The hazard is to *agents reasoning by grep*, which is exactly what "default to refuted" asks them to do. **A verifier that greps a tree the verifier is being logged into can confirm any string it searches for.**
 **My best guess, explicitly labelled a guess:** harmless today, because `absent` is file-scoped and `unverified-count` is `--include='*.md'`-scoped. But it is one directory-valued `absent` target away from a claim that passes because an agent once typed the string it is asserting is missing.
 **Cost of guessing wrong:** a self-confirming negative claim — the precise failure mode `must_fail`'s positive controls exist to prevent, arriving through a channel none of those controls watch.
+
+**Resolution (🔬 ledger, human decision YES) — `logs/` evidence targets are now refused by the tool.**
+`check_structure()` rejects any `file-contains` / `absent` / `file-line` whose `target` has a `logs` path
+component. Exit **4** (USAGE). Verified adversarially: an `absent` claim over
+`.../packer-plugin-tart/logs/out.txt` exits 4 with *"Logs are agent-writable; evidence must not be."*
+
+Not a live bug today — 🍎 tart-core was right about the shape, and the orchestrator confirmed the concrete
+instance: **this run's own `pre_tool_use` hook wrote `ghp_FIXTURE_SENTINEL` into a third-party clone**, in the
+run whose thesis is *never write a secret to a filesystem you do not control*. Those `logs/` dirs were
+quarantined (moved, not deleted). Re-verified read-only: `0` files under `dev/cirruslabs` contain the sentinel,
+and `grep -rIn vnc_port packer-plugin-tart --exclude-dir=.git` returns **zero** hits — so `02:172-177` is
+upheld with no `--exclude-dir=logs` needed.
+
+Same principle as GB4: *a rule the tool does not enforce is a rule that will be forgotten.* We were one
+directory-valued `absent` target away from a claim that passes because an agent once typed the string it
+asserts is missing. **ANSWERED.**
 
 ---
 
@@ -587,7 +736,7 @@ live) over all 70, mechanically, on every run. Recommendation to 📚 synth: del
 
 ## OQ-26 · ledger · NEEDS-HUMAN · Should `verify_claims.py` gain an `http-status` evidence kind, so the two G19-class URLs can be claims instead of prose?
 > _(Renumbered OQ-11 → OQ-26 by 🔬 ledger: 🖥 utm had already taken OQ-11. `_RULES.md` §6: the racer renumbers upward.)_
-**Status:** NEEDS-HUMAN
+**Status:** ANSWERED (human decision YES; implemented by 🔬 ledger)  
 **Spec:** tools/verify_claims.py (evidence kinds); specs/macos-ci/02-packer-tart-builder.md; specs/macos-ci/11-sources.md:32,82,83
 **Question:** Two categories of load-bearing URL are **structurally unrepresentable** in the ledger today,
 and both are exactly the kind that "default to refuted" will destroy:
@@ -625,6 +774,23 @@ site outage from being read as a fabricated URL — which is the failure mode th
 ignore a red gate — strictly worse than no claim. If we never add it, the two highest-risk citations in
 the repo stay defended by a paragraph of prose telling future agents *not* to apply the oracle rule, and
 G10-in-reverse remains one obedient agent away. I would rather the human chose which risk to hold.
+
+**Resolution (🔬 ledger, human decision YES) — `http-status` kind added; both G19-class URLs are now claims.**
+Neither URL can be a `doc-index` claim: such a claim would FAIL and **look like a fabrication**.
+
+| URL | evidence |
+|---|---|
+| `developer.hashicorp.com/packer/integrations/.../builder/tart` (underpins all of spec 02; 0 of 337 sitemap entries) | `g19-tart-builder-integrations-page-returns-200` — **upgraded** from a `cli-help` shell-out to `curl` |
+| `tart.run/blog/2025/10/27/press-release-...` (the SOLE source for G4's enforcement claim; zero `/blog/YYYY/MM/DD/` posts in the index) | `g4-enforcement-press-release-returns-200` (new) |
+
+**A 200 proves the page EXISTS, never that it SAYS anything.** So the press release also carries
+`tart-2025-enforcement-press-release-is-live`, **upgraded** to the new `http-contains` kind: existence and
+content are different propositions and now have different claims. Upgrading rather than adding avoided
+creating the duplicate-evidence groups I had just finished deleting.
+
+`http-status`/`http-contains` hosts are an explicit **allowlist** (`developer.hashicorp.com`, `tart.run`,
+`raw.githubusercontent.com`, `cirruslabs.org`). A typo'd host is a loud structural rejection (exit 4), never
+a silent `UNREACHABLE:` that `must_fail` might invert — verified adversarially. **ANSWERED.**
 
 ---
 
@@ -700,9 +866,9 @@ guard against *page empty*. The control is.
 
 ---
 
-## OQ-20 · tart-ci · NEEDS-HUMAN · Tart's code now belongs to OpenAI while tart.run still sells Cirrus Labs licences. Who is the counterparty this repo is accepting risk against?
+## OQ-20 · tart-ci · ANSWERED · Tart's code now belongs to OpenAI while tart.run still sells Cirrus Labs licences. Who is the counterparty this repo is accepting risk against?
 <!-- renumbered OQ-09 -> OQ-20 by 🏭 tart-ci: 09/10/11 were taken concurrently by 🖥 utm and 🔬 ledger. Per _RULES.md §6, the racer renumbers upward. My OQ-08 (line 144) predates ledger's OQ-08 (line 290) in this append-only file and is retained; that collision is the lead's to adjudicate. -->
-**Status:** NEEDS-HUMAN
+**Status:** ANSWERED
 **Spec:** specs/macos-ci/04-tart-licensing-risk.md — §4b
 **Question:** `04` requires human sign-off (**G4**) on a commercial-licensing exposure. The tier *numbers* did not move — all four rows re-verified today and every one now carries a ledger claim. But the **party** did.
 **What I tried:** (all read-only, all reproducible)
@@ -722,6 +888,42 @@ curl -fsSL https://tart.run/licensing/  -> still "Fair Source License", still 10
 **Cost of guessing wrong:** Asymmetric, and that is the point. Guessing *right* buys nothing — §4's posture (2–3 hosts, <100 combined cores, never build a competing product) keeps this repo inside the Free Tier under **either** reading, and `FSL-1.1-ALv2`'s second-anniversary Apache-2.0 conversion *reduces* long-run exposure. Guessing *wrong* means the human signed off on **G4** believing the counterparty, the enforcement precedent, and the escalation contact all belong to one company, when the code's copyright holder is now a different and vastly better-resourced one. **A licence-cost decision is the human's; so is a licence-counterparty decision.**
 
 ---
+
+**Resolution (👑 lead relayed the human's decision; 🏭 tart-ci re-verified every probe read-only before accepting it). Status: ANSWERED.**
+
+**The counterparty is OpenAI, and this was settled by EVIDENCE, not by fiat.** Re-derived independently, not inherited from the briefing:
+
+```
+curl -sS -o /dev/null -w '%{http_code}' https://cirruslabs.org/          -> 200
+curl -fsSL https://cirruslabs.org/   (tags stripped)
+  -> "Cirrus Labs to join OpenAI"   "Official announcement April 7th, 2026"   "Fedor Korotkov @fedor"
+curl -fsSL https://api.github.com/repos/cirruslabs/tart  -> "full_name": "openai/tart"
+curl -fsSL https://raw.githubusercontent.com/openai/tart/main/LICENSE
+  -> "Functional Source License, Version 1.1, ALv2 Future License"  /  "Copyright 2022-2026 OpenAI"
+  -> grep -ic 'cpu|core'  =>  0
+curl -fsSL https://tart.run/licensing/ | grep -c 'OpenAI'  ->  0        # the tier page is STALE
+```
+
+**Two corrections to the briefing that handed me these probes, found by running them rather than pasting them:**
+
+1. `api.github.com/repos/cirruslabs/tart` returns **`301`**, not `200`, without `-L` (it redirects to `/repositories/454359710`). The briefing's `curl -fsSL` worked only because `-f -L` follows. **A bare `http-status` claim on that URL asserting `200` would have been false.** I did not propose one; the acquisition is carried by `cirruslabs.org` and the `LICENSE` instead.
+2. The briefing described the announcement as *"by Fedor Korotkov (@fedor), **founder**"*. The word **`founder` does not appear on the page**, in rendered text or raw HTML. The page says he *started* Cirrus Labs in 2017. I did not quote the noun.
+
+**Which half of my guess was wrong — recording this is the entire point.** My OQ-20 guess was: *"Cirrus Labs retains the trademark, the licensing business and the tart.run tier grants; the GitHub org move reflects an acquisition or an employment transfer of the maintainer, and `licensing@cirruslabs.org` remains the correct contact."*
+
+| Half | Verdict |
+|---|---|
+| "an acquisition … of the maintainer" | ✅ **CONFIRMED** — announced 2026-04-07 |
+| "`licensing@cirruslabs.org` remains the correct contact" | ❌ **NOT ESTABLISHED. Retracted; must not be asserted.** |
+
+The contact half was never evidence — it was an inference drawn from the page's **staleness**, and a stale page is exactly as consistent with *"nobody updated it"* as with *"it is still correct."* Reading a page's silence as a page's assertion is the same error class as `04:36`'s fabricated quotation, one level up. The address is still **printed**; that it is still **answered by the party who can grant a licence** is unverified and now carries an `<!-- UNVERIFIED -->` marker at `04:186` citing this OQ.
+
+**Tier numbers re-verified: UNCHANGED.** G4's dollar figures survive the acquisition. The 100-core Free Tier is a grant published on `tart.run`, **not** a clause of the FSL text (0 core mentions) — both instruments are true at once and `04` §4b no longer collapses them. The repo posture (2–3 hosts, <100 combined cores, never build a competing product) keeps us in the Free Tier **under either reading**, and FSL's second-anniversary Apache-2.0 conversion *reduces* long-run exposure. **G4 is signed off as an accepted, documented risk.**
+
+**What remains open is narrower than the original question, and is what the marker names:** who enforces post-acquisition, and whether `licensing@cirruslabs.org` is still the right escalation contact. Settling it means corresponding with a third party. This OQ is ANSWERED on the counterparty; the enforcement contact is deliberately left unguessed.
+
+Ledger claims (8 proposed, all dry-run PASS): `cirruslabs-org-is-live` (`http-status`) · `cirruslabs-org-announces-openai-acquisition` · `cirruslabs-org-announcement-dated-april-7-2026` · `openai-tart-license-copyright-notice-via-http` · `fsl-text-mentions-no-cpu-cores` · `tart-licensing-page-never-mentions-openai` (`must_fail`, `polarity=negative`) · `tart-licensing-page-still-says-free-tier` (its positive control, same URL) · `tart-licensing-page-still-lists-cirruslabs-contact`.
+
 
 ## OQ-21 · tart-ci · What transport does `cirrus run` use to copy the working directory into a Tart VM?
 <!-- renumbered OQ-10 -> OQ-21 by 🏭 tart-ci (race with 🖥 utm / 🔬 ledger). -->
@@ -841,7 +1043,7 @@ The marker at `:359` correctly guards the §`gui` prose at `:337` — **G13 was 
 ---
 
 ## OQ-29 · tart-ci (cross-audit of 🔐 secrets) · NEEDS-HUMAN · `packer-sensitive-hides-secret-under-debug-log` is blind, but `_RULES.md` §5 forbids weakening a `must_fail`. Keep it, retire it, or supersede it?
-**Status:** NEEDS-HUMAN
+**Status:** ANSWERED (human decision YES; implemented by 🔬 ledger)  
 **Spec:** specs/macos-ci/13-build-secrets.md:290-303 (the table secrets wrote); `.team/claims.jsonl`
 **Question:** 🔐 secrets diagnosed the pair as under-powered and was **right**. I confirmed it by execution, not by reading. But the fix collides with a standing invariant: *"NEVER delete, weaken, or 'fix' a control"* (`_RULES.md` §5), and the brief names `packer-sensitive-hides-secret-under-debug-log` as one of the original six `must_fail` claims. **What do you do with a `must_fail` claim that passes for the wrong reason?**
 **What I tried:** separate pipes, then a simulation. `packer inspect` is allowed; `packer build`/`init` were not run.
@@ -862,6 +1064,27 @@ Then I simulated *"a Packer that ignores `PACKER_LOG`"* by pinning `env={"PACKER
 **Why it is stuck:** the repair is not a code change, it is a **policy** call, and three rules point in different directions. (a) `_RULES.md` §5: never weaken a control. (b) The same section's rationale: *"a verifier nobody verifies is just a second thing to trust."* (c) Only 🔬 ledger may edit `.team/claims.jsonl`. Deleting the pair violates (a). Keeping it violates (b), because it reports `PASS` for a proposition it does not test, and its `id` — `…-under-debug-log` — actively misleads the next reader. I have proposed a **superseding** pair (`packer-sensitive-hides-secret-in-isolated-debug-log` + two controls) that isolates stderr with `sh -c '… 2>&1 1>/dev/null'` and dry-runs green, but I cannot decide whether the old pair should now be **retired**, **kept as a deliberately-documented weak check**, or **rewritten in place** (which §5 forbids).
 **My best guess, explicitly labelled a guess:** keep both, and amend the old claim's `claim` prose to say it is superseded and why — prose is not evidence, so editing it weakens nothing. That preserves §5's letter (no `must_fail` deleted, no `expect` loosened) while removing the misleading green check's power to reassure. **I am guessing about the intent behind §5, not about the behaviour of Packer.**
 **Cost of guessing wrong:** If the old pair is silently kept as-is, the ledger carries a claim whose name asserts *"masking survives PACKER_LOG=1"* and whose evidence would survive Packer removing `PACKER_LOG` support entirely. The underlying proposition **is true today** — I verified masking really does hold on the isolated stderr stream — so nothing is currently mis-stated in `13`. The danger is purely in the *verifier*: the day upstream changes debug-log behaviour, the check that exists to notice will not notice. **That is the exact failure `must_fail` was invented to prevent, wearing the costume of a passing test.**
+
+**Resolution (🔬 ledger + 🏭 tart-ci, human decision YES) — blind pair KEPT, prose amended, successor added.**
+🏭 tart-ci proved **by execution** that `packer-sensitive-hides-secret-under-debug-log` and its control are
+**both blind**: pinning `PACKER_LOG=0` and re-running the real evidence left both still passing, because
+`packer inspect` writes its debug log to **stderr** while the claims read **stdout** — byte-identical either way.
+
+**The proposition is TRUE TODAY.** Masking really does hold on the isolated stderr stream; nothing in spec 13 is
+mis-stated. *The rot is in the verifier: the day upstream changes debug-log behaviour, the check that exists to
+notice will not notice.*
+
+- **Kept** both old claims. `expect` untouched. `_RULES.md` §5 holds — never delete or weaken a control.
+- **Amended their `claim` prose** to open with *"SUPERSEDED, DO NOT TRUST THIS GREEN CHECK"* and say why.
+  Prose is not evidence, so editing it weakens nothing — but it strips a misleading green check of its power
+  to reassure, which is the only harm it was doing.
+- **Added** tart-ci's successor pair, which isolates stderr with `sh -c '… 2>&1 1>/dev/null'`:
+  `packer-sensitive-hides-secret-in-isolated-debug-log` (`must_fail`, `polarity: negative`) with
+  `CONTROL-packer-debug-log-stderr-prints-plain-literal` and `CONTROL-packer-debug-log-stderr-emits-info-banner`
+  on the **same argv and env**. Confirmed by hand: that stream is 845 bytes under `PACKER_LOG=1`, 0 bytes
+  without it, and contains the sentinel **zero** times.
+
+Both new claims carry `polarity: negative` per OQ-37. **ANSWERED.**
 
 ---
 
@@ -918,7 +1141,7 @@ over.**
 ---
 
 ## OQ-32 · secrets · NEEDS-HUMAN · The `pre_tool_use` hook writes its command log INTO the read-only reference clones, poisoning `grep`-based evidence. Should the clones be treated as untrusted?
-**Status:** NEEDS-HUMAN
+**Status:** ANSWERED
 **Spec:** (environment — affects every `file-contains` / `absent` claim targeting a reference clone)
 **Question:** `/Users/bossjones/dev/cirruslabs/packer-plugin-tart/logs/{pre,post}_tool_use.json` did not exist before this run. They are **untracked** (`git status` → `?? logs/`, 0 tracked files) and were created at 21:24 today. They contain the **verbatim text of every Bash command an agent ran while `cwd` was inside that clone** — including the greps we ran *looking for* strings. Should the reference clones still be treated as authoritative evidence?
 **What I tried:** I nearly filed a false refutation because of this. Auditing 02:172-177 (*"no `vnc_port*` key … anywhere in the plugin's source"*):
@@ -950,6 +1173,26 @@ This is G10's failure mode with a new cause: not a fabricated citation, but a **
 
 ---
 
+
+**Resolution (performed by the human orchestrator; re-verified read-only by 👑 lead):** the reference clones were contaminated **by this run's own `pre_tool_use` hook**, which wrote `ghp_FIXTURE_SENTINEL` into a **third-party checkout** — during the run whose thesis is *never write a secret to a filesystem you do not control* (G15/G17, spec 13). **The irony is the finding.**
+
+Provenance was established **before** anything was touched, and only this run's own artifacts were moved (`mv` into a scratchpad — nothing deleted):
+
+| path | created | this run? | action |
+|---|---|---|---|
+| `cirruslabs/packer-plugin-tart/logs/` | Jul 9 21:46–21:48 | **yes** | moved to scratchpad |
+| `cirruslabs/macos-image-templates/logs/` | Jul 9 22:23 | **yes** | moved to scratchpad |
+| `zsh-dotfiles/logs/`, `zsh-dotfiles-prep/logs/` | oldest Sep 30 2025 | **no** | **left alone, deliberately** |
+
+Lead's independent re-verification:
+```
+grep -rl 'ghp_FIXTURE_SENTINEL' /Users/bossjones/dev/cirruslabs/       -> 0 files
+grep -rIn 'vnc_port' <packer-plugin-tart> --exclude-dir=.git           -> 0 hits
+ls -d /Users/bossjones/dev/cirruslabs/*/logs                           -> no matches
+ls -d .../zsh-dotfiles/logs .../zsh-dotfiles-prep/logs                 -> both present, untouched
+```
+
+So **`02:172-177` is UPHELD with no `--exclude-dir=logs` needed** — the near-false-refutation is gone *at the source*. A `--exclude-dir` workaround would have been **a spec accommodating a defect in our own tooling**. 🔬 ledger has since made `check_structure()` reject any evidence target with a `logs` path component (exit 4), so the class cannot recur silently. Recorded in `11-sources.md` by 📚 synth.
 ## OQ-33 · synth · Why does the ledger's control requirement exempt a `cli-help` probe whose `expect` is itself a negative, like `404`?
 **Status:** ANSWERED (controlled by 🔬 ledger, GAP1 — predicate NOT tightened; see OQ-36)  
 **Spec:** `.team/claims.jsonl` (`no-terraform-provider-at-cirruslabs-tart`, `no-terraform-provider-at-cirruslabs-orchard`); `tools/verify_claims.py` (`needs_control`)
@@ -1150,7 +1393,7 @@ whose controls are unchecked pointers is one careless merge from a green check t
 
 ## OQ-37 · ledger · NEEDS-HUMAN · Should a claim declare its POLARITY, so `needs_control()` stops guessing from the `must_fail` flag?
 **Renumbered by 👑 lead:** filed as `OQ-36`, which 📚 synth had already taken in a concurrent turn. The append-only rule says *"if you race, renumber yours upward"* — two agents raced and neither saw the other. Content untouched; only the number changed. **The collision is itself a finding:** an append-only file with human-assigned sequence numbers has no allocator, so uniqueness is enforced by attention. It held for 35 of 37 entries.
-**Status:** NEEDS-HUMAN
+**Status:** ANSWERED (human decision YES; implemented by 🔬 ledger)  
 **Spec:** tools/verify_claims.py — `needs_control()`; `.team/claims.jsonl` — `no-terraform-provider-at-cirruslabs-{tart,orchard}`
 **Question:** `needs_control()` decides a claim is negative from `kind == "absent"` or `must_fail and kind in (cli-help, doc-contains, doc-index)`. Both are **syntax**. OQ-33 found a claim that is semantically negative and syntactically positive: `cli-help`, `expect: "404"`, `must_fail` unset. The tool cannot see that a `404` is an assertion of ABSENCE.
 **What I tried:**
@@ -1166,3 +1409,21 @@ and then enumerated the heuristics I could write, and rejected each:
 **Why it is stuck:** the flag is checkable; the MEANING is not. Any heuristic I write produces false positives, and a check that cries wolf gets suppressed — the exact failure mode of the bare-`UNVERIFIED` tripwire in GB3. The lead's instruction was explicit: *if you cannot tighten it without false positives, say so plainly and leave an OQ rather than a clever heuristic.* I cannot, so I did.
 **My best guess, explicitly labelled a guess:** the durable fix is an explicit `"polarity": "negative"` field the author sets, enforced exactly as `control` now is: if `polarity == "negative"` then a `control` is mandatory. It moves the judgement from the tool (which cannot make it) to the author (who can), and it is auditable — a reviewer can ask *why is this claim not marked negative?* That is a schema change touching every future record, so it is the human's call, not mine.
 **Cost of guessing wrong:** if we add the field and authors forget it, we are exactly where we are now, with more ceremony. If we never add it, every future negative-in-positive-clothes claim is un-caught, and `G1` (the first settled fact in CLAUDE.md) is defended by two probes that a registry URL change would silently turn into decoration. The added control blocks that today, for these two claims only.
+
+**Resolution (🔬 ledger, human decision YES) — `polarity` is now an author-set field, enforced.**
+`needs_control()` inferred negativity from **syntax**: `kind == "absent"`, or the `must_fail` flag. OQ-33 found
+a claim that is semantically negative and syntactically positive — `no-terraform-provider-at-cirruslabs-tart`
+(`cli-help`, `expect: "404"`, no `must_fail`), defending **G1**, the first settled fact in `CLAUDE.md`.
+I rejected four inference heuristics as false-positive-prone; the human upheld that and said **stop inferring**.
+
+```python
+if claim.get("polarity") == "negative":   # author-set, never inferred
+    return True                            # -> a `control` is mandatory; missing -> exit 4
+```
+
+Backfilled `polarity: negative` on **55** claims: every `kind == "absent"`, every `must_fail`, and the four
+semantically-negative-syntactically-positive records (both `no-terraform-provider-at-cirruslabs-*` probes,
+`packer-no-debug-log-on-stderr-when-overlay-disabled`, `synth-justfile-has-no-doctor-recipe`).
+An invalid `polarity` value is itself a structural rejection. Verified adversarially: a `polarity: negative`
+claim with no `control` exits **4**. It moves the judgement from the tool, which cannot make it, to the author,
+who can — and it is auditable: a reviewer can now ask *why is this claim not marked negative?* **ANSWERED.**

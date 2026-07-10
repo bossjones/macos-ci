@@ -125,20 +125,25 @@ tested rather than merely documented.
 
 ## `macos-versions.toml` — declarative image selection
 
-Two lanes. The OCI lane clones a cirruslabs prebuilt base image in seconds but only offers the *major*
-versions cirruslabs publishes. The IPSW lane builds from a pinned restore image and gets you an exact
-point release, at the cost of a long build and a `boot_command` to maintain.
+Two lanes. The OCI lane clones a cirruslabs prebuilt image in seconds but only offers the *major* versions
+cirruslabs publishes. The IPSW lane builds from a pinned restore image and gets you an exact point
+release, at the cost of a long build and a `boot_command` to maintain.
+
+**The OCI lane pins `-vanilla`, not `-base` (OQ-18).** `-base` preinstalls `mise`, and the dotfiles' own
+`mise` installer short-circuits on `command -v mise` — so on `-base` the path under test never runs and
+the suite goes green without executing it. See
+[08(a)](08-dotfiles-test-harness.md#the-base-image-is--vanilla-and-it-deliberately-omits-mise).
 
 ```toml
 default = "sequoia"
 
 [image.sequoia]
 source = "oci"
-ref    = "ghcr.io/cirruslabs/macos-sequoia-base:latest"
+ref    = "ghcr.io/cirruslabs/macos-sequoia-vanilla:latest"
 
 [image.tahoe]
 source = "oci"
-ref    = "ghcr.io/cirruslabs/macos-tahoe-base:latest"
+ref    = "ghcr.io/cirruslabs/macos-tahoe-vanilla:latest"
 
 [image."sequoia-15.6.1"]
 source = "ipsw"
@@ -450,7 +455,32 @@ its evidence. Evidence kinds, cheapest first:
 | `cli-help` | `argv` emits a string, optionally under an `env` overlay | remembered flags that don't exist; and, when it probes behaviour rather than `--help` (e.g. `packer inspect` printing `<sensitive>`), unverified claims about what a tool *does* |
 | `doc-index` | a path appears in the doc site's own search index | **fabricated URLs (the G10 failure)** |
 | `doc-contains` | that page's indexed text contains a given sentence | a real URL cited for a sentence it does not contain |
+| `http-status` | an allowlisted URL returns a given status | pages a search index cannot see (the **G19** class) being refuted as fabricated |
+| `http-contains` | an allowlisted URL's body contains a string | claims whose only ground truth is upstream source, e.g. Packer's own `provisioner.go` |
 | — | every URL and internal `#anchor` resolves | dead links, broken anchors (lychee) |
+
+### `just check` is not hermetic, and the network hosts are an allowlist
+
+The gate already reached the network — lychee resolves every link, and `doc-index`/`doc-contains` fetch
+`tart.run` and `docs.getutm.app`. `http-status` and `http-contains` widen that, so the reachable hosts are
+an **explicit `frozenset` in `tools/verify_claims.py`**, not whatever a claim happens to name. A typo'd
+host must be a loud structural rejection, never a silent `UNREACHABLE:` that `must_fail` could invert.
+
+| Host | Why | Introduced by |
+|---|---|---|
+| `tart.run` | the MkDocs search index; **and** `/blog/YYYY/MM/DD/` posts, which that index does not list | oracles; OQ-26 |
+| `docs.getutm.app` | the Just-the-Docs search index (403s WebFetch — use `curl`) | oracles |
+| `developer.hashicorp.com` | `/packer/integrations/**` is absent from the sitemap and returns `200` — **G19** | OQ-26 |
+| `raw.githubusercontent.com` | **new.** Packer's own `provisioner/shell/provisioner.go`, pinned to tag `v1.15.4` | **OQ-13** |
+| `cirruslabs.org` | the April 2026 acquisition announcement | OQ-20 |
+
+**Pin the tag, never `main`.** `raw.githubusercontent.com/hashicorp/packer/v1.15.4/…` is the only way to
+settle [13](./13-build-secrets.md)'s central safety property — that `use_env_var_file = true` uploads the
+varfile *into the guest* and then unlinks it rather than shredding it — because HashiCorp's rendered docs
+split that sentence across `<code>`/`<span>` elements and publish no search-JSON oracle. A `grep` of the
+HTML would be unsound; the source is plain text and says it outright. A claim pinned to `main` would
+silently re-verify against a different file every week, which is drift wearing a green check.
+(Ledger: `packer-shell-provisioner-source-is-tag-pinned`.)
 
 `cli-help` is **unsound for backend questions** and `doc-contains` is its antidote: `utmctl start --help`
 advertises `--disposable` on a host that can only run Apple-backend macOS guests, while

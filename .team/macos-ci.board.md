@@ -1,6 +1,6 @@
 # macos-ci Verification Run — Status Board
 
-**State:** `DONE` ✅  ·  **Branch:** `inital-spec`
+**State:** `DONE` ✅ (human decisions applied)  ·  **Branch:** `inital-spec`
 **Workspace:** `E03FB8FF-87D2-4BD9-A65B-E2E7B1ECFE42` (`workspace:11`, `macos-ci-verify`)
 
 > Rewritten from scratch by the 👑 lead. The prior board (an aborted Haiku-4.5 lead pass) **faked the gate**
@@ -8,29 +8,56 @@
 
 ---
 
-## THE GATE — run personally by the lead
+## THE GATE — run personally by the lead, after human decisions
 
 ```
+$ just verify-claims ; echo "EXIT=$?"     # must exit 0 BEFORE anything else proceeds
+EXIT=0
+
 $ just check ; echo "EXIT=$?"
 EXIT=0
 ```
 
-Complete unedited **578-line** capture: [`.team/gate-final-full.txt`](gate-final-full.txt).
-SCAFFOLD baseline (326 lines): [`.team/gate-baseline-full.txt`](gate-baseline-full.txt).
+Complete unedited **650-line** capture: [`.team/gate-final-full.txt`](gate-final-full.txt).
 
-**Elision declared.** Lines **1–276** are `link-check`: the header
+**Elision declared.** Lines **1–278** are `link-check`: a header plus exactly **277** `[200]` lines.
+**Zero non-200** (`grep -cE '^\[(4|5)[0-9][0-9]\]|ERROR'` → `0`). Lines **279–650** are pasted
+**verbatim and complete** below: all **305** `[PASS]`, **0** `[FAIL]`, the `305/305` line, and the full
+`unverified-count` output.
+
+### The honesty budget — the arithmetic, stated explicitly
 
 ```
-🚀 Checking all links in markdown files using lychee
+markers before human decisions                                        15
+  08-dotfiles-test-harness.md  sheldon marker RETIRED (OQ-17)         -1   -> 14
+      paid for by 6 new claims incl. CONTROL-sheldon-lock-help-prints-reinstall
+      and sheldon-lock-is-mutating ("Install the plugins sources and generate the lock file")
+  04-tart-licensing-risk.md    enforcement-contact marker ADDED (OQ-20) +1   -> 15
+      cites OQ-20, as every added marker must
+markers after                                                         15
 ```
 
-plus exactly **275** `[200]` lines. **Zero non-200 links** (`grep -cE '^\[(4|5)[0-9][0-9]\]|ERROR'` → `0`).
-lychee prints no summary at this verbosity; its contribution is its exit status, which `just check` propagates.
+Proven as a **per-file set difference**, not a count: `08` 4→3, `04` 0→1, every other file unchanged.
+**No marker vanished without a claim being added. No CONFLICT.**
 
-Lines **277–578** are pasted **verbatim and complete**: all **246** `[PASS]`, **0** `[FAIL]`, the `246/246`
-line, and the full `unverified-count` output.
+### Integrity sweep (lead, independent of any agent's report)
 
-### `just check` — lines 277–578, verbatim
+```
+six original must_fail controls          INTACT, expect untouched
+claims with polarity=negative            54   — every one names a control
+negative claims with no control          NONE  (7 CONTROL-* doc oracles exempt by construction)
+duplicate evidence groups                0
+evidence targets with a `logs` component NONE
+total claims / must_fail                 305 / 37
+```
+
+Adversarially re-tested by the lead, not read:
+```
+polarity=negative with no control  -> exit 4      logs/ evidence target -> exit 4
+well-formed negative + control     -> exit 0
+```
+
+### `just check` — verify-claims + unverified-count, verbatim
 
 ```
 🔬 Re-checking every spec claim against its evidence
@@ -86,9 +113,8 @@ line, and the full `unverified-count` output.
 [PASS] prep-brewfile-taps-over-ssh  (file-contains)
 [PASS] no-packages-token-in-dockerfile  (absent)
 [PASS] no-packages-token-in-prereq-installer  (absent)
-[PASS] oq02-vnc-marker-pinned-at-12-359  (file-line)
-         line 359: <!-- UNVERIFIED: `--vnc-experimental` is labelled experimental by Tart
-[PASS] oq02-vnc-marker-exists-in-12  (file-contains)
+[PASS] oq02-vnc-marker-line-pin  (file-line)
+         line 364: <!-- UNVERIFIED: `--vnc-experimental` is labelled experimental by Tart
 [PASS] CONTROL-12-line-607-does-not-exist  (file-line)
 [PASS] oq01-asif-marker-pinned-at-13-54  (file-line)
          line 54: <!-- UNVERIFIED: whether the same holds for `disk_format = "asif"` (ma
@@ -96,15 +122,15 @@ line, and the full `unverified-count` output.
          line 51: <!-- UNVERIFIED: reproduced on the host against a UDIF/APFS image via 
 [PASS] g16-sensitive-masks-value-inside-unrelated-variable  (cli-help)
 [PASS] g16-injected-secret-never-prints-in-unrelated-variable  (cli-help)
-[PASS] d1-justfile-44-invokes-absent-template  (file-line)
-         line 44: packer build packer/tart-golden-image.pkr.hcl
+[PASS] d1-justfile-build-golden-names-absent-template  (file-line)
+         line 52: packer build packer/tart-golden-image.pkr.hcl
 [PASS] CONTROL-d1-packer-dir-does-not-exist  (cli-help)
 [PASS] CONTROL-ls-prints-repo-root-entries  (cli-help)
 [PASS] d2-spec12-carries-the-phantom-recipe-retraction  (file-contains)
 [PASS] d2-justfile-has-no-build-ipsw-recipe  (absent)
 [PASS] tart-quickstart-lists-monterey-xcode-15  (doc-contains)
 [PASS] d5-justfile-63-discriminates-on-the-backtick  (file-line)
-         line 63: @grep -rn 'UNVERIFIED' specs/ --include='*.md' | grep -v '`<!-- UNVERI
+         line 71: @grep -rn 'UNVERIFIED' specs/ --include='*.md' | grep -v '`<!-- UNVERI
 [PASS] tart-version-is-2-32-1  (cli-help)
 [PASS] tart-clone-verb-exists  (cli-help)
 [PASS] tart-delete-verb-exists  (cli-help)
@@ -131,7 +157,7 @@ line, and the full `unverified-count` output.
 [PASS] tart-faq-headless-keychain-starts-at-macos-15  (doc-contains)
 [PASS] tart-faq-keychain-workaround-needs-unlock-and-login-keychain  (doc-contains)
 [PASS] tart-faq-nested-virt-is-m3-m4-linux-only  (doc-contains)
-[PASS] g19-tart-builder-integrations-page-returns-200  (cli-help)
+[PASS] g19-tart-builder-integrations-page-returns-200  (http-status)
 [PASS] g19-packer-integrations-absent-from-hashicorp-sitemap  (cli-help)
 [PASS] CONTROL-hashicorp-sitemap-lists-packer-docs  (cli-help)
 [PASS] tart-repo-redirects-to-openai  (cli-help)
@@ -166,7 +192,7 @@ line, and the full `unverified-count` output.
 [PASS] tart-licensing-contact-is-cirruslabs  (doc-contains)
 [PASS] CONTROL-licensing-page-never-says-commercial-use-free  (doc-contains)
 [PASS] CONTROL-tart-blog-is-outside-doc-index-domain  (doc-index)
-[PASS] tart-2025-enforcement-press-release-is-live  (cli-help)
+[PASS] tart-2025-enforcement-press-release-is-live  (http-contains)
 [PASS] tart-2025-enforcement-names-competing-product  (cli-help)
 [PASS] tart-2023-post-defines-server-installation  (cli-help)
 [PASS] tart-2023-post-hdmi-dummy-plug-example  (cli-help)
@@ -317,11 +343,83 @@ line, and the full `unverified-count` output.
 [PASS] CONTROL-verifier-oracle-fixture-executes  (cli-help)
 [PASS] verifier-exempts-oracle-control-from-structural-check  (cli-help)
 [PASS] CONTROL-terraform-registry-serves-a-known-provider  (cli-help)
+[PASS] sheldon-help-has-no-verify-subcommand  (cli-help)
+[PASS] CONTROL-sheldon-help-lists-lock-subcommand  (cli-help)
+[PASS] dotfiles-mise-script-short-circuits-on-existing-mise  (file-line)
+         line 9: command -v mise >/dev/null 2>&1 || brew install mise || true
+[PASS] vanilla-image-preinstalls-no-software  (file-line)
+         line 8: * `macos-{tahoe,sequoia,sonoma}-vanilla` — a vanilla macOS installatio
+[PASS] base-image-is-derived-from-vanilla  (file-line)
+         line 9: * `macos-{tahoe,sequoia,sonoma}-base` — based on `macos-{tahoe,sequoia
+[PASS] vanilla-sequoia-template-installs-no-mise  (absent)
+[PASS] CONTROL-vanilla-sequoia-template-is-a-tart-cli-build  (file-contains)
+[PASS] packer-shell-provisioner-source-is-tag-pinned  (http-status)
+[PASS] tart-help-lists-create-subcommand  (cli-help)
+[PASS] xaudit-01-table-lists-create-verb  (file-contains)
+[PASS] tart-run-help-has-no-graphics-flag  (cli-help)
+[PASS] tart-prune-space-budget-is-a-size-budget  (cli-help)
+[PASS] spec12-mentions-vnc-port-min  (file-contains)
+[PASS] spec12-vnc-port-mention-line-pin  (file-line)
+         line 354: `boot_command` over exactly this channel — hence its `disable_vnc` and
+[PASS] CONTROL-spec12-line-330-is-not-the-vnc-port-mention  (file-line)
+[PASS] tart-faq-keychain-requirement-attaches-to-the-tart-process  (doc-contains)
+[PASS] tart-faq-autologin-mitigation-is-a-host-mac-user-account  (doc-contains)
+[PASS] vanilla-tahoe-has-passwordless-sudo  (file-contains)
+[PASS] vanilla-tahoe-presets-autologin-user  (file-contains)
+[PASS] synth-packer-shell-page-documents-skip-clean-default  (cli-help)
+[PASS] synth-tart-licensing-says-4-hosts-for-orchard  (doc-contains)
+[PASS] synth-00-overview-credits-13-to-secrets  (file-line)
+         line 58: | 13 | `13-build-secrets.md` | secrets | Injecting `HOMEBREW_GITHUB_AP
+[PASS] synth-00-overview-grades-match-11-sources  (file-line)
+         line 56: | 11 | `11-sources.md` | synth | Every source URL, grouped, graded mea
+[PASS] synth-07-appendix-declares-no-dead-links  (file-contains)
+[PASS] synth-packer-version-is-1-15-4  (cli-help)
+[PASS] synth-justfile-has-no-doctor-recipe  (absent)
+[PASS] synth-openai-tart-license-is-fsl-1-1  (http-contains)
+[PASS] synth-fsl-text-never-mentions-cores  (http-contains)
+[PASS] synth-tart-licensing-page-never-mentions-openai  (doc-contains)
+[PASS] synth-grep-over-cirruslabs-clones-emits-real-paths  (cli-help)
+[PASS] synth-packer-plugin-clone-free-of-fixture-sentinel  (cli-help)
+[PASS] CONTROL-packer-debug-log-stderr-emits-info-banner  (cli-help)
+[PASS] CONTROL-packer-debug-log-stderr-prints-plain-literal  (cli-help)
+[PASS] packer-sensitive-hides-secret-in-isolated-debug-log  (cli-help)
+[PASS] packer-no-debug-log-on-stderr-when-overlay-disabled  (cli-help)
+[PASS] packer-log-value-off-still-enables-logging  (cli-help)
+[PASS] packer-shell-use-env-var-file-has-no-default-assignment  (cli-help)
+[PASS] packer-shell-varfile-is-chmod-0600-in-guest  (cli-help)
+[PASS] justfile-verify-no-secrets-starts-at-line-60  (file-line)
+         line 60: verify-no-secrets vm:
+[PASS] secrets-13-marker-51-still-present  (file-line)
+         line 51: <!-- UNVERIFIED: reproduced on the host against a UDIF/APFS image via 
+[PASS] secrets-13-marker-54-still-present  (file-line)
+         line 54: <!-- UNVERIFIED: whether the same holds for `disk_format = "asif"` (ma
+[PASS] cirruslabs-org-is-live  (http-status)
+[PASS] cirruslabs-org-announces-openai-acquisition  (http-contains)
+[PASS] cirruslabs-org-announcement-dated-april-7-2026  (http-contains)
+[PASS] openai-tart-license-copyright-notice-via-http  (http-contains)
+[PASS] fsl-text-mentions-no-cpu-cores  (http-contains)
+[PASS] tart-licensing-page-never-mentions-openai  (http-contains)
+[PASS] tart-licensing-page-still-says-free-tier  (http-contains)
+[PASS] tart-licensing-page-still-lists-cirruslabs-contact  (http-contains)
+[PASS] terraform-registry-serves-a-real-provider  (cli-help)
+[PASS] xaudit-12-no-build-ipsw-recipe  (cli-help)
+[PASS] xaudit-12-no-images-recipe  (cli-help)
+[PASS] CONTROL-xaudit-just-summary-lists-build-golden  (cli-help)
+[PASS] xaudit-09-git-grep-fatal-line-contains-a-colon  (cli-help)
+[PASS] g4-enforcement-press-release-returns-200  (http-status)
+[PASS] packer-shell-uploads-the-varfile-into-the-guest  (http-contains)
+[PASS] packer-shell-cleans-the-varfile-with-an-unlink  (http-contains)
+[PASS] justfile-build-golden-guards-on-missing-template  (file-line)
+         line 46: @test -f packer/tart-golden-image.pkr.hcl || { \
+[PASS] justfile-build-golden-guard-exits-4  (file-line)
+         line 49: exit 4; }
+[PASS] synth-sitemap-substring-packer-also-matches-hcp-packer  (cli-help)
 
-246/246 claims verified
+305/305 claims verified
 🕵️  <!-- UNVERIFIED --> markers by file:
 specs/macos-ci/07-utm-settings-appendix.md:25:| [qemu](https://docs.getutm.app/settings-qemu/qemu/) | Logging, UEFI boot, RNG ("entropy") device, balloon device, TPM 2.0, hypervisor/TSO toggles, PS/2 fallback, UEFI variable reset, raw QEMU machine properties/arguments | Inside the `Use TSO` bullet, verbatim: "This option is not supported on macOS however when using the Apple virtualization backend, **a similar option is available**." UTM thus asserts the Apple-backend equivalent **exists**, then never names it. No page in the 78-page index documents it: [settings-apple/virtualization](https://docs.getutm.app/settings-apple/virtualization/) publishes its own complete section list (8 toggles: balloon, entropy, sound, keyboard, pointer, trackpad, Rosetta, clipboard) and TSO is not among them <!-- UNVERIFIED: the page's silence is proven (ledger: utm-no-tso-toggle-on-apple-virtualization, a must_fail probe with a positive control). Inferring from that silence that no such toggle EXISTS is inference from absence, and stays unverified. See OQ-10 --> |
-specs/macos-ci/12-tooling-and-agent-loop.md:359:<!-- UNVERIFIED: `--vnc-experimental` is labelled experimental by Tart itself, and the exact stdout
+specs/macos-ci/12-tooling-and-agent-loop.md:364:<!-- UNVERIFIED: `--vnc-experimental` is labelled experimental by Tart itself, and the exact stdout
+specs/macos-ci/04-tart-licensing-risk.md:186:<!-- UNVERIFIED: who would ENFORCE the Fair Source terms post-acquisition, and whether
 specs/macos-ci/13-build-secrets.md:51:<!-- UNVERIFIED: reproduced on the host against a UDIF/APFS image via hdiutil, not inside a tart VM
 specs/macos-ci/13-build-secrets.md:54:<!-- UNVERIFIED: whether the same holds for `disk_format = "asif"` (macOS 26+), a sparse format
 specs/macos-ci/02-packer-tart-builder.md:135:> <!-- UNVERIFIED: whether `tart run --graphics` parses on tart 2.32.1; settling it requires invoking `tart run`, which scope forbids. See OQ-15. -->
@@ -331,10 +429,9 @@ specs/macos-ci/05-utm-automation.md:415:| Scripted keystrokes / mouse clicks | *
 specs/macos-ci/03-tart-ci-and-orchard.md:61:  <!-- UNVERIFIED: the copy TRANSPORT (rsync vs tart's --dir mount) is named by no source. `cirrus run
 specs/macos-ci/03-tart-ci-and-orchard.md:176:   <!-- UNVERIFIED: whether a persistent worker may run a CUSTOM (non-Cirrus-managed) tart image under
 specs/macos-ci/06-utm-macos-guest.md:78:<!-- UNVERIFIED: undocumented, not impossible; proving persistence needs a guest reboot. See OQ-11 --> and,
-specs/macos-ci/08-dotfiles-test-harness.md:72:   <!-- UNVERIFIED: exact `tart clone` syntax — cross-check against 01-tart-core.md's verified CLI
-specs/macos-ci/08-dotfiles-test-harness.md:107:   <!-- UNVERIFIED: exact headless-run flag spelling — cross-check against 01-tart-core.md's
-specs/macos-ci/08-dotfiles-test-harness.md:114:   <!-- UNVERIFIED: exact `--dir` mount syntax — cross-check against 01-tart-core.md. -->
-specs/macos-ci/08-dotfiles-test-harness.md:189:  Whether `sheldon source` lazily re-locks is <!-- UNVERIFIED: needs a booted guest with a stale lock file; see OQ-17 --> |
+specs/macos-ci/08-dotfiles-test-harness.md:99:   <!-- UNVERIFIED: exact `tart clone` syntax — cross-check against 01-tart-core.md's verified CLI
+specs/macos-ci/08-dotfiles-test-harness.md:134:   <!-- UNVERIFIED: exact headless-run flag spelling — cross-check against 01-tart-core.md's
+specs/macos-ci/08-dotfiles-test-harness.md:141:   <!-- UNVERIFIED: exact `--dir` mount syntax — cross-check against 01-tart-core.md. -->
 ```
 
 ---

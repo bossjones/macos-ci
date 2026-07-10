@@ -48,6 +48,19 @@ Evidence kinds, cheapest first:
                  Apple-backend macOS guests, while /advanced/disposable/ states
                  "Disposable mode is only supported on QEMU backend."
 
+  http-status    a URL returns `expect` as its HTTP status. For pages the doc
+                 oracles cannot see: `/packer/integrations/**` is absent from
+                 HashiCorp's sitemap and `tart.run/blog/<post>` is absent from
+                 tart's search index, yet both return 200. A `doc-index` claim
+                 over either would FAIL and look like a fabrication — G10 running
+                 backwards. NB a 200 proves the page EXISTS, never that it SAYS
+                 anything; keep the prose, and prefer http-contains below.
+
+  http-contains  a URL's body contains `expect`. Use against PINNED plain text —
+                 e.g. hashicorp/packer at a TAG, never `main`. Grepping rendered
+                 HTML is unsound: HashiCorp splits sentences across <code>/<span>.
+                 A non-2xx yields STRUCTURE:, never a verdict on the sentence.
+
   absent         target does NOT contain `expect`. For negative claims, e.g.
                  "zsh-dotfiles has no macOS asdf installer".
 
@@ -95,6 +108,7 @@ import re
 import subprocess
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -106,6 +120,22 @@ DOC_INDEXES = {
     "tart": "https://tart.run/search/search_index.json",
     "utm": "https://docs.getutm.app/assets/js/search-data.json",
 }
+
+# `http-status` / `http-contains` reach arbitrary URLs, so the hosts are an explicit
+# allowlist rather than whatever a claim happens to name. A typo'd host must be a loud
+# structural rejection, never a silent UNREACHABLE that `must_fail` could invert.
+HTTP_HOSTS = frozenset(
+    {
+        "developer.hashicorp.com",  # G19: /packer/integrations/** is absent from the sitemap, returns 200
+        "tart.run",  # second G19: /blog/YYYY/MM/DD/ posts are absent from the search index
+        "raw.githubusercontent.com",  # pinned upstream source, e.g. hashicorp/packer at a TAG
+        "cirruslabs.org",  # the acquisition announcement (OQ-20)
+    }
+)
+
+# Anything outside 2xx is a STRUCTURE failure, not a verdict on the claim: it says the
+# page is gone, not that the sentence is. Never inverted by `must_fail`.
+HTTP_TIMEOUT = 20
 
 OK, FAILED, UNREACHABLE, USAGE = 0, 2, 3, 4
 
@@ -191,6 +221,16 @@ def _read(target: str) -> str:
     return p.read_text(encoding="utf-8", errors="replace")
 
 
+def _http_get(url: str) -> tuple[int, str]:
+    """GET a URL. Returns (status, body). An HTTP error status is a value, not an exception."""
+    req = urllib.request.Request(url, headers={"User-Agent": "verify-claims/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as r:  # noqa: S310 - host allowlist enforced in check_structure
+            return int(r.status), r.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        return int(e.code), ""
+
+
 def _fetch_index(site: str) -> dict[str, str]:
     url = DOC_INDEXES[site]
     req = urllib.request.Request(url, headers={"User-Agent": "verify-claims/1.0"})
@@ -257,6 +297,22 @@ def evaluate(claim: dict[str, Any], index_cache: dict[str, dict[str, str]]) -> R
             hint = "" if ok else f"page {page} exists but does not contain {expect!r} — upstream may have reworded; re-read it"
             return Result(cid, kind, ok, hint, src)
 
+        if kind == "http-status":
+            # Proves a page EXISTS. It proves nothing about what the page SAYS — keep the prose,
+            # and prefer http-contains wherever the page is plain text.
+            status, _ = _http_get(claim["url"])
+            ok = str(status) == str(expect)
+            return Result(cid, kind, ok, "" if ok else f"{claim['url']} returned {status}, expected {expect}", src)
+
+        if kind == "http-contains":
+            status, body = _http_get(claim["url"])
+            if not 200 <= status < 300:
+                # The page is gone. Not a verdict on the sentence. Never inverted by must_fail.
+                return Result(cid, kind, False, f"STRUCTURE: {claim['url']} returned {status}, not 2xx", src)
+            ok = check_contains(body, expect)
+            hint = "" if ok else f"{claim['url']} is 2xx but does not contain {expect!r} — upstream may have moved it; re-read the source"
+            return Result(cid, kind, ok, hint, src)
+
         return Result(cid, kind or "?", False, f"unknown evidence kind {kind!r}", src)
 
     except FileNotFoundError as e:
@@ -304,6 +360,14 @@ def needs_control(claim: dict[str, Any]) -> bool:
     is_oracle_control = str(claim.get("id", "")).startswith("CONTROL-") and kind in ("doc-index", "doc-contains")
     if is_oracle_control:
         return False
+    # AUTHOR-SET, never inferred. `needs_control` below reads syntax: `kind == "absent"`, or the
+    # `must_fail` flag. Both are syntax. A claim can be semantically negative and syntactically
+    # positive — `no-terraform-provider-at-cirruslabs-tart` is `cli-help`, `expect: "404"`, no
+    # `must_fail` — and no heuristic over `expect` distinguishes "asserts a 404" from "is about a
+    # page that happens to 404" without false positives. A check that cries wolf gets suppressed.
+    # So the author declares polarity, and the tool enforces the declaration (OQ-37).
+    if claim.get("polarity") == "negative":
+        return True
     if kind == "absent":
         return True
     return bool(claim.get("must_fail")) and kind in ("cli-help", "doc-contains", "doc-index")
@@ -321,6 +385,32 @@ def check_structure(claims: list[dict[str, Any]]) -> list[str]:
     for c in claims:
         cid = c.get("id", "<unnamed>")
         ctl = c.get("control")
+        kind = c.get("kind", "")
+
+        pol = c.get("polarity")
+        if pol is not None and pol not in ("negative", "positive"):
+            problems.append(f"{cid}: `polarity` is {pol!r}; only 'negative' or 'positive' are meaningful")
+
+        # A `logs/` directory is agent-writable scratch. An `absent` claim over it can pass because
+        # some agent once typed the very string the claim asserts is missing — and this run's own
+        # pre_tool_use hook did exactly that, writing ghp_FIXTURE_SENTINEL into a third-party clone.
+        # Not a live bug today; refused anyway, because a rule the tool does not enforce is a rule
+        # that will be forgotten (OQ-16).
+        if kind in ("file-contains", "absent", "file-line"):
+            target = str(c.get("target", ""))
+            if "logs" in Path(target).parts:
+                problems.append(
+                    f"{cid}: evidence target {target!r} has a `logs` path component. "
+                    f"Logs are agent-writable; evidence must not be."
+                )
+
+        if kind in ("http-status", "http-contains"):
+            host = urllib.parse.urlparse(str(c.get("url", ""))).hostname or ""
+            if host not in HTTP_HOSTS:
+                problems.append(
+                    f"{cid}: `url` host {host!r} is not in the HTTP_HOSTS allowlist "
+                    f"({', '.join(sorted(HTTP_HOSTS))}). A typo'd host must be loud, not UNREACHABLE."
+                )
         # A `control` is VALIDATED whenever it is present, even on a claim that does not
         # require one. Otherwise a claim could name a control that does not exist — or a
         # control that is itself a negative — and the pairing would be decoration.

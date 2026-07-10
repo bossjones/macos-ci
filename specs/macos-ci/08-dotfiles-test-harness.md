@@ -44,18 +44,45 @@ force `asdf` into every image, including `mise` runs, and none of it is required
 It is invoked only by the optional `asdf` matrix leg, behind a `--with-prereq-installer` flag. See
 [09-dotfiles-under-test.md](./09-dotfiles-under-test.md#what-zsh-dotfiles-cannot-bootstrap-on-macos).
 
-**Open question: `-base` is not a clean slate.** [12](./12-tooling-and-agent-loop.md) pins the OCI lane
-at `ghcr.io/cirruslabs/macos-*-base:latest`, and the Packer template that builds those images —
-[`templates/base.pkr.hcl`](https://github.com/cirruslabs/macos-image-templates/blob/main/templates/base.pkr.hcl)
-— preinstalls Homebrew, **`mise`**, `rbenv`, and `node@24`. That overlaps the software under test: the
-claims ledger records that `zsh-dotfiles` installs `mise` itself on macOS. So a `-base` run does not
-exercise the dotfiles' own `mise` install path from a cold start; it exercises it against an
-already-present `mise`. The `-vanilla` variant (same family, no preinstalled software) would be the
-cold-start substrate. Whether that fidelity is worth re-adding the Homebrew/Xcode-CLT bootstrap cost
-this section just argued away is exactly the scoping decision named above — **it is recorded here as
-open, and deliberately not resolved; `macos-versions.toml` is unchanged.** It is now tracked as
-**OQ-18 (NEEDS-HUMAN)** in [`.team/macos-ci.open-questions.md`](../../.team/macos-ci.open-questions.md),
-because an open question buried in a spec is not one the human reads.
+### The base image is `-vanilla`, and it deliberately omits `mise`
+
+**Decided (OQ-18). `-base` is not a clean slate, and using it would silently disarm this harness.**
+
+Three facts, each carrying a passing ledger claim, and it is their *conjunction* that decides the
+question — not any one of them:
+
+1. **`-base` ships `mise`.** [`templates/base.pkr.hcl:109`](https://github.com/cirruslabs/macos-image-templates/blob/main/templates/base.pkr.hcl)
+   runs `brew install mise` (alongside Homebrew, `rbenv`, and `node@24`). — `base-image-preinstalls-mise`
+2. **`zsh-dotfiles` also installs `mise` itself** on macOS, via
+   `run_onchange_before_02-macos-install-mise.sh.tmpl`. — `mise-installed-by-dotfiles-on-macos`
+3. **…but that installer short-circuits when `mise` is already on `PATH`.** Line 9 of the script reads
+   `command -v mise >/dev/null 2>&1 || brew install mise || true`. —
+   `dotfiles-mise-script-short-circuits-on-existing-mise`
+
+Put (1) and (3) together and the consequence is not a fidelity nicety, it is a hole:
+
+> On a `-base` image the `brew install mise` arm **never executes**, and the suite reports **green having
+> never run it**. A regression in the dotfiles' own `mise` bootstrap would be **invisible to the suite
+> whose entire purpose is to catch it.**
+
+Both (1) and (2) are true. The harness uses `-vanilla` **because** they are both true.
+
+**The decision.** The golden image is built **once, on `ghcr.io/cirruslabs/macos-*-vanilla`**, and carries
+exactly **Xcode CLT, Homebrew, chezmoi ≥ 2.20.0, and `retry`** — and **not `mise`**. Upstream's README
+describes `-vanilla` as *"a vanilla macOS installation with helpful tweaks such as auto-login, but no
+additional software preinstalled"*, and `-base` as *"based on `…-vanilla` image, [it] comes with `brew`…
+pre-installed"* (`vanilla-image-preinstalls-no-software`, `base-image-is-derived-from-vanilla`). So this
+is not a fork off upstream's line — it is one rung down it, re-adding only the prerequisites §(a) already
+argued belong in the image.
+
+That is the whole trade, and it resolves the cost objection rather than dodging it: the expensive, stable
+bootstrap (CLT + Homebrew, minutes) is amortised into a golden image built once, while **the one path
+under test is left cold.** `vanilla-sequoia.pkr.hcl` contains no `mise`
+(`vanilla-sequoia-template-installs-no-mise`), so the dotfiles' `brew install mise` runs for real on every
+clone.
+
+`macos-versions.toml` ([12](./12-tooling-and-agent-loop.md#macos-versionstoml--declarative-image-selection))
+now pins the OCI lane to `-vanilla` accordingly.
 
 Design:
 
@@ -180,13 +207,12 @@ tests for, reused rather than reinvented (see
 | Prompt configured | same probe, `[[ -n "$PROMPT" \|\| -n "$PS1" ]]` | `smoke-test-docker.sh:396-402` |
 | Login shell is zsh | `dscl . -read /Users/<user> UserShell` (macOS-specific — Linux upstream
   has no equivalent, so this check is **new** for this harness, not reused) | — |
-| Sheldon plugins resolve | **No non-mutating verify exists.** `sheldon lock --check` was never a real
-  flag: sheldon `0.6.6` — the exact version pinned at `.chezmoi.yaml.tmpl:131`, and the one installed on
-  this host — gives `lock` only `--update` / `--reinstall`, and its own help calls it *"Install the plugin
-  sources and generate the lock file"*. There is no `verify` subcommand. Assert on the outcome instead
-  (`zsh -c 'source ~/.zshrc'` exits 0, below), not on a lock-file check | `sheldon lock --help`,
-  `sheldon --version`; ledger `sheldon-lock-has-no-check-flag` + `CONTROL-sheldon-lock-help-prints-reinstall`.
-  Whether `sheldon source` lazily re-locks is <!-- UNVERIFIED: needs a booted guest with a stale lock file; see OQ-17 --> |
+| Sheldon plugins resolve | **Run `sheldon lock` in-guest; assert exit 0.** It is a *mutating* command —
+  by its own help, *"Install the plugins sources and generate the lock file"* — and that is fine, because
+  it runs inside a disposable clone that (d) destroys afterwards. Mutating a VM you are about to delete
+  costs nothing; being able to mutate it is the point of using one | `sheldon lock --help`. Ledger:
+  `CONTROL-sheldon-lock-help-prints-reinstall` (the verb exists at 0.6.6), `sheldon-lock-is-mutating`,
+  `sheldon-lock-has-no-check-flag`, `sheldon-help-has-no-verify-subcommand`. **OQ-17, ANSWERED.** |
   | nvim headless sanity | `nvim --headless '+qa' ` exits 0 (loads config without erroring, does no work) | standard neovim smoke pattern, not upstream-sourced |
 | tmux present | `tmux -V` exits 0 and prints the expected version | general tool-presence check |
 | PATH ordering | `zsh -lc 'echo $PATH'` contains asdf/mise shims (whichever lane) ahead of system
@@ -199,6 +225,21 @@ tests for, reused rather than reinvented (see
   guest, assert `ruby`/`pyenv`/`nodejs`/`k8s`/`cuda`/`fnm`/`opencv` are all `false` unless a
   pre-seeded config (b, Option A) was used for that run | derived directly from
   [09](./09-dotfiles-under-test.md#non-tty-default-state-what-installed-means-for-a-lean-baseline-run) |
+
+**A note on the one mutating assertion (OQ-17).** Every other row above is read-only. `sheldon lock` is
+not, and it cannot be: sheldon `0.6.6` — the exact version pinned at `.chezmoi.yaml.tmpl:131`, and the one
+installed on this host, so its `--help` is evidence about the pinned release rather than some other one —
+has no `--check` flag and **no `verify` subcommand anywhere** in `init | add | edit | remove | lock |
+source | completions | version`. There is no read-only way to ask *"do these plugin sources resolve?"*
+
+The instinct is to reach for the least-invasive probe. That instinct is wrong here, and the reason is
+worth stating: **the disposable clone exists precisely so that mutation is free.** Running the real
+installer inside a VM that (d) deletes moments later tests strictly *more* than a hypothetical read-only
+verb would, because installing the plugin sources **is** the behaviour under test. A check that avoided
+the side effect would also avoid the thing it is checking.
+
+What we must not do is run it on the host, or on a clone we intend to reuse. `sheldon lock` writes the
+lock file and clones every plugin source; both belong to the VM and die with it.
 
 Recommended tooling: `pytest-testinfra`, matching the framework `zsh-dotfiles-prep/contrib/tests.sh`
 already installs (`pip install pytest-testinfra`) — testinfra runs assertions like "package

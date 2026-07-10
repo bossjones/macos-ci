@@ -49,11 +49,32 @@ curl -fsSL https://developer.hashicorp.com/server-sitemap.xml |
   grep -o '<loc>https://developer.hashicorp.com/packer/docs[^<]*</loc>'
 ```
 
-This returns **203 pages** under `/packer/docs` (out of 337 total `/packer/*` URLs in the sitemap).
+This returns **203 pages** under `/packer/docs`, out of **337** total `/packer/*` URLs.
 
-**It does not cover `/packer/integrations/**`** — including the tart-builder page cited above as the
-canonical field reference. 0 of the 337 `/packer/*` sitemap entries match `/packer/integrations`.
-Root cause, confirmed against the plugin's own GitHub repo:
+**Anchor the path, or you will count a different product.** Two greps over the same sitemap return two
+different totals, and only one of them answers the question "how many `/packer/*` pages are there?":
+
+```bash
+# (A) path-anchored — 337. These really are /packer/* pages.
+grep -o '<loc>https://developer.hashicorp.com/packer[^<]*</loc>'
+
+# (B) bare substring — 365. Over-counts by 28.
+grep -o '<loc>[^<]*packer[^<]*</loc>'
+```
+
+The 28 extras in (B) are not `/packer/*` at all. They are `/hcp/docs/packer`,
+`/hcp/docs/packer/manage/ancestry`, `/hcp/docs/packer/store/sbom` … — **HCP Packer, a different product
+namespace** that merely contains the substring `packer`. Under both greps, `/packer/docs` is 203; if you
+ever find yourself writing "203 out of 365", the question to ask is *203 out of **what***, and the answer
+will send you back to (A).
+
+**The sitemap does not cover `/packer/integrations/**`** — including the tart-builder page cited above as
+the canonical field reference. **Zero** entries match `/packer/integrations`: under (A) and under (B), at
+337 and at 365 alike. **That structural fact never depended on the total**, which is why it — and not any
+count — is what the ledger pins (`g19-packer-integrations-absent-from-hashicorp-sitemap`, a `must_fail`
+probe, paired with `CONTROL-hashicorp-sitemap-lists-packer-docs` so it cannot pass against an empty fetch;
+and `synth-sitemap-substring-packer-also-matches-hcp-packer`, which pins the existence of the HCP namespace
+that makes (B) over-count). Root cause, confirmed against the plugin's own GitHub repo:
 [cirruslabs/packer-plugin-tart's `.web-docs/`](https://github.com/cirruslabs/packer-plugin-tart/tree/main/.web-docs)
 directory (`components/`, `metadata.hcl`, `README.md`) — HashiCorp renders third-party
 plugin/integration pages directly from that directory, per release tag, rather than from its own
@@ -61,6 +82,36 @@ CMS/sitemap. The plugin repo is the actual source of truth for that page, not
 `developer.hashicorp.com` itself. Verify an integrations page with a plain
 `curl -sS -o /dev/null -w '%{http_code}'` against the URL, or by reading the plugin repo's
 `.web-docs/` directly — grepping the sitemap won't find it.
+
+### The G19 class: absence from an index refutes only *inside* that index's domain
+
+An index is authoritative **for the prefixes it covers.** Inside that domain, absence is proof of
+fabrication — that is how the invented `settings-apple/devices/` URL was caught. **Outside it, absence is
+evidence of nothing. Go fetch the URL.**
+
+Refuting a live page by grepping an index that never claimed to list it is **G10 running backwards**:
+declaring a *real* page fake, with total confidence, on the strength of a lookup that was never in scope.
+Two URLs in this repo sit outside their index's domain. Both are load-bearing. Both return `200`:
+
+| URL | Underpins | Index says | Reality |
+|---|---|---|---|
+| [developer.hashicorp.com — tart builder field reference](https://developer.hashicorp.com/packer/integrations/cirruslabs/tart/latest/components/builder/tart) | **all of [02](02-packer-tart-builder.md)** | absent from every `/packer/*` sitemap entry | **200** — rendered from the plugin repo's `.web-docs/`, not HashiCorp's CMS |
+| [tart.run — Fair Source enforcement press release (2025-10-27)](https://tart.run/blog/2025/10/27/press-release-cirrus-labs-successfully-enforces-its-fair-source-license/) | the **sole** source for G4's *"enforcement is not theoretical"* ([04](04-tart-licensing-risk.md)) | absent from tart's search index, which carries `/blog/` and `/blog/archive/YYYY/` but **zero** `/blog/YYYY/MM/DD/` posts | **200** |
+
+The second is a **second G19, found this run** — the first was known, this one was not, and it guards the
+single citation behind the licensing risk a human signed off on.
+
+Both are now ledger claims rather than prose behind a carve-out a future agent must remember to obey
+(`http-status` / `http-contains`, added for **OQ-26**). Note carefully **how** the absence is recorded:
+`synth-enforcement-press-release-absent-from-tart-index` is a **`must_fail` `doc-index`** claim. A
+*positive* `doc-index` claim on that URL would **fail, and read as a fabrication** — the tool would report
+exactly what it reports for an invented page. Writing the absence as an inverted control says the true
+thing ("the index does not list it") without ever implying the false one ("the page does not exist"). Its
+positive control asserts the index *does* carry `/blog/`, so the absence is a fact about the post rather
+than about an oracle that never indexed blogs at all.
+
+**And a `200` proves a page exists, not that it says anything.** `http-status` is the weakest evidence in
+the ledger. Where a page is plain text, prefer `http-contains` and quote the sentence.
 
 Other avenues checked and rejected: `llms.txt` / `llms-full.txt` (404), a `.md` content-negotiation
 suffix on doc pages (404), and a few guessed content/registry API paths (all 404).
@@ -182,6 +233,25 @@ from this repo, and it has since drifted — this file alone now cites well more
 `grep -ohE '\]\(https?://[^)]+\)' specs/macos-ci/11-sources.md | sort -u | wc -l`). A frozen count is
 exactly the kind of unfalsifiable number this section exists to warn about, so it has been replaced by
 the live check: `just link-check`. See **OQ-25**.
+
+**The two ways a number in a spec goes wrong, and they are mirror images.** Both were committed in this
+file, one round apart:
+
+> A number that was true when written and is never re-derived is indistinguishable from one that was
+> never true.
+>
+> **And its converse:** a number re-derived by a *different query* is indistinguishable from one that was
+> never checked.
+
+`47/47` was the first. The second was `337`: it was **correct**, and this file briefly "retracted" it in
+favour of `365` — a total produced by a looser grep that silently swept in HCP Packer, a different
+product. The number had not drifted; **the query had.** The instinct to re-derive was right; the predicate
+was wrong. See the [`/packer/*` sitemap counts](#verifying-packer-docs-urls) above, where both greps are
+now written out precisely because either one alone looks authoritative.
+
+**Re-derivation must re-derive the same question.** A re-run with a subtly different predicate is not a
+re-derivation — it is a new claim wearing the old one's citation, and it will retract true sentences with
+the same confidence it would have refuted false ones.
 
 Two things made the error durable:
 
@@ -305,9 +375,79 @@ that a control **exists**, not that it probes the **same substrate** — an `abs
 file is still accepted if its control names an unrelated target (see **OQ-36**). Second, the tool's own
 behaviour is the one thing in this repo no claim executes (see **OQ-35**).
 
-**The pattern across G10, G14, D5, G13, G9 and the brief's own `must_fail` rule is one pattern.** Each was
-a plausible sentence nobody had executed. Most would have been caught by the first read-only command a
-skeptic would type. The rest were caught only because something was built that runs the command every time.
+### OQ-20 — the counterparty is OpenAI, and **half** the guess was wrong
+
+Tart's copyright holder is no longer Cirrus Labs. [cirruslabs.org](https://cirruslabs.org/) publishes
+*"Cirrus Labs to join OpenAI"*, dated **April 7th, 2026**, by founder Fedor Korotkov;
+`api.github.com/repos/cirruslabs/tart` reports `"full_name": "openai/tart"`; and
+[openai/tart's LICENSE](https://raw.githubusercontent.com/openai/tart/main/LICENSE) reads *"Functional
+Source License, Version 1.1, ALv2 Future License"*, *"Copyright 2022-2026 OpenAI"*.
+
+**OQ-20 guessed: "Cirrus Labs retains the licensing business, and `licensing@cirruslabs.org` remains the
+correct contact." Recording which half was wrong is the whole point.**
+
+| Half of the guess | Verdict |
+|---|---|
+| The acquisition happened | ✅ **confirmed** (`synth-cirruslabs-announces-openai-acquisition`, `synth-cirruslabs-announcement-dated-april-2026`) |
+| `licensing@cirruslabs.org` is still the right escalation contact | 🟡 **doubtful — do not assert** |
+
+Because [tart.run/licensing](https://tart.run/licensing/) mentions **OpenAI zero times**. Three months
+after the announcement it still says Fair Source, still grants the 100-core Free Tier, and still lists
+`licensing@cirruslabs.org` (`synth-tart-licensing-page-never-mentions-openai`, a `must_fail` probe whose
+positive control asserts the contact address *is* on the page — so "no OpenAI" cannot pass against an
+empty index entry). **The tier-grant page is stale relative to the acquisition.** Who would now enforce,
+and where escalation goes, is therefore marked `<!-- UNVERIFIED -->` in
+[04](04-tart-licensing-risk.md), citing OQ-20. A guess here would be a guess about a counterparty's legal
+posture, which is the worst possible place to be charitable.
+
+G4's tier numbers were **re-verified and are unchanged**, and G4 is signed off as an accepted, documented
+risk.
+
+**One distinction worth keeping straight, because conflating it would invent a licence clause.** The
+100-core Free Tier is a **grant published on `tart.run`**, not a term of the FSL text — the licence
+mentions cores **zero** times (`synth-fsl-text-never-mentions-cores`, controlled by
+`synth-openai-tart-license-is-fsl-1-1` on the same URL, so "no cores" cannot pass against a failed fetch).
+Both sources are true at once: the licence grants rights, the website grants a ceiling. Reading a core
+limit *into the licence* would be citing something that does not exist.
+
+### OQ-32 — this run contaminated the reference clones, with its own fixture secret
+
+The `vnc_port` refutation in [02](02-packer-tart-builder.md) nearly died to a false positive: the string
+appeared inside `logs/` directories in two third-party checkouts. Those directories were written **by this
+run's own `pre_tool_use` hook**, which wrote `ghp_FIXTURE_SENTINEL` — the fixture secret from
+[13](13-build-secrets.md)'s own `packer inspect` masking tests — into working trees this repo does not own.
+
+**The irony is the finding.** The run whose central thesis is *never write a secret to a filesystem you do
+not control* (G15/G17, [13](13-build-secrets.md)) did exactly that, to someone else's git checkout, while
+proving it.
+
+Provenance was established **before** anything was touched, which is the only reason the cleanup was safe:
+
+| Path | Created | This run? | Action |
+|---|---|---|---|
+| `cirruslabs/packer-plugin-tart/logs/` | Jul 9, 21:46–21:48 | **yes** | **moved** to scratchpad |
+| `cirruslabs/macos-image-templates/logs/` | Jul 9, 22:23 | **yes** | **moved** to scratchpad |
+| `zsh-dotfiles/logs/`, `zsh-dotfiles-prep/logs/` | predate the run | no | **left alone, deliberately** |
+
+Moved, not deleted — nothing was destroyed, and a directory that predates the run is somebody else's data,
+not our mess. Post-scrub, re-verified read-only: **zero** files under `/Users/bossjones/dev/cirruslabs`
+contain the sentinel (`synth-packer-plugin-clone-free-of-fixture-sentinel`, whose control runs the same
+`grep` shape over the same substrate with a pattern that *does* match — a `grep -rIl` negative emits zero
+bytes, so no same-`argv` control is possible; this is the GB2 shape), and `grep -rIn vnc_port` over the
+plugin clone returns **zero hits** without any `--exclude-dir`.
+
+**So [02](02-packer-tart-builder.md)'s `vnc_port` refutation is upheld with no `--exclude-dir=logs`
+needed.** That matters more than it looks. The tempting fix was to teach the spec's verification command to
+skip `logs/` — **a spec accommodating a defect in our own tooling**, and a permanent invitation for the
+next agent to wonder why. The contamination was removed at the source instead. `verify_claims.py` now
+rejects any file-scoped evidence target with a `logs` path component outright (OQ-16), so the hazard cannot
+return through the ledger.
+
+**The pattern across G10, G14, D5, G13, G9, OQ-20's half-guess and the brief's own `must_fail` rule is one
+pattern.** Each was a plausible sentence nobody had executed. Most would have been caught by the first
+read-only command a skeptic would type. The rest were caught only because something was built that runs the
+command every time — and OQ-32 is the reminder that the thing running the commands is itself part of the
+system under test.
 
 ## Local working trees (read directly, not fetched — G11)
 

@@ -141,49 +141,89 @@ Recommendation, sized to this repo's actual stated scope (personal dotfiles CI, 
   personal/internal tooling and does not resemble that fact pattern, but it is worth stating explicitly
   as a boundary not to cross.
 
-## 4b. Open question: the project moved to the `openai` GitHub org
+## 4b. Resolved: the counterparty is **OpenAI**. The tier grant is **unchanged**.
 
-Discovered while sourcing [01](01-tart-core.md)'s guest-agent section, **not yet reflected in the risk
-analysis above.** Recorded here rather than resolved, because it changes *who* the counterparty is:
+This subsection was previously titled *"Open question: the project moved to the `openai` GitHub org."* It
+is no longer an open question. **Cirrus Labs was acquired by OpenAI**, announced on
+[cirruslabs.org](https://cirruslabs.org/) — *"Cirrus Labs to join OpenAI"*, "Official announcement
+**April 7th, 2026**", written by Fedor Korotkov (`@fedor`), who started Cirrus Labs in 2017.
+(ledger: `cirruslabs-org-is-live`, `cirruslabs-org-announces-openai-acquisition`,
+`cirruslabs-org-announcement-dated-april-7-2026`)
 
-**Every bullet below was independently re-verified on 2026-07-09 and now carries a ledger claim.**
+**Every fact below was re-verified read-only on 2026-07-10 and carries a ledger claim. Nothing here is
+inherited.**
 
-- `github.com/cirruslabs/tart` now redirects to **`github.com/openai/tart`** (same repo: created
-  2022-02-01, 6,061 stars, actively pushed). `cirruslabs/tart-guest-agent` likewise redirects to
-  `openai/tart-guest-agent`. (ledger: `cirruslabs-tart-redirects-to-openai-tart`)
-- That repo's `LICENSE` is the **Functional Source License 1.1 with an Apache 2.0 future license
-  (`FSL-1.1-ALv2`)**, and its notice reads `Copyright 2022-2026 OpenAI`. (ledger:
-  `openai-tart-license-is-fsl-1-1-alv2`, `openai-tart-license-copyright-is-openai`)
-- Meanwhile [tart.run/licensing/](https://tart.run/licensing/) is **unchanged**: it still says "Fair
-  Source License", still quotes the 100-CPU-core Free Tier, and still directs purchasers and support to
-  `licensing@cirruslabs.org` / `support@cirruslabs.org`. (ledger: `tart-licensing-contact-is-cirruslabs`)
+- The **copyright holder of tart is OpenAI.** `github.com/cirruslabs/tart` resolves to
+  **`github.com/openai/tart`**; `cirruslabs/tart-guest-agent` likewise resolves to
+  `openai/tart-guest-agent`. That repo's `LICENSE` is the **Functional Source License 1.1 with an
+  Apache 2.0 future license (`FSL-1.1-ALv2`)** and its notice reads **`Copyright 2022-2026 OpenAI`**.
+  (ledger: `cirruslabs-tart-redirects-to-openai-tart`, `openai-tart-license-is-fsl-1-1-alv2`,
+  `openai-tart-license-copyright-notice-via-http`)
+- **The tier numbers were re-verified and are UNCHANGED.** Every row of [§2](#2-tier-table) still matches
+  [tart.run/licensing/](https://tart.run/licensing/) exactly: Free 100/4 · Gold $12,000 (500/20) ·
+  Platinum $36,000 (3,000/200) · Diamond $12 per CPU core per year. **G4's dollar figures survive the
+  acquisition.**
+- **The 100-core Free Tier is a grant published on `tart.run`, not a clause of the FSL text.** The FSL
+  mentions CPU cores **zero** times (`grep -ic 'cpu\|core'` → `0`). These are two different instruments,
+  and **both are true at once** — do not collapse one into the other. `FSL-1.1-ALv2` governs the *code*;
+  `tart.run/licensing/` publishes the *tier grant*. (ledger: `fsl-text-mentions-no-cpu-cores`)
+- **`FSL-1.1-ALv2` converts each version to Apache 2.0 "effective on the second anniversary of" its
+  release.** This *reduces* long-run exposure and §1 does not mention it. (ledger:
+  `openai-tart-license-grants-apache-2-future`. The LICENSE never uses the phrase "two years"; this file
+  once did, as a paraphrase. The paraphrase is accurate.)
 
-None of that contradicts §1 on its face — FSL is one of the licenses under the Fair Source umbrella, and
-the 100-core Free Tier is a separate tier grant, not a clause of the FSL text (the FSL contains no
-mention of CPU cores). But three things this file asserts now rest on a shakier footing than when it was
-written, and each needs re-confirming before the **G4** sign-off is treated as current:
+### The wrinkle: `tart.run/licensing/` is stale relative to the acquisition
 
-1. §3's enforcement precedent is a *Cirrus Labs* action. Who holds and enforces the copyright now?
-2. §2's tier table and the `licensing@cirruslabs.org` contact may be stale relative to the code's owner.
-3. `FSL-1.1-ALv2` grants an automatic conversion to Apache 2.0 **"effective on the second anniversary of"**
-   each version's release — a term §1 does not mention at all, and one that *reduces* long-run exposure.
-   (ledger: `openai-tart-license-grants-apache-2-future`. The LICENSE never uses the phrase "two years";
-   this file previously did, as a paraphrase of "second anniversary". The paraphrase is correct.)
+The tier-grant page contains the string **`OpenAI` exactly zero times.** It still says "Fair Source
+License", still grants the 100-CPU-core Free Tier, and still directs purchasers and support to
+`licensing@cirruslabs.org` / `support@cirruslabs.org`. (ledger:
+`tart-licensing-page-never-mentions-openai` — a `must_fail` negative, paired on the **same URL** with the
+positive control `tart-licensing-page-still-says-free-tier`, because *"OpenAI is absent"* would otherwise
+be satisfied by an empty page, a 404, or a dead network. Also `tart-licensing-page-still-lists-cirruslabs-contact`.)
 
-Two things this subsection asserted are now **positively confirmed**, not merely suspected: the FSL text
-contains **no mention of CPU cores at all** (`grep -ic 'cpu\|core'` → `0`), so the 100-core Free Tier is a
-separate tier grant rather than a licence clause; and `tart.run/licensing/` still names `cirruslabs.org`.
-Both readings therefore coexist without contradiction, exactly as this section supposed.
+Those claims pin **what the page says**. They establish nothing about who would act on it.
 
-Nothing in [§4](#4-what-keeps-this-repo-under-the-threshold) changes: a single-workstation, sub-100-core,
-non-"server installation" use stays inside the Free Tier under either reading. **Do not treat this
-subsection as a re-derivation of the risk posture.** Question 1 is escalated as
-**[OQ-20 · NEEDS-HUMAN](../../.team/macos-ci.open-questions.md)** — who the counterparty is on a
-Fair Source licence is a decision for the human, not for an agent. Re-verify:
+<!-- UNVERIFIED: who would ENFORCE the Fair Source terms post-acquisition, and whether
+licensing@cirruslabs.org is still the correct escalation contact. §3's enforcement precedent was a
+*Cirrus Labs* action; the copyright is now OpenAI's; tart.run has not been updated to reflect either.
+Settling this means corresponding with a third party, which this run may not do. See OQ-20. -->
+
+> **Retraction of this file's own guess.** OQ-20 recorded, explicitly labelled a guess:
+> *"Cirrus Labs retains the trademark, the licensing business and the `tart.run` tier grants; the GitHub
+> org move reflects an acquisition or an employment transfer of the maintainer, and
+> `licensing@cirruslabs.org` remains the correct contact."*
+>
+> **The guess was half right, and recording which half is the entire point.**
+>
+> | Half of the guess | Verdict |
+> |---|---|
+> | "an acquisition … of the maintainer" | ✅ **CONFIRMED** — announced 2026-04-07 on `cirruslabs.org` |
+> | "`licensing@cirruslabs.org` remains the correct contact" | ❌ **NOT ESTABLISHED — must not be asserted** |
+>
+> The second half was never evidence. It was an inference from the page's *staleness*, and a stale page is
+> exactly as consistent with *"nobody updated it"* as with *"it is still correct."* The address is still
+> **printed**; that it is still **answered by the party who can grant a licence** is unverified, and now
+> carries the marker above. **This is the same error class as `04:36`'s fabricated quotation, one level
+> up: reading a page's silence as a page's assertion.**
+
+### Consequence for the G4 sign-off — none. It stands.
+
+The posture in [§4](#4-what-keeps-this-repo-under-the-threshold) is unchanged and needs no re-derivation:
+**2–3 hosts, under 100 combined CPU cores, never build a competing product.** That keeps this repo inside
+the Free Tier **under either reading of who the counterparty is**, and the FSL's second-anniversary
+Apache-2.0 conversion only shrinks the long-run exposure. **G4 is signed off as an accepted, documented
+risk.** What changed is *who you would be negotiating with if you ever left the free tier* — and that is
+precisely the question the marker above refuses to guess at.
+
+Re-verify (read-only; note the GitHub API returns **301** without `-L`, so a bare status probe on it is
+not evidence of anything):
 
 ```bash
+curl -sS -o /dev/null -w '%{http_code}' https://cirruslabs.org/                      # 200
+curl -fsSL https://cirruslabs.org/ | grep -o 'Cirrus Labs to join OpenAI'            # the announcement
 curl -fsSL https://api.github.com/repos/cirruslabs/tart | python3 -c 'import json,sys; print(json.load(sys.stdin)["full_name"])'
 curl -fsSL https://raw.githubusercontent.com/openai/tart/main/LICENSE | head -8
+curl -fsSL https://tart.run/licensing/ | grep -c 'OpenAI'                            # 0 — the page is stale
 ```
 
 ## 5. Consequence for the house stance

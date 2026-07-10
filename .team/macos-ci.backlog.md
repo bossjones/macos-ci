@@ -2798,3 +2798,649 @@ their evidence — none weakened, none deleted. `uvx ruff check tools/verify_cla
 **Still open, unchanged from GB4:** `control` ids resolve within the ledger being checked, so
 `uv run tools/verify_claims.py .team/proposed/<role>.jsonl` exits `4` for any proposal whose negatives name
 controls living in `claims.jsonl`. → 👑 lead: propagate, or authorise union-resolution.
+
+---
+
+### 🏭 tart-ci — OQ-20 remediation
+
+**OQ-20 is ANSWERED. The counterparty is OpenAI, settled by evidence I re-ran myself. G4's tier numbers are
+UNCHANGED and the sign-off stands. `04` §4b rewritten; one `<!-- UNVERIFIED -->` marker ADDED (budget 15 → 16,
+citing OQ-20). 8 claims proposed; whole file dry-runs 53/53, exit 0.**
+
+#### 🔴 TWO CORRECTIONS TO THE BRIEFING THAT HANDED ME THE PROBES
+The lead's message listed the evidence as already-verified. **I re-ran all of it. Two lines were wrong.**
+
+1. **`api.github.com/repos/cirruslabs/tart` returns `301`, not `200`.**
+   ```
+   curl -sS -o /dev/null -w '%{http_code}'      .../repos/cirruslabs/tart   -> 301
+   curl -sSL -o /dev/null -w '%{url_effective}' .../repos/cirruslabs/tart   -> .../repositories/454359710  (200)
+   ```
+   The briefing's `curl -fsSL` succeeded only because `-L` follows the redirect. **Had I obeyed the
+   instruction "`http-status` on the acquisition URLs → 200" mechanically, I would have proposed a claim
+   asserting `200` on a URL that returns `301`, and it would have failed — or worse, someone would have
+   "fixed" it by loosening the expect.** I did not propose an `http-status` claim on that URL at all; the
+   acquisition is carried by `cirruslabs.org` (a true 200) and by the `LICENSE` text.
+   *This is the same shape as G1's `#3618`: a `200` that is really a redirect proves the redirect, not the resource.*
+
+2. **The word `founder` does not appear on `cirruslabs.org`.** The briefing says the announcement is
+   *"by Fedor Korotkov (@fedor), founder"*. Probing rendered text **and** raw HTML: `'Fedor Korotkov'`
+   FOUND, `'@fedor'` FOUND, **`'founder'` ABSENT.** The page says he *started* Cirrus Labs in 2017. `04`
+   now says exactly that and quotes no noun the page does not use.
+
+#### 🟢 THE ACQUISITION — CONFIRMED, re-derived read-only
+```
+curl -sS -o /dev/null -w '%{http_code}' https://cirruslabs.org/   -> 200
+cirruslabs.org (tags stripped): "Cirrus Labs to join OpenAI"  "Official announcement April 7th, 2026"
+api.github.com/repos/cirruslabs/tart  (-L) -> "full_name": "openai/tart"
+raw.../openai/tart/main/LICENSE -> "Functional Source License, Version 1.1, ALv2 Future License"
+                                -> "Copyright 2022-2026 OpenAI"    -> "second anniversary"
+                                -> grep -ic 'cpu|core'  =>  0
+tart.run/licensing/ -> 'OpenAI' x0 · 'Free Tier' x7 · 'licensing@cirruslabs.org' x2 · '100 CPU core limit' x4
+```
+
+#### 🟡 RETRACTION OF MY OWN GUESS — and *which half* was wrong
+OQ-20's guess: *"Cirrus Labs retains the trademark, the licensing business and the tart.run tier grants; the
+GitHub org move reflects an acquisition or an employment transfer of the maintainer, and
+`licensing@cirruslabs.org` remains the correct contact."*
+
+| Half | Verdict |
+|---|---|
+| "an acquisition … of the maintainer" | ✅ **CONFIRMED** — announced 2026-04-07 |
+| "`licensing@cirruslabs.org` remains the correct contact" | ❌ **NOT ESTABLISHED. Retracted.** |
+
+The contact half was **never evidence**. It was an inference from the page's *staleness*, and a stale page is
+exactly as consistent with *"nobody updated it"* as with *"it is still correct."* **Reading a page's silence
+as a page's assertion is the same error class as `04:36`'s fabricated quotation, one level up.** The address
+is still *printed*; that it is still *answered by the party who can grant a licence* is unverified and now
+carries the marker at `04:186`.
+
+#### 🟢 G4 — SIGNED OFF. Numbers unchanged; the two instruments do not collapse
+Free 100/4 · Gold $12,000 (500/20) · Platinum $36,000 (3,000/200) · Diamond $12/core/yr — all still exact.
+`FSL-1.1-ALv2` governs the **code**; `tart.run/licensing/` publishes the **tier grant** (the FSL mentions
+cores **zero** times). Both true at once. Posture (2–3 hosts, <100 combined cores, never a competing product)
+holds the Free Tier **under either reading**, and the second-anniversary Apache-2.0 conversion *reduces*
+long-run exposure. Accepted-risk framing kept.
+
+#### 🟢 HONESTY BUDGET: 15 → 16. Stated explicitly, as instructed.
+Exactly one marker added, at `04:186`, citing **OQ-20** (who enforces; whether the cirruslabs contact is
+still right). `04` had **0** markers before this turn and has **1** now. This is a *rise*, and it is correct:
+the run learned a question it cannot answer and refused to guess at it.
+
+#### 🔴 CONFLICT for 🔬 ledger — `needs_control()` does not yet gate the new `http-contains` kind
+`http-status` and `http-contains` **landed mid-turn** (they were absent when I started: `grep -c '"http-status"'
+tools/verify_claims.py` → `0`). All eight of my claims now pass. **But:**
+```python
+return bool(claim.get("must_fail")) and kind in ("cli-help", "doc-contains", "doc-index")
+```
+`http-contains` is **not in that tuple**. My negative `tart-licensing-page-never-mentions-openai` is a
+`must_fail` `http-contains`, so `check_structure()` **will not demand its control.** I supplied
+`"control": "tart-licensing-page-still-says-free-tier"` and `"polarity": "negative"` anyway, and the tool
+validates a `control` whenever present — but the *enforcement* is missing. **Add `http-contains` (and any
+future negative-capable kind) to that tuple, or the positive-control rule is decoration for exactly the kind
+that reaches the open internet, where an outage silently satisfies every negative.**
+
+#### 🔴 CONFLICT for 🔐 secrets — `13:345` cites `Justfile:52-58`; it is now `60-66`
+The lead's OQ-04 `build-golden` guard added 8 lines above it. Re-derived with `sed -n`:
+```
+grep -n '^verify-no-secrets' Justfile   ->  60
+sed -n '60p' Justfile                   ->  verify-no-secrets vm:
+```
+**My own ledger claim `justfile-verify-no-secrets-starts-at-line-52` FAILED on dry-run and I repinned it to
+line 60.** A `file-line` citation rotted *inside a single run*, caught by the exact evidence kind invented to
+catch it. `13:345`'s prose citation has no such guard and is now stale. Not my file.
+
+#### 🟡 Note for 🔬 ledger — `openai-tart-license-copyright-is-openai` is superseded, not wrong
+My older `cli-help` + `curl` claim asserts the same literal but **ignores curl's exit code**, so a network
+outage reads as *"the string is absent"* (OQ-08). `openai-tart-license-copyright-notice-via-http` does it with
+`http-contains`. Both pass. Ledger's call whether to retire the old one; per `_RULES.md` §5 I did not touch it.
+
+#### 🟡 OQ-37 polarity backfill, done where I own it
+Backfilled `"polarity": "negative"` + `control` onto `no-terraform-provider-at-cirruslabs-tart` and
+`-orchard` (semantically negative, syntactically positive `cli-help` `expect: "404"` — the OQ-33 shape), and
+added their missing positive control **`terraform-registry-serves-a-real-provider`**: the same endpoint shape
+against `hashicorp/tls`, asserting `200`. **Without it, a registry outage would 404 every URL and both G1
+probes would go green while proving nothing.** Also backfilled `polarity`+`control` onto
+`packer-sensitive-hides-secret-in-isolated-debug-log`, which `check_structure()` correctly rejected on my
+first dry-run — it named its partners in prose but not in the field.
+
+---
+
+### 📚 synth — human-decisions remediation
+
+All three recorded in `11-sources.md`. Every fact re-derived read-only before writing; every line number
+re-cut with `sed -n`. **One new defect found while verifying, in my own file.**
+
+**(1) OQ-20 — counterparty is OpenAI; the guess was half wrong, and the wrong half is the interesting one.**
+Re-derived, not accepted on report:
+
+```
+curl -sS -o /dev/null -w '%{http_code}' https://cirruslabs.org/     -> 200
+cirruslabs.org  -> "Cirrus Labs to join OpenAI" / "April 7th, 2026" / "Fedor Korotkov"
+api.github.com/repos/cirruslabs/tart -> "full_name": "openai/tart"
+openai/tart LICENSE -> "Functional Source License, Version 1.1, ALv2 Future License"
+                    -> "Copyright 2022-2026 OpenAI"
+grep -ci 'core' <that LICENSE>                                      -> 0
+tart.run /licensing/ : "OpenAI" x0 · "licensing@cirruslabs.org" present · "100 CPU core limit" present
+```
+
+Written as a table: **acquisition half ✅ confirmed, contact half 🟡 doubtful.** The tier-grant page is
+**stale relative to the acquisition** — three months on, `tart.run/licensing` has not heard of OpenAI. So
+the escalation-contact question is *not* asserted; 🏭 tart-ci marks it `<!-- UNVERIFIED -->` citing OQ-20,
+and does not guess. Recorded explicitly that the **100-core Free Tier is a grant published on `tart.run`,
+not a clause of the FSL text**, which mentions cores zero times. Both true at once; conflating them would
+read a core limit into a licence that has none. G4's numbers re-verified unchanged, signed off.
+
+**(2) OQ-32 — the contamination, with the irony stated as the finding.** This run's own `pre_tool_use`
+hook wrote `ghp_FIXTURE_SENTINEL` — spec 13's own fixture secret — into two third-party checkouts, **by
+the run whose thesis is *never write a secret to a filesystem you do not control* (G15/G17).** Provenance
+table recorded (two `cirruslabs/*/logs/` created during the run → **moved**, not deleted; both
+`zsh-dotfiles*/logs/` predate it → **left alone**). Re-verified myself:
+
+```
+grep -rl 'ghp_FIXTURE_SENTINEL' /Users/bossjones/dev/cirruslabs/            -> 0 files
+grep -rIn 'vnc_port' <packer-plugin-tart> --exclude-dir=.git                -> 0 hits
+sed -n '172,177p' specs/macos-ci/02-packer-tart-builder.md                  -> the vnc_port refutation, intact
+```
+
+So **02:172-177 is upheld with no `--exclude-dir=logs`.** Recorded the reason that matters: the
+workaround would have been **a spec accommodating a defect in our own tooling**, permanently, and inviting
+every future reader to wonder why. Removed at the source instead. OQ-16's `logs`-path rejection in
+`verify_claims.py` stops it returning through the ledger.
+
+**(3) The two G19-class URLs**, both now ledger-backed via the new `http-status`/`http-contains` kinds,
+written up beside the existing sitemap-exception section under a new heading: *"The G19 class: absence from
+an index refutes only inside that index's domain."* The rule is stated plainly, with the consequence:
+**outside the domain, absence is evidence of nothing — go fetch the URL**, and refuting a live page by
+grepping an index that never claimed to list it is **G10 running backwards.** The second G19 (the Oct-2025
+enforcement press release — sole source for G4's "enforcement is not theoretical", absent from tart's
+index, `200`) is flagged as **found this run**. Also recorded: **a `200` proves a page exists, not that it
+says anything** — `http-status` is the weakest kind in the ledger; prefer `http-contains` on plain text.
+
+One point I want on the record because it is subtle. The absence claim is written as a **`must_fail`
+`doc-index`** record, deliberately. A *positive* `doc-index` claim on that blog URL would **fail, and the
+tool would report it exactly as it reports a fabricated page.** Inverting it says the true thing ("the
+index does not list this") without ever implying the false one ("this page does not exist"). Its control
+asserts the index *does* carry `/blog/`, so the absence is a property of the post, not of an oracle that
+never indexed blogs at all.
+
+**🟡 CONFLICT S3 — a frozen count in my own file had drifted, and I found it only by re-deriving.**
+`11-sources.md:52,55` asserted **337** total `/packer/*` sitemap entries. Today:
+
+```
+curl -fsSL https://developer.hashicorp.com/server-sitemap.xml | grep -o '<loc>[^<]*packer[^<]*</loc>' | wc -l   -> 365
+                                                                     ... | grep -c '/packer/docs'              -> 203   (unchanged)
+                                                                     ... | grep -c '/packer/integrations'      ->   0   (unchanged)
+```
+
+`203` still holds; `337` is now `365`. **This is the `47/47` sin, in the very section that teaches the
+lesson**, and I wrote the fix for `47/47` two rounds ago without noticing its neighbour. Rewritten to keep
+the *structural* fact (zero `/packer/integrations` entries — which is the load-bearing one, and is a
+`must_fail` ledger claim with a control) and to name the drift rather than freeze a new number.
+`CLAUDE.md:62,75` carries the same stale `337`. **I do not own `CLAUDE.md`** → 👑 lead.
+
+*A number that was true when written and is never re-derived is indistinguishable from one that was never
+true.*
+
+**Proposals:** `.team/proposed/synth.jsonl` — **18 claims, dry-run 18/18 PASS, exit 0** (5 + 3 + 10). The
+ten new ones use `http-status`/`http-contains` and carry `polarity: "negative"` where they are negatives;
+each negative names a positive control **in the same file, on the same substrate**, so the pair dry-runs
+standalone. Four are controls, filed as such and doing real work rather than padding.
+
+**Gate:** `just check` → EXIT 0 · 246/246 · 0 `[FAIL]` · 0 non-200 links · markers **15**, unchanged by my
+edits (I re-checked: the new prose adds zero bare marker tokens — the trap from round 1).
+
+---
+
+### 🧪 harness — OQ-17 / OQ-18 remediation
+
+Both human decisions implemented. **10/10 proposed claims dry-run PASS**
+(`uv run tools/verify_claims.py .team/proposed/harness.jsonl` → exit 0). Both new negative probes were
+**mutation-tested**: swapping each to a pattern known present flips it to `FAIL`, so neither is vacuous.
+
+#### R-1 — 🔴 **THE MASTER BRIEF'S LINE NUMBERS WERE WRONG AGAIN. Both of them. Fourth and fifth.**
+The dispatch told me to fix `08:39-48` and retire the marker at `08:174`, and told me — correctly — to
+re-derive both. Neither is right:
+
+```
+$ grep -n 'Open question: `-base`' specs/macos-ci/08-dotfiles-test-harness.md   ->  47   (block runs :47-58)
+$ grep -n 'UNVERIFIED' specs/macos-ci/08-dotfiles-test-harness.md | grep -v '`<!-- UNVERIFIED'
+   72 … 107 … 114 … 189:  Whether `sheldon source` lazily re-locks is <!-- UNVERIFIED: … see OQ-17 -->
+```
+
+`08:174` is inside the `(b)` Option-B paragraph and contains no marker. The real marker was **`:189`**;
+the `-base` block is **`:47-58`**. Prior false line numbers from the same chain: D5's, `rename-tab`, the
+`12:607` hallucination, D2's `12:200-202`. **The instruction to re-derive is now the only reason any
+citation in this run is correct.**
+
+#### R-2 — 🟢 OQ-18 implemented. `-vanilla`, no `mise`. The missing premise was the whole argument.
+`08` had two ledger claims sitting next to each other — `base-image-preinstalls-mise` and
+`mise-installed-by-dotfiles-on-macos` — and read them as *redundancy*. They are not. The third premise is
+what makes them a **hole**, and it did not exist until now:
+
+```
+$ sed -n '9p' zsh-dotfiles/home/.chezmoiscripts/run_onchange_before_02-macos-install-mise.sh.tmpl
+command -v mise >/dev/null 2>&1 || brew install mise || true
+```
+
+`-base` ships `mise` (`base.pkr.hcl:109`). The dotfiles' installer is guarded on `command -v mise`.
+Therefore on `-base` the `brew install mise` arm **never executes** and the suite reports **green having
+never run the one path it exists to test.** New claim: `dotfiles-mise-script-short-circuits-on-existing-mise`.
+
+Also confirmed against upstream's own README (`macos-image-templates/README.md:8-9`): `-vanilla` is *"a
+vanilla macOS installation … but no additional software preinstalled"*, and `-base` is *"based on
+`…-vanilla` image, [it] comes with `brew` … pre-installed."* So `-vanilla` is **one rung down upstream's
+line, not a fork off it** — the golden image re-adds exactly CLT + Homebrew + chezmoi + `retry` and stops
+before `mise`. Claims: `vanilla-image-preinstalls-no-software`, `base-image-is-derived-from-vanilla`,
+`vanilla-sequoia-template-installs-no-mise` ↔ `CONTROL-vanilla-sequoia-template-is-a-tart-cli-build`.
+
+`08:47-58` rewritten; *"recorded here as open"* retired. `12`'s `macos-versions.toml` re-pinned to
+`ghcr.io/cirruslabs/macos-{sequoia,tahoe}-vanilla:latest`. **Both pre-existing claims kept — both are true,
+and `08` now says the harness uses `-vanilla` *because* they are.**
+
+#### R-3 — 🟢 OQ-17 implemented. Marker retired, and the claim that earns it is NOT the one requested.
+The human specified: *"host-side ledger claim: `cli-help` on `sheldon lock --help`, expect `--reinstall`."*
+**That claim already exists, merged, as `CONTROL-sheldon-lock-help-prints-reinstall`** — same `argv`, same
+`expect`. Re-proposing it would have padded the count with a duplicate. I did not, and I am saying so
+rather than letting a dedupe silently absorb it.
+
+What was actually missing is the **stronger** proposition, now proposed:
+`sheldon-help-has-no-verify-subcommand` (`cli-help`, `must_fail`, `polarity: negative`) — sheldon 0.6.6 has
+**no `verify` verb anywhere** (`init | add | edit | remove | lock | source | completions | version`), not
+merely no `--check` on `lock`. That is what forecloses every read-only alternative, and it is therefore
+what licenses running the mutating command. Paired with `CONTROL-sheldon-help-lists-lock-subcommand` (same
+`argv`, `expect: "lock"`), so *"no verify in the output"* cannot be satisfied by an empty `--help`. If
+`sheldon` leaves `PATH`, both report `UNREACHABLE:` — never a silent pass, never a refutation.
+
+`08`'s assertion-table row now reads: **run `sheldon lock` in-guest, assert exit 0.** The spec states the
+reasoning the OQ got backwards — *the disposable clone exists precisely so that mutation is free*, and
+installing the plugin sources **is** the behaviour under test. My own recorded guess ("drop the check
+entirely") was **wrong**, and recording which half was wrong is the point.
+
+**HONESTY-BUDGET ARITHMETIC, stated explicitly as instructed.** Markers were **15**.
+
+| | 08 | 04 | rest | total |
+|---|---|---|---|---|
+| before | 4 | 0 | 11 | **15** |
+| after | **3** (OQ-17 retires one) | **1** (🏭 tart-ci adds OQ-20's) | 11 | **15** |
+
+`grep -rn 'UNVERIFIED' specs/ --include='*.md' \| grep -vc '`<!-- UNVERIFIED'` → **15**. The fall in `08`
+is paid for by **six added claims**, not by deletion. I touched **no other marker**; `12`'s VNC marker is
+byte-identical and still present (`git diff` shows zero changes to its text). Net **15**, exactly the
+arithmetic the lead predicted.
+
+#### R-4 — 🔴 **I BROKE TWO MORE `file-line` PINS. Same mechanism as C-H13. Second occurrence. → OQ-38.**
+My OQ-13 and OQ-18 edits to spec `12` added lines above two pinned citations. **Neither line's text
+changed** (`git diff` confirms); both merely moved.
+
+```
+[FAIL] oq02-vnc-marker-pinned-at-12-359    line 359 is 'prefer the `pty` tier whenever…'   ->  now :364
+[FAIL] spec12-vnc-port-mention-is-at-349    line 349 is ''                                  ->  now :354
+```
+
+Re-pins proposed and dry-run PASS: `oq02-vnc-marker-pinned-at-12-364`, `spec12-vnc-port-mention-is-at-354`.
+**🔬 ledger must merge these; the gate is red until it does.** Meanwhile
+`oq02-vnc-marker-exists-regardless-of-line` (`file-contains`) **never failed once** across all three moves
+— which is the argument for pairing every marker pin, and the reason I filed **OQ-38**.
+
+**The second failure is the one that matters, and it is a governance gap, not a typo.**
+`spec12-vnc-port-mention-is-at-349` carries `file: 02-packer-tart-builder.md` (🍎 **tart-core**'s scope) but
+`target: 12-tooling-and-agent-loop.md` (🧪 **harness**'s file). **No agent owns both ends.** tart-core cannot
+know when I edit 12; I have no mandate to renumber tart-core's evidence. I proposed the re-pin regardless,
+because a red gate was worse — but that is **one agent rewriting another's evidence**, which `_RULES.md` §5
+does not contemplate. 👑 **lead should adjudicate whether that was correct.** I would rather be told I
+overstepped than have the gate stay red quietly.
+
+#### R-5 — 🟢 OQ-13's new network host recorded in `12`, as instructed.
+`12` now carries an explicit table of the five hosts `just check` reaches, and states that
+`raw.githubusercontent.com` is **pinned to tag `v1.15.4`, never `main`** — a claim pinned to `main` would
+re-verify against a different file every week, *"which is drift wearing a green check."* `12`'s evidence-kind
+table gains `http-status` and `http-contains`. Claim: `packer-shell-provisioner-source-is-tag-pinned`
+(`http-status`, `200`). **`just check` was never hermetic** — lychee and both doc oracles already reached
+the network; OQ-13 widens an existing dependency rather than introducing one, and `12` now says so.
+
+---
+
+### 🔬 ledger — human-decisions remediation
+
+**Ledger 246 → 303.** Merged **61** proposed records from all seven agents, added 3 new-kind claims,
+upgraded 2 to native kinds, deduped 7 groups the merge introduced, repinned 4 drifted line numbers.
+`just check` exit `0`, `303/303`, 0 FAIL lines, **0 duplicate evidence groups**, markers **15**.
+
+#### OQ-37 — `polarity`, author-set. The tool stops guessing.
+
+`needs_control()` read **syntax** (`kind == "absent"`, or the `must_fail` flag). OQ-33 found a claim that is
+semantically negative and syntactically positive. The human upheld my rejection of all four inference
+heuristics and said *stop inferring*:
+
+```python
+if claim.get("polarity") == "negative":   # author-set, never inferred
+    return True                            # -> `control` mandatory; missing -> exit 4
+```
+
+Backfilled on **55** claims: every `absent`, every `must_fail`, plus the four negatives wearing positive
+clothes — both `no-terraform-provider-at-cirruslabs-*` probes (they defend **G1**),
+`packer-no-debug-log-on-stderr-when-overlay-disabled`, `synth-justfile-has-no-doctor-recipe`. An invalid
+`polarity` value is itself a rejection.
+
+#### OQ-26 — `http-status`. The two G19-class URLs are claims now, not prose behind a carve-out.
+
+| URL | claim |
+|---|---|
+| `/packer/integrations/.../builder/tart` — underpins **all of spec 02**, 0 of 337 sitemap entries | `g19-tart-builder-integrations-page-returns-200` |
+| `tart.run/blog/2025/10/27/press-release-…` — **sole** source for G4's enforcement claim, zero `/blog/YYYY/MM/DD/` posts indexed | `g4-enforcement-press-release-returns-200` |
+
+Both **upgraded rather than duplicated**: tart-core and tart-ci already probed these with `cli-help curl`.
+Adding new records alongside them would have recreated the exact duplicate-evidence groups I deleted last
+round. `g19-…` converted `cli-help` → `http-status`; `tart-2025-enforcement-press-release-is-live` converted
+→ `http-contains`, because **a 200 proves the page exists, never that it says anything** — existence and
+content are different propositions and now have different claims.
+
+Hosts are an explicit allowlist (`developer.hashicorp.com`, `tart.run`, `raw.githubusercontent.com`,
+`cirruslabs.org`). A typo'd host is a loud structural rejection, not a silent `UNREACHABLE:` that `must_fail`
+could invert.
+
+#### OQ-13 — `http-contains`. Spec 13's central safety property, against Packer's PINNED source.
+
+```
+https://raw.githubusercontent.com/hashicorp/packer/v1.15.4/provisioner/shell/provisioner.go   200, 14,446 bytes
+  :273   if err := comm.Upload(remoteVFName, r, nil); err != nil {     -> packer-shell-uploads-the-varfile-into-the-guest
+  :401   Command: fmt.Sprintf("rm -f %s", path),                       -> packer-shell-cleans-the-varfile-with-an-unlink
+```
+
+The varfile is **uploaded into the guest** (why 13 mandates `use_env_var_file = false`) and cleaned up with an
+**unlink, not a shred** (G15's whole point). Tag-pinned, never `main`. A non-2xx yields `STRUCTURE:` — verified
+adversarially that a 404 under `must_fail` is **not** inverted into a pass.
+**→ 🧪 harness: `raw.githubusercontent.com` is a new network dependency of `just check`; record it in
+`12-tooling-and-agent-loop.md`.** Not my file.
+
+#### OQ-16 — `logs/` evidence targets refused
+
+`check_structure()` rejects any `file-contains`/`absent`/`file-line` target with a `logs` path component,
+exit 4: *"Logs are agent-writable; evidence must not be."* Not a live bug — but this run's own `pre_tool_use`
+hook wrote `ghp_FIXTURE_SENTINEL` into a third-party clone, **in the run whose thesis is *never write a secret
+to a filesystem you do not control***. We were one directory-valued `absent` target away from a claim that
+passes because an agent once typed the string it asserts is missing.
+
+#### OQ-29 — the blind pair KEPT, its prose amended, the successor added
+
+Both halves are blind: `packer inspect` writes the debug log to **stderr**, the claims read **stdout**,
+byte-identical either way. **The proposition is true today** — I re-confirmed by hand: the isolated stderr
+stream is 845 bytes under `PACKER_LOG=1`, 0 bytes without it, and contains the sentinel **zero** times.
+Nothing in spec 13 is mis-stated; the rot is in the verifier. Per `_RULES.md` §5 I did **not** touch `expect`.
+I amended the `claim` prose to open with *"SUPERSEDED, DO NOT TRUST THIS GREEN CHECK"* — prose is not evidence,
+so this weakens nothing, but it strips a misleading green check of its power to reassure. Added tart-ci's
+successor pair, which isolates stderr with `sh -c '… 2>&1 1>/dev/null'`, both marked `polarity: negative`.
+
+#### Two things the merge caught that nobody predicted
+
+**1. The lead's own OQ-04 Justfile guard shifted lines 44 and 63.** My pinned claims failed loudly rather
+than rotting. Re-derived with `grep -n`, never recalled: `d1` → **52**, `d5` → **71**,
+`justfile-verify-no-secrets-*` → **60**.
+
+**2. `12-tooling-and-agent-loop.md` is now EXACTLY 607 lines — and `CONTROL-12-line-607-does-not-exist`
+PASSED.** This is the GB3 scenario, arrived. It did not cry wolf, because the reshaped `expect` is the
+specific vnc-marker literal rather than the bare substring `UNVERIFIED`. **My original "30 lines from
+passing" framing is now empirically refuted: file length was never the trigger, exactly as the lead
+diagnosed.** The vnc marker itself moved 359 → 364; the `file-line` claim failed and its line-independent
+companion stayed green, which is precisely how the pair distinguishes *moved* from *deleted*.
+
+#### Adversarial self-tests — five, all executed
+
+```
+(1) polarity=negative, no control        -> "carries NEGATIVE evidence but no `control` field"   EXIT=4
+(2) absent over .../logs/out.txt         -> "Logs are agent-writable; evidence must not be."     EXIT=4
+(3) http-status, off-allowlist host      -> "host 'evil.example.com' is not in the HTTP_HOSTS…"  EXIT=4
+(4) http-contains on a 404, must_fail    -> "STRUCTURE: … returned 404, not 2xx"  (NOT inverted) EXIT=2
+(5) well-formed ledger                   -> 2/2 claims verified                                  EXIT=0
+```
+
+#### Honesty budget — the arithmetic, explicitly
+
+```
+HEAD 16  −1 (01-tart-core.md:68, retired by tart-core against a passing claim)
+         −1 (08-dotfiles-test-harness.md, OQ-17 marker retired by harness against a passing claim)
+         +1 (04-tart-licensing-risk.md, OQ-20 enforcement-contact marker added)
+         = 15
+```
+
+Matches the human's prediction exactly (`14 + 1 = 15`). Every fall is backed by an added claim; the one rise
+cites its OQ.
+
+#### Gate
+
+```
+$ just check
+🚀 Checking all links in markdown files using lychee
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/11-sources.md
+[200] file:///Users/bossjones/dev/bossjones/macos-ci/specs/macos-ci/10-tart-vs-utm-adr.md
+   [... 642 lines elided: lychee [200] lines + PASS lines + marker list ...]
+303/303 claims verified
+$ echo $?
+0
+```
+
+`0` FAIL lines. All six original `must_fail` controls PRESENT with `must_fail: true` and still failing their
+evidence — none weakened, none deleted, `expect` untouched. `uvx ruff check tools/verify_claims.py` →
+`All checks passed!`. **303 records, 303 distinct ids, 0 duplicate evidence groups**, 38 `must_fail`,
+55 `polarity: negative`, 48 `control` fields, 4 `http-status`, 14 `http-contains`. Nothing committed.
+
+**Deduped on merge** (synth and tart-ci independently proposed the same evidence; kept the owner's id,
+repointed two `control` fields): `synth-cirruslabs-announces-openai-acquisition`,
+`synth-cirruslabs-announcement-dated-april-2026`, `synth-tart-licensing-still-lists-cirruslabs-contact`,
+`synth-tart-index-carries-blog-landing-page`, `synth-enforcement-press-release-absent-from-tart-index`,
+`synth-justfile-has-check-recipe`, `xaudit-12-vnc-stdout-stays-unverified`.
+
+**Not merged, deliberately** — retired earlier and re-proposed from stale files:
+`CONTROL-git-grep-c-emits-colon-when-present`, `CONTROL-prep-grep-c-emits-colon-when-present` (GB1: vacuous),
+`verify-claims-missing-file-is-unreachable` (GAP3: source-grep), plus four dedupe casualties.
+🖥 utm's `xaudit-09-git-grep-fatal-line-contains-a-colon` **was** merged: its `expect` is `":"`, but its
+*subject* is that a `fatal:` line contains a colon — that is the finding, not the defect.
+
+**Still open from GB4:** `control` ids resolve within the ledger being checked, so
+`uv run tools/verify_claims.py .team/proposed/<role>.jsonl` exits `4` for proposals whose negatives name
+controls in `claims.jsonl`. → 👑 lead.
+
+#### 📚 synth — 🔴 **CONFLICT S3 IS RETRACTED. I was wrong, and the way I was wrong is the finding.**
+
+I re-derived the lead's counter-evidence against one freshly downloaded sitemap before accepting it. **The
+lead is right.**
+
+```
+A) grep -o '<loc>https://developer.hashicorp.com/packer[^<]*</loc>'  -> 337   <- path-anchored. STILL 337.
+B) grep -o '<loc>[^<]*packer[^<]*</loc>'                             -> 365   <- bare substring
+   of B: /packer/docs -> 203 · /packer/integrations -> 0
+   B minus A = 28 entries, none of them /packer/*:
+     /hcp/docs/packer · /hcp/docs/packer/manage/ancestry · /hcp/docs/packer/store/sbom · …
+     -> HCP Packer. A DIFFERENT PRODUCT NAMESPACE containing the substring "packer".
+```
+
+**`337` was correct when written and is correct now.** I retracted a true number by silently changing the
+question it answered. `11-sources.md:53` asserted *"re-running it today returns 365"* — false: `365` is
+not a `/packer/*` count and never was.
+
+**Which half was wrong:** the instinct to re-derive was **right**. The predicate was **wrong**.
+
+**My own S3 text contained its own disproof.** I printed `/packer/docs -> 203 (unchanged)` from the same
+grep that produced `365`, and never asked ***203 out of what?*** A stable numerator under a "changed"
+denominator is a contradiction sitting in plain sight. I read it as reassurance that the load-bearing part
+survived, when it was evidence that the denominator was measuring something else.
+
+**Root cause, and it is not just carelessness.** The two authoritative snippets in this repo disagree, and
+the loose one is in the file every agent reads first:
+
+| File | Predicate | Yields |
+|---|---|---|
+| [`.team/dispatch/_RULES.md:67`](dispatch/_RULES.md) | `grep -o '<loc>[^<]*packer[^<]*</loc>'` | **365** — sweeps in HCP Packer |
+| [`CLAUDE.md:61`](../CLAUDE.md) | `grep -o '<loc>https://developer.hashicorp.com/packer/docs[^<]*</loc>'` | **203** — path-anchored |
+
+I used `_RULES.md`'s. It is presented as *"the oracle"*, under a heading instructing agents to query the
+index before typing a URL — and for the `/packer/*` **total** it is the wrong probe. → 👑 lead: `_RULES.md:67`
+should anchor the path, or say out loud that it is a substring sweep. **A snippet in a rules file is a
+claim, and this one has no control.**
+
+**Corrections made:**
+
+1. **`11-sources.md:52-58`** (re-derived with `sed -n '44,60p'` before editing). `337` restored as the
+   `/packer/*` count. **Both greps now printed**, with what each actually counts and the 28 HCP entries
+   named. The load-bearing structural fact is kept and sharpened: **zero `/packer/integrations` entries,
+   under (A) and (B) alike, at 337 and at 365** — *it never depended on the total*, which is exactly why
+   the ledger pins the fact and not the number.
+2. **`CLAUDE.md` NOT changed.** I flagged `:75` (*"0 of 337 `/packer/*`"*) to the lead as stale. **It is
+   not stale. It is correct.** I verified: 337 under the path-anchored grep today. My flag was wrong and is
+   withdrawn — recorded here rather than quietly dropped, because a false "this doc is stale" report is how
+   a correct doc gets edited into a wrong one.
+3. **The aphorism now cuts both ways**, written into `11-sources.md` beside the `47/47` retraction:
+   > A number that was true when written and is never re-derived is indistinguishable from one that was
+   > never true. **And its converse:** a number re-derived by a *different query* is indistinguishable from
+   > one that was never checked.
+
+   `47/47` was the first failure; `337` was its mirror image, one round later, in the same file, by the
+   same agent who diagnosed the first. **Re-derivation must re-derive the same question.** A re-run with a
+   subtly different predicate is not a re-derivation — it is a new claim wearing the old one's citation,
+   and it retracts true sentences with exactly the confidence it would refute false ones.
+
+**Ledger:** one new claim, `synth-sitemap-substring-packer-also-matches-hcp-packer` — a `cli-help` pinning
+that the sitemap publishes `<loc>https://developer.hashicorp.com/hcp/docs/packer`. It fixes the *structural
+cause* of the confusion (the namespace exists) rather than either total.
+
+**I deliberately did NOT propose a claim on `337`**, per the lead's instruction and on the merits: that
+count rots every time HashiCorp ships a docs page, and a claim that goes red on a routine upstream edit
+teaches its reader to disarm it — the GB3 cry-wolf failure. The durable assertion is already in the ledger:
+`g19-packer-integrations-absent-from-hashicorp-sitemap` (`must_fail`) with
+`CONTROL-hashicorp-sitemap-lists-packer-docs`. **Nothing load-bearing rests on a number, and nothing
+should.**
+
+**Proposals:** `.team/proposed/synth.jsonl` — **19 claims, dry-run 19/19 PASS, exit 0.**
+
+### 👑 lead — the claim ID is prose, and prose rots. Found in my own edit's blast radius.
+
+My OQ-04 guard added 6 lines to the `Justfile`. 🔬 ledger correctly re-derived the `file-line` pins, so
+`just verify-claims` stayed green. But look at what the ledger now contains:
+
+```
+d1-justfile-44-invokes-absent-template          file-line   line=52    <- id says 44, pin says 52
+d5-justfile-63-discriminates-on-the-backtick    file-line   line=71    <- id says 63, pin says 71
+justfile-verify-no-secrets-starts-at-line-60    file-line   line=60    <- id and pin agree, today
+```
+
+**The `line` field is evidence. The `id` is prose.** `verify_claims.py` re-executes the former and never
+reads the latter, so an id that embeds a line number decays silently the first time anyone edits above it —
+and it decays *invisibly*, because the gate stays green. A future reader greps for `d1-justfile-44` and
+"confirms" a fact about line 44 that the ledger stopped asserting three edits ago.
+
+This is the **same defect as OQ-02's `:607`**, one layer further out: not a hallucinated citation, but a
+*true* citation embalmed in a name that outlives it. It is also the same defect as `47/47` and as
+CONFLICT S3 — a number frozen where nothing re-derives it. We have now found this class **four times**, in
+four different substrates: a prose citation, a doc-count, a claim's `expect`, and a claim's own **identifier**.
+
+**No fix is mandated here** — renaming ids churns every cross-reference and the pins themselves are correct.
+But it deserves a rule, and it is cheap: **never put a line number in an identifier.**
+`d1-justfile-invokes-absent-template` asserts exactly as much and cannot rot.
+`justfile-verify-no-secrets-starts-at-line-60` is the trap already armed: its id and pin agree *today*.
+
+→ 🔬 ledger, at leisure: rename these three ids and any others carrying a literal line number. Not a gate
+blocker. Recorded because **the gate going green is precisely what hides it.**
+
+---
+
+### 🔬 ledger — final merge adjudication
+
+**Every unmerged proposal now carries a verdict.** *An unmerged proposal with no recorded verdict is
+indistinguishable from one you never read.* 13 were outstanding; my renames below made it **15**. All 15
+are adjudicated. Ledger **303 → 305**: +3 new claims, −1 semantic duplicate of my own.
+
+`just verify-claims` exit `0`, `just check` exit `0`, `305/305`, 0 FAIL lines, 0 duplicate evidence groups,
+markers **15**, six sacred controls intact and `expect` untouched, `ruff` clean. Nothing committed.
+
+#### Verdicts
+
+| id | verdict | reason |
+|---|---|---|
+| `synth-sitemap-substring-packer-also-matches-hcp-packer` | **MERGED** | genuinely new and a real trap: a loose `grep` for `packer` over the sitemap also matches **19** `/hcp/docs/packer` pages (HCP Packer — a different product). `11-sources.md`'s "337 `/packer/*`" is only right because the grep anchors the full prefix. Verified: 19 vs 337. |
+| `justfile-build-golden-guards-on-missing-template` | **ADDED** | new; pins the OQ-04 guard at `Justfile:46`. |
+| `justfile-build-golden-guard-exits-4` | **ADDED** | new; pins `exit 4` at `Justfile:49`, before `packer build` at `:52`. |
+| `oq02-vnc-marker-pinned-at-12-364` | **REJECTED** | duplicate evidence. A pin at the correct line already exists — I re-derived `grep -n` → **364** and repointed it. See the rename below. |
+| `spec12-vnc-port-mention-is-at-354` | **REJECTED** | duplicate evidence; the surviving pin already holds `line: 354`, re-derived. |
+| `oq02-vnc-marker-pinned-at-12-359` (lead) | **REJECTED** | superseded by its own renamed successor `oq02-vnc-marker-line-pin`. |
+| `spec12-vnc-port-mention-is-at-349` (secrets) | **REJECTED** | superseded by `spec12-vnc-port-mention-line-pin`. |
+| `d1-justfile-44-invokes-absent-template` (ledger) | **REJECTED** | superseded by `d1-justfile-build-golden-names-absent-template`; its line 44 and its "broken today" prose are both stale. |
+| `verify-claims-missing-file-is-unreachable` | **REJECTED** | **retired, superseded by the `tests/fixtures/verifier/` family, because grepping a tool's source for a string its prose claims as behaviour is Defect A evidence class.** Eight fixture-backed claims now EXECUTE the tool. (OQ-35 / synth's GAP 3.) |
+| `d2-spec12-201-documents-nonexistent-build-recipe` | **REJECTED** | asserted a defect harness has since FIXED. Line 201 is no longer that row. Superseded by `d2-spec12-carries-the-phantom-recipe-retraction`. A claim that asserts a defect must be retired when the defect is. |
+| `justfile-build-golden-invokes-missing-template` (secrets) | **REJECTED** | duplicate evidence of `d1-justfile-build-golden-names-absent-template`, **and** its `line: 44` is stale (now 52). |
+| `synth-justfile-has-check-recipe` | **REJECTED** | duplicate evidence of `justfile-check-is-the-gate`. Re-derived: the `expect` string still matches, at `Justfile:74`. |
+| `synth-cirruslabs-announces-openai-acquisition` | **REJECTED** | duplicate evidence — **the proposition IS backed**, by 🏭 tart-ci's `cirruslabs-org-announces-openai-acquisition` (`http-contains`, `"Cirrus Labs to join OpenAI"`), merged and PASSING. |
+| `synth-cirruslabs-announcement-dated-april-2026` | **REJECTED** | duplicate evidence — backed by `cirruslabs-org-announcement-dated-april-7-2026` (`http-contains`, `"April 7th, 2026"`), merged and PASSING. |
+| `synth-tart-licensing-still-lists-cirruslabs-contact` | **REJECTED** | duplicate of `tart-licensing-contact-is-cirruslabs`. |
+| `synth-tart-index-carries-blog-landing-page` | **REJECTED** | duplicate of `tart-index-does-carry-blog-shell-pages`. |
+| `synth-enforcement-press-release-absent-from-tart-index` | **REJECTED** | duplicate of `CONTROL-tart-blog-is-outside-doc-index-domain` (a `must_fail` oracle-scope control). |
+| `xaudit-12-vnc-stdout-stays-unverified` | **REJECTED** | duplicate of `oq02-vnc-marker-exists-regardless-of-line`. |
+| `oq02-vnc-marker-exists-in-12` (mine, already merged) | **RETIRED** | semantic duplicate: `oq02-vnc-marker-exists-regardless-of-line` asserts a strictly longer substring of the same marker. I removed **my own** claim, not another agent's. |
+
+**On OQ-20, explicitly, because the lead asked:** `04-tart-licensing-risk.md` does **not** assert an
+acquisition the ledger fails to back. Three claims back it, all passing — `cirruslabs-org-is-live`
+(`http-status` 200), `cirruslabs-org-announces-openai-acquisition`, and
+`cirruslabs-org-announcement-dated-april-7-2026`. synth's two are rejected as **duplicates of those**, not as
+unsupported. Had tart-ci's not been merged, I would have merged synth's.
+
+#### A file-line pin is a TRIPWIRE, not a fact — so its id must not name a line
+
+Three ids encoded line numbers that have since rotted. The marker in `12-tooling-and-agent-loop.md` has moved
+**three times** (`340 → 359 → 364`); the Justfile once (`44 → 52`), inside the lead's own OQ-04 edit.
+**The name rots even when the evidence is repaired.** Renamed, evidence re-derived with `grep -n`:
+
+```
+oq02-vnc-marker-pinned-at-12-359       -> oq02-vnc-marker-line-pin                        line 364
+spec12-vnc-port-mention-is-at-349      -> spec12-vnc-port-mention-line-pin                line 354
+d1-justfile-44-invokes-absent-template -> d1-justfile-build-golden-names-absent-template  line 52
+```
+
+The lead is right that the line-agnostic claim is what actually protects the citation. Kept **both**,
+because together they are diagnostic: `oq02-vnc-marker-exists-regardless-of-line` stayed green through all
+three moves, so we know the marker **moved** and was never **deleted**. If only one could survive, it is the
+line-agnostic one.
+
+#### D1 is retracted in part — the lead's own edit made a claim of mine false
+
+`d1-justfile-44-invokes-absent-template` asserted *"`just build-golden` is broken today"*. The OQ-04 guard
+means it is not: it `test -f`s the template and exits 4 **before** `packer build` is reached.
+
+```
+Justfile:46    @test -f packer/tart-golden-image.pkr.hcl || { \
+Justfile:47       echo "missing: packer/tart-golden-image.pkr.hcl" >&2; \
+Justfile:49       exit 4; }
+Justfile:52       packer build packer/tart-golden-image.pkr.hcl
+```
+
+Prose amended to say so; the guard is now pinned by two new claims. **`just build-golden` remains FORBIDDEN
+by this run's scope, so the guard is evidenced by `file-line`, never by executing it** — I did not run it,
+and the lead's execution of it is reported, not re-used as my evidence.
+
+#### Gate
+
+```
+$ just verify-claims
+305/305 claims verified
+$ echo $?
+0
+
+$ uvx ruff check tools/verify_claims.py
+All checks passed!
+
+$ just check
+🚀 Checking all links in markdown files using lychee
+[200] https://developer.hashicorp.com/server-sitemap.xml | OK (cached)
+[200] https://github.com/cirruslabs/packer-plugin-tart/tree/main/.web-docs | OK (cached)
+   [... 646 lines elided: lychee [200] lines + PASS lines + marker list ...]
+305/305 claims verified
+$ echo $?
+0
+```
+
+`0` FAIL lines. **305 records, 305 distinct ids, 0 duplicate evidence groups.** All six original `must_fail`
+controls PRESENT, `must_fail: true`, still failing their evidence, `expect` untouched. Markers **15**.
+Nothing committed.
+
+**Still open, unchanged:** `control` ids resolve within the ledger being checked, so
+`uv run tools/verify_claims.py .team/proposed/<role>.jsonl` exits `4` for proposals whose negatives name
+controls in `claims.jsonl`. → 👑 lead. And `raw.githubusercontent.com` is a new `just check` network
+dependency that belongs in `12-tooling-and-agent-loop.md` → 🧪 harness.
