@@ -114,3 +114,31 @@ def test_check_passes_when_sshpass_is_present() -> None:
     facts = replace(GOOD_FACTS, tool_versions={**GOOD_FACTS.tool_versions, "sshpass": "1.10"})
     row = _row(check(facts), "sshpass")
     assert row.ok is True
+
+
+def test_optional_tool_missing_is_still_ok() -> None:
+    # specs/utm-improvements.md step 6: UTM is optional -- its absence must never fail a
+    # tart-only host's `just doctor`.
+    facts = replace(GOOD_FACTS, optional_tool_versions={"utm": None})
+    row = _row(check(facts), "utm")
+    assert row.required == "optional"
+    assert row.found is None
+    assert row.ok is True
+    assert overall_ok(check(facts)) is True
+
+
+def test_optional_tool_reports_version() -> None:
+    facts = replace(GOOD_FACTS, optional_tool_versions={"utm": "4.6.5"})
+    row = _row(check(facts), "utm")
+    assert row.found == "4.6.5"
+    assert row.ok is True
+
+
+def test_overall_ok_unaffected_by_optional_rows() -> None:
+    # A failing REQUIRED tool must still fail overall_ok even when every optional row is present.
+    facts = replace(
+        GOOD_FACTS,
+        tool_versions={**GOOD_FACTS.tool_versions, "packer": None},
+        optional_tool_versions={"utm": "4.6.5"},
+    )
+    assert overall_ok(check(facts)) is False

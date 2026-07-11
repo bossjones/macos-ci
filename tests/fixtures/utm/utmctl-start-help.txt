@@ -1,0 +1,16 @@
+OVERVIEW: Start a virtual machine or resume a suspended virtual machine.
+
+USAGE: utmctl start [--debug] [--hide] <identifier> [--attach] [--disposable] [--recovery]
+
+ARGUMENTS:
+  <identifier>            Either the UUID or the complete name of the virtual
+                          machine.
+
+OPTIONS:
+  -d, --debug             Show debug logging.
+  --hide                  Hide the main UTM window.
+  -a, --attach            Attach to the first serial port after start.
+  --disposable            Run VM as a snapshot and do not save changes to disk.
+  --recovery              Boot a VM in recovery mode.
+  -h, --help              Show help information.
+

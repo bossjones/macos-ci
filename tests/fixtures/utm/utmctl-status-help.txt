@@ -1,0 +1,13 @@
+OVERVIEW: Query the status of a virtual machine.
+
+USAGE: utmctl status [--debug] [--hide] <identifier>
+
+ARGUMENTS:
+  <identifier>            Either the UUID or the complete name of the virtual
+                          machine.
+
+OPTIONS:
+  -d, --debug             Show debug logging.
+  --hide                  Hide the main UTM window.
+  -h, --help              Show help information.
+

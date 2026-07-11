@@ -1,0 +1,16 @@
+OVERVIEW: Shuts down a running virtual machine.
+
+USAGE: utmctl stop [--debug] [--hide] <identifier> [--force] [--kill] [--request]
+
+ARGUMENTS:
+  <identifier>            Either the UUID or the complete name of the virtual
+                          machine.
+
+OPTIONS:
+  -d, --debug             Show debug logging.
+  --hide                  Hide the main UTM window.
+  --force                 Force stop by sending a power off event (default)
+  --kill                  Force kill the VM process
+  --request               Request power down from guest operating system
+  -h, --help              Show help information.
+

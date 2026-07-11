@@ -1,0 +1,14 @@
+OVERVIEW: Redirect the serial input/output to this terminal.
+
+USAGE: utmctl attach [--debug] [--hide] <identifier> [--index <index>]
+
+ARGUMENTS:
+  <identifier>            Either the UUID or the complete name of the virtual
+                          machine.
+
+OPTIONS:
+  -d, --debug             Show debug logging.
+  --hide                  Hide the main UTM window.
+  --index <index>         Index of the serial device to attach to.
+  -h, --help              Show help information.
+

@@ -79,6 +79,17 @@ for a **Linux** guest (G7). Treat persistent auto-mount on the macOS guest side 
 if needed, solve it with a login item or LaunchAgent the harness provisions itself, not something UTM
 documents.
 
+**This repo's UTM lane** (`specs/utm-improvements.md`) uses this exact mount transcript as the paste-
+into-iTerm2 block `just utm-bootstrap-dotfiles` prints, with two repo-specific conventions pinned in
+`src/macos_ci/_utm_core.py`: the share tag is `share` (matching the doc's own example verbatim, so the
+guest-side command is always `mount_virtiofs share [mount point]`), and `[mount point]` is
+`/Volumes/dotfiles`. `virtiofs_mount_commands()` builds exactly the two-line transcript above;
+`manual_apply_script()` appends the `~/.local/share/chezmoi` symlink (same rationale as the tart lane's
+`harness.py::_bootstrap_chezmoi_source_symlink` — `plugins.toml`'s `[plugins.bossaliases]` hardcodes
+that conventional path) and the `chezmoi apply` line, so one paste both mounts the share and applies
+the dotfiles. Unlike the tart lane, this apply is **human-run, not harness-run** — SSH only supplies the
+*feedback* channel (`just utm-ssh`/`just utm-exec`) to check the result afterward.
+
 ### 3.2 Network file sharing (works down to macOS 12)
 
 Source: same page, §"Network sharing". For a macOS 12 guest (VirtioFS above requires 13+ on both ends),
@@ -236,3 +247,43 @@ covering only how to add/remove Display, Network, and Serial devices.
 OS on 68k (Quadra 800) / PPC (Power Macintosh G4) hardware** — a completely different, QEMU-emulated
 target unrelated to the macOS 12+ Apple-backend guest this repo cares about. Noted only to explain why it
 is excluded.
+
+## 11. Importing the tart golden disk
+
+`specs/utm-improvements.md`'s Spike A: can the tart lane's already-provisioned golden image
+(Homebrew, chezmoi, Xcode CLT, `admin`/`admin`, sshd on) be reused for the UTM lane instead of
+hand-provisioning a second golden VM from scratch? Apple-backend drive import
+([settings-apple/drive/#creation](https://docs.getutm.app/settings-apple/drive/#creation)) states:
+"the image will be copied to the .utm package. Only raw images are supported."
+
+**Verified on this host, 2026-07-10**: `~/.tart/vms/dotfiles-golden/config.json` reports
+`"diskFormat": "raw"`, and `file disk.img` confirms a DOS/MBR boot sector with a GPT protective
+partition — i.e. already a plain raw disk image, not Tart's ASIF format. **This retires the
+ASIF→raw conversion hedge** (`diskutil image convert`) the spike carried as a fallback — it is
+simply not needed on this host's golden image. Never touch the live golden directly: `tart clone
+dotfiles-golden <scratch>` first (fast, copy-on-write), then stage the clone's `disk.img` — this is
+what `just utm-import-golden` (`src/macos_ci/utm.py::import_golden_impl`) automates: clone → copy
+`disk.img` to `artifacts/utm-import/` → delete the scratch clone, leaving the golden untouched
+either way.
+
+What is still unverified: everything past staging the raw file is a **manual GUI step with no
+scriptable path** (§1's New VM wizard, drive Import dialog) — no amount of automation retires this,
+per the ADR (`10`). It has not yet been exercised on this host:
+
+- The staged raw image's boot cleanliness once imported as an Apple-backend drive
+  <!-- UNVERIFIED: machine-identifier/NVRAM provenance is tart's, not UTM's -- a mismatch could
+  refuse to boot; settling it needs the GUI import + boot step. See specs/utm-improvements.md
+  Spike A. -->.
+- The one best-effort mitigation if it doesn't boot: transplanting tart's `config.json`
+  `hardwareModel`/`ECID` fields into the UTM bundle's `config.plist` `MacPlatform`
+  <!-- UNVERIFIED: untried; no claim exists for it. -->.
+- The documented fallback if both fail: hand-provision a one-time golden UTM VM from IPSW to golden
+  parity, name it `dotfiles-golden-utm`, and clone it per session — functionally identical to the
+  tart-reuse path from the downstream workflow's point of view, just without the golden-image
+  reuse.
+
+`just utm-import-golden` prints the manual checklist for this step (create Apple-backend VM →
+delete its auto-created disk → Import the staged raw image → Network = Shared → add a VirtioFS
+share → add a PTTY serial device → boot → confirm SSH) regardless of which path is taken; the boot
+outcome itself is not machine-checkable and is recorded here as dated prose once observed, not as a
+ledger claim.

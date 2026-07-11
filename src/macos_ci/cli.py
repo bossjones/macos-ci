@@ -2,13 +2,14 @@
 
 import typer
 
-from macos_ci import doctor, gui, harness, vm_debug
+from macos_ci import doctor, gui, harness, utm, vm_debug
 
 app: typer.Typer = typer.Typer(help="Local, disposable macOS CI harness on top of Tart.")
 
 app.add_typer(harness.app, name="harness")
 app.add_typer(gui.app, name="gui")
 app.add_typer(vm_debug.app, name="vm-debug")
+app.add_typer(utm.app, name="utm")
 
 
 @app.command("doctor")

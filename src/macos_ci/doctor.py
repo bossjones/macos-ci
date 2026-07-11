@@ -14,7 +14,8 @@ import subprocess
 import time
 from pathlib import Path
 
-from macos_ci._doctor_core import REQUIRED_TOOLS, DoctorFacts, check, overall_ok
+from macos_ci import utm
+from macos_ci._doctor_core import OPTIONAL_TOOLS, REQUIRED_TOOLS, DoctorFacts, check, overall_ok
 from macos_ci.artifacts import write_json
 
 _VERSION_RE = re.compile(r"\d+\.\d+(?:\.\d+)?(?:-[\w.]+)?")
@@ -69,6 +70,14 @@ def _login_keychain_unlocked() -> bool:
     return probe.returncode == 0
 
 
+def _optional_tool_version(tool: str) -> str | None:
+    # specs/utm-improvements.md step 6: Info.plist only, never a subprocess launch (utm.py's
+    # `utm_app_version()` already enforces "never `utmctl version`" for the `utm` case).
+    if tool == "utm":
+        return utm.utm_app_version()
+    return None
+
+
 def collect_facts() -> DoctorFacts:
     zsh_dotfiles = os.environ.get("ZSH_DOTFILES", str(Path.cwd().parent / "zsh-dotfiles"))
     free_bytes = shutil.disk_usage("/").free
@@ -80,6 +89,7 @@ def collect_facts() -> DoctorFacts:
         zsh_dotfiles_path=zsh_dotfiles,
         zsh_dotfiles_path_exists=Path(zsh_dotfiles).exists(),
         free_disk_space_gb=free_bytes / 1e9,
+        optional_tool_versions={tool: _optional_tool_version(tool) for tool in OPTIONAL_TOOLS},
     )
 
 
