@@ -148,7 +148,7 @@ way — `doctor` always writes this artifact, whether or not you asked for `--js
 
 Notice the `fleet-ceiling` row above is always `OK` — that's deliberate. Tart is
 [Fair Source](https://fair.io), not open source, and its free tier is capped. This repo's accepted risk
-posture (signed off 2026-07-10, see [README.md](../../README.md#licensing-accepted-risk-sign-off-g4))
+posture (signed off 2026-07-10, see [README.md](../../README.md#accepted-risk-sign-off-g4))
 is **at most 3 hosts, at most 100 combined CPU cores**. `doctor` reports that ceiling on every run so
 it stays visible, but it deliberately never turns it into a pass/fail check — nothing in this repo
 counts your hosts or cores for you. That's a human judgment call, not a machine one.
