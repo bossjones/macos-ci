@@ -573,3 +573,6 @@ clusters/*/.flags.auto.tfvars.json
 
 # macos-ci harness run state (spec 12 §"The artifacts contract")
 artifacts/
+.claude/settings.json.backup.20260710-201433
+justfile.backup.20260710-201433
+pyproject.toml.backup.20260710-201433

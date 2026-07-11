@@ -223,3 +223,17 @@ typecheck:
 # `cirrus run` for local/CI parity.
 ci:
     @cirrus run
+
+# pyrefly type check (standalone; only fails on errors new since the baseline)
+# `.claude/status_lines` is passed explicitly on the CLI (not via [tool.pyrefly] project-includes)
+# because pyrefly's directory walker silently skips dot-directory paths declared in config.
+check-pyrefly:
+    uv run pyrefly check --baseline pyrefly-baseline.json --summarize-errors src tests tools .claude/status_lines/status_line_v10.py
+
+# refresh the committed baseline after fixing/introducing errors
+pyrefly-baseline:
+    uv run pyrefly check --baseline pyrefly-baseline.json --update-baseline src tests tools .claude/status_lines/status_line_v10.py
+
+# type-coverage report (typed / Any / untyped) as JSON
+pyrefly-coverage:
+    uv run pyrefly coverage report src tests tools .claude/status_lines/status_line_v10.py
