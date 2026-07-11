@@ -10,6 +10,7 @@ import json
 import re
 
 import pytest
+from testinfra.host import Host
 
 # The `tart --dir` mount point (spec 01 §"Shared directories"). Duplicated from
 # `harness.py`'s `_MOUNT_POINT` rather than imported -- same reasoning as
@@ -48,7 +49,7 @@ def _diff_target_path(block: str) -> str:
 
 
 @pytest.mark.vm
-def test_apply_is_idempotent_no_pending_diff(vm):
+def test_apply_is_idempotent_no_pending_diff(vm: Host) -> None:
     # smoke-test-docker.sh:361-373's exit-0 check, restated post-hoc. `chezmoi verify` cannot be
     # used here -- see 09 §"Pre-apply template validation" -- but `chezmoi diff` is also the
     # correct read-only re-check post-apply. Must pass the SAME --source as the real apply used
@@ -74,14 +75,14 @@ def test_apply_is_idempotent_no_pending_diff(vm):
 
 
 @pytest.mark.vm
-def test_post_install_hook_succeeds(vm):
+def test_post_install_hook_succeeds(vm: Host) -> None:
     # smoke-test-docker.sh:376-385, wrapped in retry -t 4 (network-flaky Sheldon/brew fetches).
     result = vm.run("retry -t 4 -- post-install-chezmoi")
     assert result.rc == 0
 
 
 @pytest.mark.vm
-def test_zsh_loads_and_sets_a_prompt(vm):
+def test_zsh_loads_and_sets_a_prompt(vm: Host) -> None:
     # smoke-test-docker.sh:388-404's canonical "did this actually work" probe, verbatim including
     # its `timeout 10s` wrapper. OQ-09 (validator red-team of OQ-08): `timeout` IS present on this
     # host -- `post-install-chezmoi` (run by `test_post_install_hook_succeeds`, which executes
@@ -103,7 +104,7 @@ def test_zsh_loads_and_sets_a_prompt(vm):
 
 
 @pytest.mark.vm
-def test_login_shell_is_zsh(vm):
+def test_login_shell_is_zsh(vm: Host) -> None:
     # macOS-specific -- Linux upstream has no equivalent (spec 08 §(c)).
     result = vm.run("dscl . -read /Users/admin UserShell")
     assert result.rc == 0
@@ -111,7 +112,7 @@ def test_login_shell_is_zsh(vm):
 
 
 @pytest.mark.vm
-def test_sheldon_plugin_sources_resolve(vm):
+def test_sheldon_plugin_sources_resolve(vm: Host) -> None:
     # Mutating, deliberately -- OQ-17, ANSWERED (spec 08 §(c)): the disposable clone this test
     # runs against is destroyed right after, so mutating it costs nothing and tests strictly more
     # than a hypothetical read-only verb would.
@@ -120,20 +121,20 @@ def test_sheldon_plugin_sources_resolve(vm):
 
 
 @pytest.mark.vm
-def test_nvim_headless_sanity(vm):
+def test_nvim_headless_sanity(vm: Host) -> None:
     result = vm.run("nvim --headless '+qa'")
     assert result.rc == 0
 
 
 @pytest.mark.vm
-def test_tmux_present(vm):
+def test_tmux_present(vm: Host) -> None:
     result = vm.run("tmux -V")
     assert result.rc == 0
     assert "tmux" in result.stdout.lower()
 
 
 @pytest.mark.vm
-def test_version_manager_shims_precede_system_path(vm):
+def test_version_manager_shims_precede_system_path(vm: Host) -> None:
     # spec 09 §"The version_manager selector": mutual exclusion between asdf/mise on PATH,
     # derived from smoke-test-docker.sh:222-283's setup_version_manager.
     # `version_manager` is top-level in `chezmoi data`'s output, not nested under a
@@ -154,7 +155,7 @@ def test_version_manager_shims_precede_system_path(vm):
 
 
 @pytest.mark.vm
-def test_homebrew_health_is_non_fatal(vm):
+def test_homebrew_health_is_non_fatal(vm: Host) -> None:
     # smoke-test-docker.sh:332-338: brew doctor warnings are logged, never fail the stage.
     result = vm.run("brew doctor")
     assert result.rc in (
@@ -164,7 +165,7 @@ def test_homebrew_health_is_non_fatal(vm):
 
 
 @pytest.mark.vm
-def test_lean_baseline_feature_toggles_are_all_false(vm):
+def test_lean_baseline_feature_toggles_are_all_false(vm: Host) -> None:
     # spec 09 §"Non-TTY default state": a baseline non-TTY run never fires the seven promptBools.
     data = json.loads(vm.run("chezmoi data").stdout)
     for field in ("ruby", "pyenv", "nodejs", "k8s", "cuda", "fnm", "opencv"):
@@ -193,24 +194,24 @@ index 0000000000000000000000000000000000000000..d71f1719b8a5f97fc7ceaa523a0f7e7a
 """
 
 
-def test_diff_blocks_splits_on_each_git_diff_header():
+def test_diff_blocks_splits_on_each_git_diff_header() -> None:
     blocks = _diff_blocks(_SAMPLE_DIFF)
     assert len(blocks) == 2
     assert blocks[0].startswith("diff --git a/.chezmoiscripts/after-00-adhoc-macos.sh")
     assert blocks[1].startswith("diff --git a/.chezmoiscripts/50-mise-install-tools.sh")
 
 
-def test_diff_blocks_returns_empty_list_for_blank_diff():
+def test_diff_blocks_returns_empty_list_for_blank_diff() -> None:
     assert _diff_blocks("") == []
     assert _diff_blocks("   \n") == []
 
 
-def test_diff_target_path_extracts_the_b_side():
+def test_diff_target_path_extracts_the_b_side() -> None:
     block = "diff --git a/home/.zshrc b/home/.zshrc\n--- a/home/.zshrc\n+++ b/home/.zshrc\n"
     assert _diff_target_path(block) == "home/.zshrc"
 
 
-def test_expected_always_changing_scripts_filters_the_known_two_but_not_a_third():
+def test_expected_always_changing_scripts_filters_the_known_two_but_not_a_third() -> None:
     blocks = _diff_blocks(_SAMPLE_DIFF)
     unexpected = [
         b for b in blocks if _diff_target_path(b) not in _EXPECTED_ALWAYS_CHANGING_SCRIPTS

@@ -16,6 +16,7 @@ from typing import Any
 
 import pytest
 import testinfra
+from testinfra.host import Host
 
 # Duplicated from tests/conftest.py rather than imported: `tests/` isn't a package (no
 # __init__.py, deliberately -- pytest's rootdir-prepend import mode already makes every
@@ -46,7 +47,7 @@ def ssh_config_file(tmp_path_factory: pytest.TempPathFactory) -> str:
 
 
 @pytest.fixture(scope="session")
-def vm(vm_state: dict[str, Any], ssh_config_file: str):
+def vm(vm_state: dict[str, Any], ssh_config_file: str) -> Host:
     host = testinfra.get_host(f"ssh://admin@{vm_state['ip']}", ssh_config=ssh_config_file)
     deadline = time.monotonic() + _CONNECT_TIMEOUT
     while True:

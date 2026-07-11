@@ -33,6 +33,7 @@ dev = [
     "pexpect>=4.9.0",
     "pytest-json-report>=1.5.0",
     "codespell>=2.3.0",
+    "pyrefly>=1.1.1",
 ]
 
 [build-system]
@@ -62,3 +63,12 @@ target-version = "py313"
 [tool.codespell]
 skip = "*.lock,uv.lock,.git,.venv,.ruff_cache,.lycheecache,.mypy_cache,*.cache"
 ignore-words-list = "crate,ba,te"
+
+[tool.pyrefly]
+# NOTE: ".claude/status_lines" cannot go in project-includes — pyrefly's directory walker
+# silently skips any path with a dot-directory component (confirmed independent of
+# .gitignore/.git/info/exclude and of --use-ignore-files=false). It's covered instead by
+# passing it as an explicit positional arg in the check-pyrefly/pyrefly-baseline/
+# pyrefly-coverage Justfile targets, which bypasses that filter.
+project-includes = ["src", "tests", "tools"]
+python-version = "3.13"
