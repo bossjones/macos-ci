@@ -34,7 +34,7 @@ from macos_ci._harness_core import (
 )
 from macos_ci._tart_core import DirMount
 
-app = typer.Typer(help="Run the dotfiles-test harness against a Tart VM.")
+app: typer.Typer = typer.Typer(help="Run the dotfiles-test harness against a Tart VM.")
 
 _VM_USER = "admin"
 _KEY_PATH = Path("harness/ssh/id_ed25519_harness")

@@ -16,7 +16,7 @@ from macos_ci import artifacts
 from macos_ci._harness_core import artifact_paths, steady_state_ssh_argv
 from macos_ci._triage_core import Finding, match
 
-app = typer.Typer(help="Triage a Tart VM's log sources for known failure signatures.")
+app: typer.Typer = typer.Typer(help="Triage a Tart VM's log sources for known failure signatures.")
 
 _VM_USER = "admin"
 _KEY_PATH = "harness/ssh/id_ed25519_harness"

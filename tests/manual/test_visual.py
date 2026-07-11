@@ -16,7 +16,9 @@ import pytest
 
 
 @pytest.mark.manual
-def test_prompt_renders_with_glyphs(vm_state: dict[str, Any], confirm: Callable[[str], bool]):
+def test_prompt_renders_with_glyphs(
+    vm_state: dict[str, Any], confirm: Callable[[str], bool]
+) -> None:
     assert confirm(
         f"On VM {vm_state.get('vm', '?')}: does the terminal prompt show a git branch glyph "
         "and no tofu/replacement-character boxes?"
@@ -24,7 +26,9 @@ def test_prompt_renders_with_glyphs(vm_state: dict[str, Any], confirm: Callable[
 
 
 @pytest.mark.manual
-def test_colorscheme_looks_correct(vm_state: dict[str, Any], confirm: Callable[[str], bool]):
+def test_colorscheme_looks_correct(
+    vm_state: dict[str, Any], confirm: Callable[[str], bool]
+) -> None:
     assert confirm(
         f"On VM {vm_state.get('vm', '?')}: does the terminal colorscheme look right "
         "(no washed-out or inverted colors)?"

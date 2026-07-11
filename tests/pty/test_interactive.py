@@ -29,7 +29,7 @@ _PROMPT_RE = re.compile(r"[%$#>]\s*$")
 
 
 @pytest.mark.pty
-def test_zsh_tab_completion(vm_state: dict[str, Any]):
+def test_zsh_tab_completion(vm_state: dict[str, Any]) -> None:
     child = pexpect.spawn(f"ssh -tt {SSH_OPTS} admin@{vm_state['ip']}", timeout=30)
     child.expect(_PROMPT_RE)
     child.sendline("chezmo\t")
@@ -37,7 +37,7 @@ def test_zsh_tab_completion(vm_state: dict[str, Any]):
 
 
 @pytest.mark.pty
-def test_starship_or_pure_prompt_renders(vm_state: dict[str, Any]):
+def test_starship_or_pure_prompt_renders(vm_state: dict[str, Any]) -> None:
     # A prompt drawn over a real TTY should produce *some* non-empty output before the shell's
     # own PS1/PROMPT content -- this is not asserting on a specific theme, only that something
     # rendered (spec 12 reserves pixel-level assertions for the `gui` tier).
@@ -47,7 +47,7 @@ def test_starship_or_pure_prompt_renders(vm_state: dict[str, Any]):
 
 
 @pytest.mark.pty
-def test_ctrl_r_history_search_is_bound(vm_state: dict[str, Any]):
+def test_ctrl_r_history_search_is_bound(vm_state: dict[str, Any]) -> None:
     child = pexpect.spawn(f"ssh -tt {SSH_OPTS} admin@{vm_state['ip']}", timeout=30)
     child.expect(_PROMPT_RE)
     child.sendline("echo pty_marker_line")

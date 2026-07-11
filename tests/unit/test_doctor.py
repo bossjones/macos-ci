@@ -1,4 +1,8 @@
 import json
+from pathlib import Path
+
+import pytest
+from pytest_subprocess import FakeProcess
 
 from macos_ci import doctor
 from macos_ci._doctor_core import DoctorFacts
@@ -21,11 +25,13 @@ GOOD_FACTS = DoctorFacts(
 )
 
 
-def _with(facts, **overrides):
+def _with(facts: DoctorFacts, **overrides):
     return facts.__class__(**{**facts.__dict__, **overrides})
 
 
-def test_run_exits_0_when_everything_present(tmp_path, monkeypatch):
+def test_run_exits_0_when_everything_present(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(doctor, "collect_facts", lambda: GOOD_FACTS)
 
@@ -36,7 +42,7 @@ def test_run_exits_0_when_everything_present(tmp_path, monkeypatch):
     assert all(row["ok"] for row in written if row["tool"] != "fleet-ceiling")
 
 
-def test_run_exits_2_on_missing_tool(tmp_path, monkeypatch):
+def test_run_exits_2_on_missing_tool(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     bad_facts = _with(GOOD_FACTS, tool_versions={**GOOD_FACTS.tool_versions, "packer": None})
     monkeypatch.setattr(doctor, "collect_facts", lambda: bad_facts)
@@ -50,7 +56,9 @@ def test_run_exits_2_on_missing_tool(tmp_path, monkeypatch):
     assert packer_row["found"] is None
 
 
-def test_run_writes_fleet_ceiling_report_row(tmp_path, monkeypatch):
+def test_run_writes_fleet_ceiling_report_row(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(doctor, "collect_facts", lambda: GOOD_FACTS)
 
@@ -63,19 +71,23 @@ def test_run_writes_fleet_ceiling_report_row(tmp_path, monkeypatch):
     assert row["ok"] is True
 
 
-def test_tool_version_none_when_binary_missing(monkeypatch):
+def test_tool_version_none_when_binary_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(doctor.shutil, "which", lambda tool: None)
     assert doctor._tool_version("packer") is None
 
 
-def test_tool_version_parses_version_string(fake_process, monkeypatch):
+def test_tool_version_parses_version_string(
+    fake_process: FakeProcess, monkeypatch: pytest.MonkeyPatch
+) -> None:
     fake_process.register(["just", "--version"], stdout="just 1.42.4\n")
     monkeypatch.setattr(doctor.shutil, "which", lambda tool: "/opt/homebrew/bin/just")
 
     assert doctor._tool_version("just") == "1.42.4"
 
 
-def test_tool_version_uses_sshpass_capital_v_not_double_dash_version(fake_process, monkeypatch):
+def test_tool_version_uses_sshpass_capital_v_not_double_dash_version(
+    fake_process: FakeProcess, monkeypatch: pytest.MonkeyPatch
+) -> None:
     # OQ-08: sshpass has no `--version` flag (it errors: "illegal option"); only `-V` reports the
     # version. `doctor.py::_tool_version()` must special-case it or `just doctor` reports sshpass
     # as missing even when it's installed.

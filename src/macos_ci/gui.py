@@ -2,7 +2,9 @@
 
 import typer
 
-app = typer.Typer(help="Drive a Tart VM's VNC framebuffer for screenshots and keystrokes.")
+app: typer.Typer = typer.Typer(
+    help="Drive a Tart VM's VNC framebuffer for screenshots and keystrokes."
+)
 
 
 @app.command()

@@ -124,7 +124,7 @@ DOC_INDEXES = {
 # `http-status` / `http-contains` reach arbitrary URLs, so the hosts are an explicit
 # allowlist rather than whatever a claim happens to name. A typo'd host must be a loud
 # structural rejection, never a silent UNREACHABLE that `must_fail` could invert.
-HTTP_HOSTS = frozenset(
+HTTP_HOSTS: frozenset[str] = frozenset(
     {
         "developer.hashicorp.com",  # G19: /packer/integrations/** is absent from the sitemap, returns 200
         "tart.run",  # second G19: /blog/YYYY/MM/DD/ posts are absent from the search index
@@ -137,7 +137,10 @@ HTTP_HOSTS = frozenset(
 # page is gone, not that the sentence is. Never inverted by `must_fail`.
 HTTP_TIMEOUT = 20
 
-OK, FAILED, UNREACHABLE, USAGE = 0, 2, 3, 4
+OK: int = 0
+FAILED: int = 2
+UNREACHABLE: int = 3
+USAGE: int = 4
 
 
 @dataclass

@@ -3,7 +3,7 @@ import pytest
 from macos_ci._config_core import ConfigError, load
 
 
-def test_load_valid_config():
+def test_load_valid_config() -> None:
     raw = {
         "default": "sequoia",
         "image": {
@@ -28,7 +28,7 @@ def test_load_valid_config():
     assert config.images["sequoia-15.6.1"].sha256 == "a" * 64
 
 
-def test_load_rejects_unknown_source():
+def test_load_rejects_unknown_source() -> None:
     raw = {
         "default": "sequoia",
         "image": {
@@ -40,7 +40,7 @@ def test_load_rejects_unknown_source():
         load(raw)
 
 
-def test_load_rejects_ipsw_missing_sha256():
+def test_load_rejects_ipsw_missing_sha256() -> None:
     raw = {
         "default": "sequoia-15.6.1",
         "image": {
@@ -55,7 +55,7 @@ def test_load_rejects_ipsw_missing_sha256():
         load(raw)
 
 
-def test_load_rejects_default_naming_nonexistent_image():
+def test_load_rejects_default_naming_nonexistent_image() -> None:
     raw = {
         "default": "tahoe",
         "image": {

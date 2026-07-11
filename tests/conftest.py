@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-HARNESS_KEY_PATH = Path("harness/ssh/id_ed25519_harness")
+HARNESS_KEY_PATH: Path = Path("harness/ssh/id_ed25519_harness")
 SSH_OPTS = (
     "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR "
     "-o ConnectTimeout=8 -o BatchMode=yes "

@@ -69,7 +69,7 @@ async def _capture_one(vnc_target: Any, out_path: Path) -> None:
 
 
 @pytest.mark.gui
-def test_screenshot_capture_writes_a_png(vm_state: dict[str, Any]):
+def test_screenshot_capture_writes_a_png(vm_state: dict[str, Any]) -> None:
     run_id = vm_state["run_id"]
     vnc_target = vm_state.get("vnc")
     if vnc_target is None:
@@ -88,14 +88,14 @@ def test_screenshot_capture_writes_a_png(vm_state: dict[str, Any]):
 
 
 @pytest.mark.gui
-def test_screenshot_sequence_numbers_increment():
+def test_screenshot_sequence_numbers_increment() -> None:
     # Pure sequencing behaviour, exercised here (not tests/unit/) because it's this tier's own
     # concern for naming successive captures within one run -- no VM needed for this assertion.
     existing = ["01-boot-screen.png", "02-login.png"]
     assert next_screenshot_sequence(existing) == 3
 
 
-def test_encode_png_round_trips_a_solid_color_image():
+def test_encode_png_round_trips_a_solid_color_image() -> None:
     # Hermetic sanity check for the stdlib PNG writer itself -- no VM, no mark, runs in the
     # default `test` tier so a regression here is caught without ever booting anything.
     pixels = np.zeros((4, 4, 3), dtype="uint8")
