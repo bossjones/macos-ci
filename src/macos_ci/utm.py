@@ -9,6 +9,7 @@ optional later refactor -- out of scope here (`specs/utm-improvements.md` step 4
 
 from __future__ import annotations
 
+import json
 import os
 import plistlib
 import shutil
@@ -20,13 +21,19 @@ from typing import Any, cast
 import typer
 
 from macos_ci import artifacts
-from macos_ci._harness_core import bootstrap_ssh_argv, format_run_id, steady_state_ssh_argv
+from macos_ci._gui_core import next_screenshot_sequence, screenshot_filename
+from macos_ci._harness_core import (
+    bootstrap_ssh_argv,
+    format_run_id,
+    steady_state_ssh_argv,
+)
 from macos_ci._utm_core import (
     DHCPD_LEASES_PATH,
     UTM_DOCUMENTS_DIR,
     UTM_GUEST_MOUNT_POINT,
     StopMode,
     UtmVm,
+    build_screencapture_argv,
     bundle_config_path,
     clone_argv,
     delete_argv,
@@ -219,6 +226,74 @@ def up_impl(*, vm: str = _UTM_VM_DEFAULT, golden: str = _UTM_GOLDEN_DEFAULT) -> 
     return state
 
 
+def _resolve_latest_run_id() -> str:
+    """`artifacts/latest` is the symlink `artifacts.write_json` repoints at every write (spec 12);
+    reading through it is how `up_impl`'s `run_id` is recovered by a later `shot` invocation
+    without a second, redundant "latest run" mechanism (mirrors `harness._read_latest_state`, but
+    raises `UtmError` to stay in this lane's error type).
+    """
+    latest = artifacts.artifacts_root() / "latest" / "state.json"
+    if not latest.exists():
+        raise UtmError("resolve-run", "no artifacts/latest/state.json -- run `just utm-up` first")
+    data = cast(dict[str, Any], json.loads(latest.read_text()))
+    run_id = data.get("run_id")
+    if not isinstance(run_id, str) or not run_id:
+        raise UtmError("resolve-run", "artifacts/latest/state.json has no run_id")
+    return run_id
+
+
+def _foreground_utm() -> None:
+    """Best-effort: bring UTM.app forward so the window being captured is on top. Never fatal --
+    `screencapture` can still succeed (e.g. `--full`) even if this fails.
+    """
+    subprocess.run(["open", "-a", "UTM"], check=False)
+
+
+def _resolve_utm_window_id(vm: str) -> int | None:
+    """Dependency-free CGWindowID lookup via `osascript` (no pyobjc/Quartz -- spec mvp.md A2's
+    honest design note: this repo values no-new-deps). Any failure -- osascript missing, UTM not
+    running, window not found, unparseable output -- degrades to `None`, and the caller falls back
+    to a whole-display capture rather than ever raising.
+    """
+    script = (
+        'tell application "System Events" to tell process "UTM" '
+        f'to get id of first window whose name contains "{vm}"'
+    )
+    try:
+        result = subprocess.run(
+            ["osascript", "-e", script], capture_output=True, text=True, timeout=5
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    try:
+        return int(result.stdout.strip())
+    except ValueError:
+        return None
+
+
+def shot_impl(*, label: str, vm: str = _UTM_VM_DEFAULT, full: bool = False) -> str:
+    """Host-side `screencapture` of the UTM window into `artifacts/<run-id>/screenshots/` -- the
+    only capture path for an Apple-backend guest (no VNC framebuffer, no in-guest screencapture
+    over SSH; spec mvp.md A2). Foregrounds UTM, best-effort resolves the VM's window id, and falls
+    back to a whole-display capture (`full=True`, or window-id resolution failing) rather than
+    ever failing the capture outright.
+    """
+    run_id = _resolve_latest_run_id()
+    screenshots_dir = artifacts.run_dir(run_id) / "screenshots"
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
+
+    sequence = next_screenshot_sequence(os.listdir(screenshots_dir))
+    filename = screenshot_filename(sequence, label)
+    path = str(screenshots_dir / filename)
+
+    _foreground_utm()
+    window_id = None if full else _resolve_utm_window_id(vm)
+    subprocess.run(build_screencapture_argv(path, window_id=window_id, full=full), check=True)
+    return path
+
+
 def doctor_impl(
     *, golden: str = _UTM_GOLDEN_DEFAULT, leases_path: str = DHCPD_LEASES_PATH
 ) -> list[dict[str, Any]]:
@@ -329,6 +404,16 @@ def status_command(vm: str = typer.Option(_UTM_VM_DEFAULT, "--vm")) -> None:
 def stop_command(vm: str = typer.Option(_UTM_VM_DEFAULT, "--vm")) -> None:
     stop(vm)
     typer.echo(f"stopped: {vm}")
+
+
+@app.command("shot")
+def shot_command(
+    label: str,
+    vm: str = typer.Option(_UTM_VM_DEFAULT, "--vm"),
+    full: bool = typer.Option(False, "--full"),
+) -> None:
+    saved = shot_impl(label=label, vm=vm, full=full)
+    typer.echo(saved)
 
 
 @app.command("destroy")

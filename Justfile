@@ -305,3 +305,7 @@ utm-destroy:
 # The seven-item iTerm2 UX checklist, JSON-reported. Prompts on a TTY, skips cleanly off-TTY.
 utm-verify-manual:
     @uv run pytest -m manual tests/manual/test_utm_ux.py --json-report --json-report-file=artifacts/latest/manual-utm.json
+
+# Host-side screencapture of the UTM window into artifacts/<run-id>/screenshots/.
+utm-shot LABEL:
+    @uv run macos-ci utm shot {{LABEL}} --vm {{utm_vm}}

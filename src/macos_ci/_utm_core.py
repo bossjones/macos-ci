@@ -244,6 +244,19 @@ def virtiofs_mount_commands(
     ]
 
 
+def build_screencapture_argv(
+    path: str, *, window_id: int | None = None, full: bool = False
+) -> list[str]:
+    """`utm shot`'s capture step (spec mvp.md A1). `-x`: no sound; `-o`: no window shadow. A
+    `window_id` targets one window by CGWindowID unless `full` overrides it to whole-display.
+    """
+    argv = ["/usr/sbin/screencapture", "-x", "-o"]
+    if window_id is not None and not full:
+        argv += ["-l", str(window_id)]
+    argv.append(path)
+    return argv
+
+
 def manual_apply_script(*, source: str, version_manager: str = "mise") -> str:
     """The paste-into-iTerm2 block: VirtioFS mount, then the `~/.local/share/chezmoi` symlink
     (same rationale as `harness.py::_bootstrap_chezmoi_source_symlink` -- `plugins.toml`'s

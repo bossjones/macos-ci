@@ -6,6 +6,7 @@ real leases file, no UTM.app.
 
 from __future__ import annotations
 
+import json
 import plistlib
 from pathlib import Path
 
@@ -13,7 +14,7 @@ import pytest
 from pytest_subprocess import FakeProcess
 
 from macos_ci import utm
-from macos_ci._utm_core import UTMCTL_DEFAULT_PATH, UtmVm
+from macos_ci._utm_core import UTMCTL_DEFAULT_PATH, UtmVm, build_screencapture_argv
 
 
 def test_list_vms_invokes_no_real_utmctl(fake_process: FakeProcess) -> None:
@@ -150,3 +151,61 @@ def test_utm_app_version_never_invokes_subprocess(
     monkeypatch.setattr(utm.subprocess, "run", _forbidden)
 
     assert utm.utm_app_version() == "4.6.5"
+
+
+def _write_latest_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, run_id: str) -> None:
+    artifacts_root = tmp_path / "artifacts"
+    latest = artifacts_root / "latest"
+    latest.mkdir(parents=True)
+    (latest / "state.json").write_text(json.dumps({"run_id": run_id, "lane": "utm"}))
+    monkeypatch.setattr(utm.artifacts, "artifacts_root", lambda: artifacts_root)
+
+
+def test_shot_captures_full_display_and_writes_into_screenshots_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fake_process: FakeProcess
+) -> None:
+    _write_latest_state(tmp_path, monkeypatch, run_id="20260711-000000-000001")
+    monkeypatch.setattr(utm, "_foreground_utm", lambda: None)
+    monkeypatch.setattr(utm, "_resolve_utm_window_id", lambda vm: None)
+
+    expected_path = str(
+        tmp_path / "artifacts" / "20260711-000000-000001" / "screenshots" / "01-hero.png"
+    )
+    fake_process.register(build_screencapture_argv(expected_path, window_id=None, full=False))
+
+    result = utm.shot_impl(label="hero")
+
+    assert result == expected_path
+    assert Path(expected_path).parent.is_dir()
+    assert list(fake_process.calls)[-1] == build_screencapture_argv(
+        expected_path, window_id=None, full=False
+    )
+
+
+def test_shot_full_flag_skips_window_id_resolution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fake_process: FakeProcess
+) -> None:
+    _write_latest_state(tmp_path, monkeypatch, run_id="20260711-000000-000002")
+    monkeypatch.setattr(utm, "_foreground_utm", lambda: None)
+
+    def _forbidden(vm: str) -> int | None:
+        raise AssertionError("shot_impl(full=True) must never resolve a window id")
+
+    monkeypatch.setattr(utm, "_resolve_utm_window_id", _forbidden)
+
+    expected_path = str(
+        tmp_path / "artifacts" / "20260711-000000-000002" / "screenshots" / "01-hero.png"
+    )
+    fake_process.register(build_screencapture_argv(expected_path, window_id=None, full=True))
+
+    result = utm.shot_impl(label="hero", full=True)
+
+    assert result == expected_path
+
+
+def test_shot_raises_utm_error_when_no_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(utm.artifacts, "artifacts_root", lambda: tmp_path / "artifacts")
+
+    with pytest.raises(utm.UtmError) as exc_info:
+        utm.shot_impl(label="hero")
+    assert exc_info.value.phase == "resolve-run"

@@ -23,6 +23,7 @@ from macos_ci._utm_core import (
     DhcpLease,
     UtmVm,
     attach_argv,
+    build_screencapture_argv,
     bundle_config_path,
     clone_argv,
     delete_argv,
@@ -254,3 +255,34 @@ def test_manual_apply_script_embeds_chezmoi_argv() -> None:
     assert "ln -sfn" in script
     assert "~/.local/share/chezmoi" in script
     assert script.index("mount_virtiofs") < script.index(expected_apply)
+
+
+def test_build_screencapture_argv_default_is_full_display() -> None:
+    # Neither window_id nor full given -- no -l flag (whole-display capture).
+    assert build_screencapture_argv("/tmp/hero.png") == [
+        "/usr/sbin/screencapture",
+        "-x",
+        "-o",
+        "/tmp/hero.png",
+    ]
+
+
+def test_build_screencapture_argv_window_id() -> None:
+    assert build_screencapture_argv("/tmp/hero.png", window_id=42) == [
+        "/usr/sbin/screencapture",
+        "-x",
+        "-o",
+        "-l",
+        "42",
+        "/tmp/hero.png",
+    ]
+
+
+def test_build_screencapture_argv_full() -> None:
+    # full=True wins over a passed window_id -- whole-display capture, no -l.
+    assert build_screencapture_argv("/tmp/hero.png", window_id=42, full=True) == [
+        "/usr/sbin/screencapture",
+        "-x",
+        "-o",
+        "/tmp/hero.png",
+    ]
