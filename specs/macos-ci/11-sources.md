@@ -324,17 +324,18 @@ The research brief told every agent that `packer` was **not installed**, and poi
 `just doctor` recipe to remedy it. Both halves are false, and each dies to a single command:
 
 ```bash
-packer version          # -> Packer v1.15.4
-just --summary          # -> build-golden check default link-check link-check-fresh
-                        #    link-check-verbose unverified-count verify-claims
-                        #    verify-claims-json verify-no-secrets
+packer version               # -> Packer v1.15.4  (already present)
+grep -A1 '^doctor' Justfile  # -> @uv run macos-ci doctor {{ARGS}}
+                              #    a preflight (exit 2 if missing) -- it installs nothing
 ```
 
-There is no `doctor` recipe (ledger: `synth-justfile-has-no-doctor-recipe`, paired with a positive
-control on the same file so it cannot pass against a gutted `Justfile`), and packer is present at
-**v1.15.4** (`synth-packer-version-is-1-15-4`). The sharp detail is the timing: **the ledger claim
-`packer-is-installed` was already passing when the draft asserting the opposite was written.** The
-evidence was sitting in the repo, green, and the prose contradicted it anyway.
+A `doctor` recipe exists today (it did not when this retraction was first written), but it is a
+preflight that checks requirements and exits 2 if anything is missing — it does not install
+packer or anything else (ledger: `synth-justfile-doctor-is-a-preflight-not-an-installer`), and
+packer is present at **v1.15.4** (`synth-packer-version-is-1-15-4`). The sharp detail is the
+timing: **the ledger claim `packer-is-installed` was already passing when the draft asserting the
+opposite was written.** The evidence was sitting in the repo, green, and the prose contradicted it
+anyway.
 
 That is this repo's thesis stated as a fact rather than a slogan: **the briefing is not privileged over
 the evidence.** A ground truth is a hypothesis with good PR. When one contradicts a passing claim or a
