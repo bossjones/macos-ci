@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from macos_ci._doctor_core import DoctorFacts, check, overall_ok, version_at_least
 
 GOOD_FACTS = DoctorFacts(
@@ -29,9 +31,7 @@ def test_check_all_present_is_ok():
 
 
 def test_check_reports_missing_packer():
-    facts = GOOD_FACTS.__class__(
-        **{**GOOD_FACTS.__dict__, "tool_versions": {**GOOD_FACTS.tool_versions, "packer": None}}
-    )
+    facts = replace(GOOD_FACTS, tool_versions={**GOOD_FACTS.tool_versions, "packer": None})
     results = check(facts)
     row = _row(results, "packer")
     assert row.found is None
@@ -40,9 +40,7 @@ def test_check_reports_missing_packer():
 
 
 def test_check_reports_version_below_minimum():
-    facts = GOOD_FACTS.__class__(
-        **{**GOOD_FACTS.__dict__, "tool_versions": {**GOOD_FACTS.tool_versions, "tart": "1.0.0"}}
-    )
+    facts = replace(GOOD_FACTS, tool_versions={**GOOD_FACTS.tool_versions, "tart": "1.0.0"})
     results = check(facts)
     row = _row(results, "tart")
     assert row.found == "1.0.0"
@@ -50,28 +48,28 @@ def test_check_reports_version_below_minimum():
 
 
 def test_check_fails_on_non_apple_silicon():
-    facts = GOOD_FACTS.__class__(**{**GOOD_FACTS.__dict__, "arch": "x86_64"})
+    facts = replace(GOOD_FACTS, arch="x86_64")
     results = check(facts)
     row = _row(results, "apple-silicon")
     assert row.ok is False
 
 
 def test_check_fails_on_locked_login_keychain():
-    facts = GOOD_FACTS.__class__(**{**GOOD_FACTS.__dict__, "login_keychain_unlocked": False})
+    facts = replace(GOOD_FACTS, login_keychain_unlocked=False)
     results = check(facts)
     row = _row(results, "login-keychain-unlocked")
     assert row.ok is False
 
 
 def test_check_fails_when_zsh_dotfiles_missing():
-    facts = GOOD_FACTS.__class__(**{**GOOD_FACTS.__dict__, "zsh_dotfiles_path_exists": False})
+    facts = replace(GOOD_FACTS, zsh_dotfiles_path_exists=False)
     results = check(facts)
     row = _row(results, "ZSH_DOTFILES")
     assert row.ok is False
 
 
 def test_check_fails_on_low_disk_space():
-    facts = GOOD_FACTS.__class__(**{**GOOD_FACTS.__dict__, "free_disk_space_gb": 1.0})
+    facts = replace(GOOD_FACTS, free_disk_space_gb=1.0)
     results = check(facts)
     row = _row(results, "free-disk-space")
     assert row.ok is False
@@ -103,9 +101,7 @@ def test_check_requires_sshpass_for_the_ssh_bootstrap_phase():
     # OQ-08: `just up` needs sshpass on the HOST for OQ-05's password-authenticated bootstrap
     # connection (_harness_core.bootstrap_ssh_argv). Its absence blocked a real run entirely and
     # was only caught mid-`up`, not by `just doctor` -- `just doctor` must catch it first.
-    facts = GOOD_FACTS.__class__(
-        **{**GOOD_FACTS.__dict__, "tool_versions": {**GOOD_FACTS.tool_versions, "sshpass": None}}
-    )
+    facts = replace(GOOD_FACTS, tool_versions={**GOOD_FACTS.tool_versions, "sshpass": None})
     results = check(facts)
     row = _row(results, "sshpass")
     assert row.found is None
@@ -114,8 +110,6 @@ def test_check_requires_sshpass_for_the_ssh_bootstrap_phase():
 
 
 def test_check_passes_when_sshpass_is_present():
-    facts = GOOD_FACTS.__class__(
-        **{**GOOD_FACTS.__dict__, "tool_versions": {**GOOD_FACTS.tool_versions, "sshpass": "1.10"}}
-    )
+    facts = replace(GOOD_FACTS, tool_versions={**GOOD_FACTS.tool_versions, "sshpass": "1.10"})
     row = _row(check(facts), "sshpass")
     assert row.ok is True

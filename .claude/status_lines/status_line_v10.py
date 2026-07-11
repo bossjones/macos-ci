@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 try:
-    from dotenv import load_dotenv
+    from dotenv import load_dotenv  # pyrefly: ignore[missing-import]  # PEP 723 script-scoped dep; import is optional (guarded below)
 
     load_dotenv()
 except ImportError:
