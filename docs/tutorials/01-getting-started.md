@@ -272,6 +272,10 @@ over SSH without touching the GUI window. `just utm-verify-manual` prompts `[y/N
 checklist item on a real terminal, and skips cleanly (never hangs) when there's no TTY to ask on —
 same contract as every other `manual`-tier check in this repo.
 
+Testing a **pushed** dotfiles branch (a PR) instead of your local checkout? Skip the mount block and
+apply straight from GitHub — the whole flow, including the TTY gotcha that silently disables feature
+flags if you run it wrong, is [tutorial 6](06-utm-testing-a-pr-branch.md).
+
 ## Next steps
 
 - [Tutorial 2 — Running the Harness](02-running-the-harness.md): the VM lifecycle in detail — what
