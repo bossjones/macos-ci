@@ -391,14 +391,15 @@ same host `vmnet`/`bootpd` DHCP stack, with its MAC recorded in the `.utm` bundl
 - `utmctl list` on a host with no `.utm` bundle registered yet prints only the header row; the
   parser handles the zero-VM case.
 
-Still open: whether a live UTM Shared-Network VM's DHCP lease actually lands in
-`/var/db/dhcpd_leases`, as opposed to some other host DHCP surface
-<!-- UNVERIFIED: not yet observed -- no .utm bundle has been created and booted on this host yet.
-That observation is specs/utm-improvements.md's Spike B, deferred to the human-driven GUI
-import/boot step. This marker converts to cited fact (and the parked
-utm-golden-bundle-has-mac-address ledger claim lands) once that boot happens. -->. Until then, treat
-the mechanism above as implemented-and-unit-tested against real lease-file fixtures, not yet
-observed against a live UTM guest.
+**Settled by live observation, 2026-07-11**: a UTM Shared-Network macOS guest's vmnet lease does
+land in `/var/db/dhcpd_leases`, not some other host DHCP surface. After the golden-VM recovery
+([06 §11](06-utm-macos-guest.md#11-importing-the-tart-golden-disk)),
+`macos-ci utm ip --vm dotfiles-golden-utm` resolved the bundle's `MacAddress` to `192.168.64.3`
+via that file and SSH answered there — Spike B's core premise, recorded in
+[utm-improvements.md](../utm-improvements.md) §Context. The ledger claim this observation was
+parked behind, `utm-golden-bundle-has-mac-address` (`file-contains`, `local_only`), lands with it:
+the golden bundle's `config.plist` is XML text, so the key is greppable and the "drop to spec
+prose if the plist is binary" fallback was not needed.
 
 ## 5. Headless operation
 

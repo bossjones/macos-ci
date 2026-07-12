@@ -113,7 +113,7 @@ Two independent workstreams, then the MVP resumes:
 - [`packer/tart-golden-image.pkr.hcl`](../packer/tart-golden-image.pkr.hcl) — audited, unchanged; reference for the CLT/brew provisioner style
 - `~/dev/cirruslabs/macos-image-templates/templates/vanilla-sequoia.pkr.hcl` — the donor (read-only ground truth; lines 24-106 boot_command, 119-164 system provisioners, line 16 the IPSW URL)
 - `~/dev/cirruslabs/macos-image-templates/templates/base.pkr.hcl` — proves brew/mise belong to `-base`, not `-vanilla` (keeps software OUT of the ipsw lane)
-- [`specs/macos-ci/06-utm-macos-guest.md`](macos-ci/06-utm-macos-guest.md) — §"Importing the tart golden disk": the settled UNVERIFIED marker
+- [`specs/macos-ci/06-utm-macos-guest.md`](macos-ci/06-utm-macos-guest.md) — §"Importing the tart golden disk": the settled `<!-- UNVERIFIED -->` marker
 - [`src/macos_ci/utm.py`](../src/macos_ci/utm.py) — `_IMPORT_CHECKLIST_TEMPLATE` gains the personalization warning
 - [`.team/claims.jsonl`](../.team/claims.jsonl) — three new claims (Step 5)
 - [`specs/mvp.md`](mvp.md) — gains a one-line cross-link to this spec
@@ -350,17 +350,26 @@ Run the full gate; see Validation Commands.
 
 ## Acceptance Criteria
 
-- [ ] `uv run macos-ci utm ip --vm dotfiles-golden-utm` prints an address after a cold
-      `utmctl start` (via Step 1 or Step 3).
-- [ ] The Step 2 clone-identity outcome is recorded in
+- [x] `uv run macos-ci utm ip --vm dotfiles-golden-utm` prints an address after a cold
+      `utmctl start` (via Step 1 or Step 3). *Observed 2026-07-11 via Step 1: resolved to
+      `192.168.64.3` and SSH answered — recorded in
+      [`utm-improvements.md`](utm-improvements.md) §Context (Spike B resolution).*
+- [x] The Step 2 clone-identity outcome is recorded in
       [`06-utm-macos-guest.md`](macos-ci/06-utm-macos-guest.md) whichever way it lands.
-- [ ] `packer/ipsw/sequoia-15.6.1.pkr.hcl` contains the Remote Login and
+      *Recorded in 06 §11: `utmctl clone` preserves the transplanted identity (byte-compared)
+      and the clone boots to SSH.*
+- [x] `packer/ipsw/sequoia-15.6.1.pkr.hcl` contains the Remote Login and
       `spctl --global-disable` steps, pins plugin ≥ 1.16.0, and passes `packer validate`.
-- [ ] The three new ledger claims pass; no existing claim regresses.
-- [ ] The 06 §import UNVERIFIED marker about machine identity no longer claims ignorance this
-      session disproved.
-- [ ] `just check` exits 0.
-- [ ] [`mvp.md`](mvp.md) Phase B is unblocked (golden exists and boots).
+      *Re-run 2026-07-12: `packer fmt -check` clean, `packer validate` exits 0; ledger claims
+      pin the two boot_command lines.*
+- [x] The three new ledger claims pass; no existing claim regresses. *`just verify-claims`
+      green 2026-07-12.*
+- [x] The 06 §import `<!-- UNVERIFIED -->` marker about machine identity no longer claims
+      ignorance this session disproved. *Replaced by the dated observed record, 06 §11.*
+- [x] `just check` exits 0. *Re-run 2026-07-12 after the marker burn-down.*
+- [x] [`mvp.md`](mvp.md) Phase B is unblocked (golden exists and boots). *Asserted at
+      [`mvp.md`](mvp.md) §Prerequisite; the golden's boot + SSH observation backing it is
+      06 §11's dated record.*
 
 ## Validation Commands
 
