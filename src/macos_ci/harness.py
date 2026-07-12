@@ -243,6 +243,7 @@ def up_impl(
         "ip": ip,
         "image": image,
         "run_id": run_id,
+        "lane": "tart",
         "mount_point": _MOUNT_POINT,
         "phase": "up",
         "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

@@ -37,6 +37,25 @@ Settled facts that keep getting re-litigated — don't re-derive them:
 - **The build needs no SSH key, `~/.gitconfig`, or `~/.ssh/config`**, and no
   `HOMEBREW_GITHUB_PACKAGES_TOKEN`. Every repo and tap involved is public; the one `git@github.com:` tap
   URL is rewritten to anonymous HTTPS via `GIT_CONFIG_COUNT`/`KEY_n`/`VALUE_n`. See `13`.
+- **A bare `utmctl stop` is a force power-off.** `--force` is the documented default; graceful shutdown
+  is `utmctl stop --request` (what `just utm-stop` uses). Observed live 2026-07-12 when recycling the
+  golden.
+- **zsh-dotfiles' feature-bool prompts are TTY-gated**, the flip side of the `stdinIsATTY` fact above:
+  in a non-TTY run (`just utm-exec`, BatchMode ssh) the `promptBool` calls never execute, so every
+  `--promptBool` flag is silently ignored and the bools take their template defaults (`false`). A
+  PR-branch apply that should exercise `ruby`/`pyenv`/etc. must run inside interactive `just utm-ssh`.
+  Only `version_manager` is answerable non-TTY (deliberately outside the gate, upstream). See
+  [docs/tutorials/06-utm-testing-a-pr-branch.md](docs/tutorials/06-utm-testing-a-pr-branch.md).
+- **`utm shot` is gated by two host TCC permissions**, both attributed to the calling terminal's
+  responsible app (under tmux: the app that owns the tmux server): Screen & System Audio Recording
+  (without it `screencapture` exits 1, `could not create image from display`) and Automation → System
+  Events. The window-id resolver reads CGWindowList window names, which need the same Screen Recording
+  grant — so any host that can capture can also window-target. And System Events windows expose no
+  CGWindowID at all (`get id of window` errors -1728); only JXA/CGWindowList yields the id
+  `screencapture -l` wants. See `_utm_core.py::build_window_id_jxa_argv`.
+- **pytest's default capture nulls stdin**, so `sys.stdin.isatty()` is `False` even on a real terminal:
+  any interactive `confirm()` tier must run under `pytest -s` or it skips 100% of its checks while
+  looking green. Found 2026-07-12 when `just utm-verify-manual` skipped all 7 items on a live TTY.
 
 ## Build performance
 

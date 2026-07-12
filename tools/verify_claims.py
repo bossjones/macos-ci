@@ -28,7 +28,9 @@ Evidence kinds, cheapest first:
   cli-help       `argv` (a read-only probe) emits `expect`. Runs from the repo
                  root, so `argv` may name a repo-relative path. An optional
                  `env` dict is layered over the environment for that one call.
-                 Proves a CLI flag exists rather than being remembered.
+                 Proves a CLI flag exists rather than being remembered. Output is
+                 ANSI-stripped before matching, so a Rich-styled --help matches the
+                 same `expect` in CI as on a dev host (see `strip_ansi`).
 
                  A probe that only shows a flag *parses* is weak evidence — see
                  doc-contains. A probe that observes behaviour (`packer inspect`
@@ -154,6 +156,18 @@ class Result:
 
 # ---------------------------------------------------------------- pure helpers
 # These take already-fetched text. No I/O. Unit-testable without a network.
+
+
+# Rich treats GITHUB_ACTIONS as a color-capable terminal even when stdout is a pipe, so a
+# `cli-help` probe's --help arrives styled in CI and plain on a dev host: `Usage: ` and the
+# command name end up split by \x1b[0m\x1b[1m, and a plain substring `expect` no longer matches.
+# NO_COLOR and TERM=dumb do NOT override that check, so an `env` overlay on the claim is not a
+# fix -- the oracle itself has to be ANSI-blind. See `verifier-cli-help-is-ansi-blind`.
+_ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
+
+
+def strip_ansi(text: str) -> str:
+    return _ANSI_RE.sub("", text)
 
 
 def check_contains(haystack: str, expect: str) -> bool:
@@ -321,7 +335,7 @@ def evaluate(claim: dict[str, Any], index_cache: dict[str, dict[str, str]]) -> R
                 # "packer isn't installed" into a silent pass.
                 detail = f"UNREACHABLE: {argv[0]!r} not on PATH"
                 return Result(cid, kind, False, detail, src)
-            combined = proc.stdout + proc.stderr
+            combined = strip_ansi(proc.stdout + proc.stderr)
             ok = check_contains(combined, expect)
             if ok:
                 detail = ""

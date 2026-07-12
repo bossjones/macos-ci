@@ -72,3 +72,11 @@ ignore-words-list = "crate,ba,te"
 # pyrefly-coverage Justfile targets, which bypasses that filter.
 project-includes = ["src", "tests", "tools"]
 python-version = "3.13"
+
+[tool.basedpyright]
+# basedpyright defaults to its opinionated `recommended` preset, which flags ~464 style/strictness
+# warnings (reportAny, reportUnusedCallResult, reportExplicitAny, ...) that are not type errors and
+# that neither pyright's own `standard` mode nor pyrefly enforce. Pin to pyright parity so
+# basedpyright stays a useful correctness second-opinion without the noise; pyrefly
+# (`just check-pyrefly`) remains the primary type gate.
+typeCheckingMode = "standard"

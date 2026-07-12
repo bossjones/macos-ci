@@ -1,0 +1,9 @@
+OVERVIEW: Enumerate all registered virtual machines.
+
+USAGE: utmctl list [--debug] [--hide]
+
+OPTIONS:
+  -d, --debug             Show debug logging.
+  --hide                  Hide the main UTM window.
+  -h, --help              Show help information.
+

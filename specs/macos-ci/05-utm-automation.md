@@ -354,6 +354,53 @@ Where `utmctl` genuinely earns its place is *observability* — see
 [`12`](12-tooling-and-agent-loop.md): `utmctl list` / `status` for authoritative lifecycle state, and
 `utmctl attach` for the serial console, when a UTM-lane VM misbehaves and you need to look at it.
 
+## 4.5. IP discovery without a guest agent (host-side)
+
+`specs/utm-improvements.md`. §4.2 established the gap this section closes: `utmctl ip-address` is
+`query ip` (§2.2), gated on the QEMU guest agent, so it never works for an Apple-backend macOS
+guest. That statement is about **`utmctl`**, not about the host — `tart ip` never uses a guest
+agent either; it reads `/var/db/dhcpd_leases` keyed by MAC. A UTM Shared-Network VM leases from the
+same host `vmnet`/`bootpd` DHCP stack, with its MAC recorded in the `.utm` bundle's
+`config.plist` (`apple network configuration`'s `address` field, §5's `06` reference). So a
+`utm ip` equivalent is buildable host-side, with no guest agent involved at any point.
+
+**The mechanism**, implemented in `src/macos_ci/_utm_core.py` (pure parsers) and `src/macos_ci/utm.py`
+(the I/O shell):
+
+1. Read every `MacAddress` value out of `<UTM Documents>/<vm>.utm/config.plist`
+   (`extract_macs_from_config_plist`) — walked recursively rather than at a fixed key path, because
+   the schema may drift across UTM versions (open risk, spec `utm-improvements.md`).
+2. Normalize the MAC (`normalize_mac`) and look it up in `/var/db/dhcpd_leases`
+   (`parse_dhcpd_leases` + `find_ip_for_mac`), newest lease wins.
+3. Fall back to `arp -an` (`find_ip_for_mac_arp`) if no lease matches.
+4. If neither resolves, the documented degraded path is `utmctl attach <vm>` (serial console, §4.2's
+   "lifecycle plus host-side serial") — log in and run `ifconfig` by hand. An `mDNS`
+   (`<hostname>.local`) probe is a secondary fallback only, because a VM cloned from a shared golden
+   image inherits the same hostname as its siblings and two live clones would collide on it; leases
+   keyed by per-clone MAC do not have that problem.
+
+**Verified on this host, 2026-07-10** (real captures, `tests/fixtures/utm/`):
+
+- `/var/db/dhcpd_leases` is mode `644`, world-readable — no `sudo` needed to read it.
+- The lease-block format is `{ name=... ip_address=... hw_address=1,<mac> identifier=1,<mac>
+  lease=0x<hex> }`; the `hw_address`/`identifier` fields carry a `"1,"` hardware-type prefix, and
+  each octet's leading zero is dropped (`88:0`, not `88:00`) — both stripped/normalized by
+  `normalize_mac`/`parse_dhcpd_leases`.
+- `utmctl --help` (and every leaf subcommand's `--help`) does **not** launch UTM.app — confirmed by
+  `pgrep` before/after — so capturing these shapes as ledger `cli-help` evidence is safe.
+- `utmctl list` on a host with no `.utm` bundle registered yet prints only the header row; the
+  parser handles the zero-VM case.
+
+**Settled by live observation, 2026-07-11**: a UTM Shared-Network macOS guest's vmnet lease does
+land in `/var/db/dhcpd_leases`, not some other host DHCP surface. After the golden-VM recovery
+([06 §11](06-utm-macos-guest.md#11-importing-the-tart-golden-disk)),
+`macos-ci utm ip --vm dotfiles-golden-utm` resolved the bundle's `MacAddress` to `192.168.64.3`
+via that file and SSH answered there — Spike B's core premise, recorded in
+[utm-improvements.md](../utm-improvements.md) §Context. The ledger claim this observation was
+parked behind, `utm-golden-bundle-has-mac-address` (`file-contains`, `local_only`), lands with it:
+the golden bundle's `config.plist` is XML text, so the key is greppable and the "drop to spec
+prose if the plist is binary" fallback was not needed.
+
 ## 5. Headless operation
 
 Source: [advanced/headless](https://docs.getutm.app/advanced/headless/).

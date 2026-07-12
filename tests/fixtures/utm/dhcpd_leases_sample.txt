@@ -1,0 +1,21 @@
+{
+	name=ManagedlMachine
+	ip_address=192.168.252.186
+	hw_address=1,ba:50:91:fd:a5:99
+	identifier=1,ba:50:91:fd:a5:99
+	lease=0x6a517572
+}
+{
+	name=claude
+	ip_address=192.168.64.2
+	hw_address=1,de:61:74:18:c0:fb
+	identifier=1,de:61:74:18:c0:fb
+	lease=0x69ae1fbd
+}
+{
+	name=ManagedlMachine
+	ip_address=192.168.252.182
+	hw_address=1,7e:53:c6:f7:88:0
+	identifier=1,7e:53:c6:f7:88:0
+	lease=0x6a51718e
+}

@@ -237,3 +237,75 @@ pyrefly-baseline:
 # type-coverage report (typed / Any / untyped) as JSON
 pyrefly-coverage:
     uv run pyrefly coverage report src tests tools .claude/status_lines/status_line_v10.py
+
+# ===== UTM (manual GUI lane -- spec 10: human escape hatch, not CI) =====
+# specs/utm-improvements.md. Naming convention, no config lane: `dotfiles-golden-utm` /
+# `dotfiles-utm`, env-overridable. This lane never gates CI -- appended below the pinning
+# banner (line 76), so no existing .team/claims.jsonl file-line citation shifts.
+
+utm_vm     := env_var_or_default("MACOS_CI_UTM_VM", "dotfiles-utm")
+utm_golden := env_var_or_default("MACOS_CI_UTM_GOLDEN", "dotfiles-golden-utm")
+utmctl     := "/Applications/UTM.app/Contents/MacOS/utmctl"
+
+# UTM.app version (Info.plist only), golden bundle presence, leases readability. Exit 2 on miss;
+# `just doctor` never fails when UTM is absent (step 6's optional row).
+utm-doctor:
+    @uv run macos-ci utm doctor --golden {{utm_golden}}
+
+# One-time: stage the tart golden disk as raw + print the manual GUI import checklist.
+utm-import-golden:
+    @uv run macos-ci utm import-golden
+
+# `utmctl clone` golden -> session VM; no-op if it already exists.
+utm-clone:
+    @uv run macos-ci utm clone --vm {{utm_vm}} --golden {{utm_golden}}
+
+# Clone-if-missing -> windowed start -> MAC->leases IP -> two-phase SSH -> state.json (lane: utm).
+utm-up:
+    @uv run macos-ci utm up --vm {{utm_vm}} --golden {{utm_golden}}
+
+# `open -a UTM` -- bring the GUI window forward.
+utm-gui:
+    @open -a UTM
+
+# Print the guest-side VirtioFS mount + chezmoi apply block to paste into iTerm2. The human
+# applies interactively; SSH is the feedback channel, not the applier.
+utm-bootstrap-dotfiles:
+    @uv run macos-ci utm bootstrap-dotfiles
+
+# The `tart ip` equivalent for the UTM lane (host-side MAC -> dhcpd_leases/arp; spec 05 §4.5).
+utm-ip:
+    @uv run macos-ci utm ip --vm {{utm_vm}}
+
+# Interactive shell into the UTM VM.
+utm-ssh:
+    @ip=$(uv run macos-ci utm ip --vm {{utm_vm}}) && ssh {{ssh_opts}} -i harness/ssh/id_ed25519_harness {{vm_user}}@"$ip"
+
+# One-shot remote command over the same SSH.
+utm-exec CMD:
+    @ip=$(uv run macos-ci utm ip --vm {{utm_vm}}) && ssh {{ssh_opts}} -i harness/ssh/id_ed25519_harness {{vm_user}}@"$ip" -- {{CMD}}
+
+# Redirect the serial input/output to this terminal -- the only guest channel utmctl offers
+# without a QEMU guest agent (the degraded path if IP discovery ever fails).
+utm-serial:
+    @{{utmctl}} attach {{utm_vm}}
+
+# `utmctl list`.
+utm-status:
+    @{{utmctl}} list
+
+# Graceful stop (request mode).
+utm-stop:
+    @uv run macos-ci utm stop --vm {{utm_vm}}
+
+# Delete the session clone; the golden VM is untouched.
+utm-destroy:
+    @uv run macos-ci utm destroy --vm {{utm_vm}}
+
+# The seven-item iTerm2 UX checklist, JSON-reported. Prompts on a TTY, skips cleanly off-TTY.
+utm-verify-manual:
+    @uv run pytest -s -m manual tests/manual/test_utm_ux.py --json-report --json-report-file=artifacts/latest/manual-utm.json
+
+# Host-side screencapture of the UTM window into artifacts/<run-id>/screenshots/.
+utm-shot LABEL:
+    @uv run macos-ci utm shot {{LABEL}} --vm {{utm_vm}}

@@ -148,7 +148,7 @@ way — `doctor` always writes this artifact, whether or not you asked for `--js
 
 Notice the `fleet-ceiling` row above is always `OK` — that's deliberate. Tart is
 [Fair Source](https://fair.io), not open source, and its free tier is capped. This repo's accepted risk
-posture (signed off 2026-07-10, see [README.md](../../README.md#licensing-accepted-risk-sign-off-g4))
+posture (signed off 2026-07-10, see [README.md](../../README.md#accepted-risk-sign-off-g4))
 is **at most 3 hosts, at most 100 combined CPU cores**. `doctor` reports that ceiling on every run so
 it stays visible, but it deliberately never turns it into a pass/fail check — nothing in this repo
 counts your hosts or cores for you. That's a human judgment call, not a machine one.
@@ -208,6 +208,73 @@ At this point you should be able to:
 - Run `just doctor` and read a clean pass vs. a failure.
 - Know that `just run` chains doctor → up → apply → verify → destroy, and that its first invocation
   depends on a golden image existing.
+
+## Optional: the UTM manual lane
+
+Everything above is the **tart lane** — automated, headless, CI-shaped. There's a second, entirely
+optional lane built on [UTM](https://getutm.app) for a different job: **looking at** the dotfiles
+install with your own eyes. Tart never shows you a window; UTM's whole purpose here is a windowed
+macOS guest you can open iTerm2 in and judge — does the prompt render correctly, do the sheldon
+plugins highlight syntax, does Ctrl-R open history search, do colors look right — questions no
+`chezmoi apply` exit code answers.
+
+**This lane never gates CI.** Skip this section entirely if you only care about the automated
+harness; `just doctor`/`just run` above don't need UTM installed, and `just doctor` never fails
+because UTM is missing (it's an `optional` row, always `OK`). The full rationale for why tart is
+primary and UTM is the escape hatch — not the other way around — is
+[specs/macos-ci/10-tart-vs-utm-adr.md](../../specs/macos-ci/10-tart-vs-utm-adr.md).
+
+### Install and check
+
+Install [UTM.app](https://getutm.app), then:
+
+```bash
+just utm-doctor
+```
+
+This reports UTM's version (read from its `Info.plist`, never by launching the app), whether a
+golden UTM VM bundle exists yet, and whether `/var/db/dhcpd_leases` is readable — the same
+host-side mechanism that gives this lane its own `tart ip` equivalent (`just utm-ip`; see
+[specs/macos-ci/05-utm-automation.md](../../specs/macos-ci/05-utm-automation.md) §4.5). Exits `2`
+on any miss, same convention as `just doctor`.
+
+### One-time: get a golden UTM VM
+
+Unlike the tart lane, there is no Packer builder for UTM — the golden image is a one-time,
+hand-driven artifact, not a repeatable build:
+
+```bash
+just utm-import-golden
+```
+
+This stages the tart lane's already-provisioned golden disk as a raw image (never touching the
+live golden — it clones first) and prints a checklist for the one manual step nothing can
+automate: importing that disk into a new UTM VM through UTM's own GUI, setting its network to
+Shared, adding a VirtioFS share and a serial device, and booting it once to confirm it comes up.
+See [specs/macos-ci/06-utm-macos-guest.md](../../specs/macos-ci/06-utm-macos-guest.md) §11 for the
+full checklist and what's still unverified about it (the import boots cleanly on some hosts and
+may not on others — the section documents the fallback if it doesn't).
+
+### The session loop
+
+Once a golden UTM VM exists, every session looks like this:
+
+```bash
+just utm-up                  # clone-if-missing -> windowed boot -> wait for IP -> SSH bootstrap
+just utm-bootstrap-dotfiles  # prints a paste-into-iTerm2 block: mount + chezmoi apply
+#   ... paste that block into the UTM window's iTerm2 yourself; you drive the apply, not the harness ...
+just utm-verify-manual       # walks a 7-item checklist, asking what you see on screen
+just utm-destroy             # deletes the session clone only -- the golden VM is untouched
+```
+
+`just utm-ssh` / `just utm-exec <cmd>` are the feedback channel if you want to poke at the guest
+over SSH without touching the GUI window. `just utm-verify-manual` prompts `[y/N]` for each
+checklist item on a real terminal, and skips cleanly (never hangs) when there's no TTY to ask on —
+same contract as every other `manual`-tier check in this repo.
+
+Testing a **pushed** dotfiles branch (a PR) instead of your local checkout? Skip the mount block and
+apply straight from GitHub — the whole flow, including the TTY gotcha that silently disables feature
+flags if you run it wrong, is [tutorial 6](06-utm-testing-a-pr-branch.md).
 
 ## Next steps
 

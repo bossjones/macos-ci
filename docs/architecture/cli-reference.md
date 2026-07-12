@@ -239,6 +239,25 @@ The `gui` sub-app provides VNC-based framebuffer operations. Currently only scre
 
 ---
 
+## UTM Sub-App
+
+The `utm` sub-app drives the manual-GUI escape-hatch lane (Apple-backend UTM guests; never gates CI).
+
+**Sub-app module**: `src/macos_ci/utm.py` (pure core: `src/macos_ci/_utm_core.py`)
+**Mounted as**: `macos-ci utm`
+
+**Commands**: `doctor`, `up`, `ip`, `mac`, `status`, `stop`, `shot`, `destroy`, `clone`,
+`bootstrap-dotfiles`, `import-golden`.
+
+Unlike the Tart-lane `gui shot` above, **`utm shot` is implemented and verified** (2026-07-12: it
+captured the README's hero screenshot) — it is a host-side `screencapture` of the UTM window, the
+only capture path for an Apple-backend guest. Full per-command walkthroughs live in the README's
+Recipe Reference ("UTM" table) and
+[../tutorials/06-utm-testing-a-pr-branch.md](../tutorials/06-utm-testing-a-pr-branch.md); they are
+deliberately not duplicated a third time here.
+
+---
+
 ## VM-Debug Sub-App
 
 The `vm-debug` sub-app triages guest logs for known failure signatures.

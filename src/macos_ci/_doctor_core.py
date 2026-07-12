@@ -16,6 +16,10 @@ _MIN_VERSIONS: dict[str, str] = {
 
 REQUIRED_TOOLS: tuple[str, ...] = ("tart", "packer", "just", "uv", "cirrus", "sshpass")
 
+# specs/utm-improvements.md step 6: the UTM manual lane is an optional escape hatch (spec 10 --
+# tart is primary). Its absence must never fail `just doctor` on a tart-only host.
+OPTIONAL_TOOLS: tuple[str, ...] = ("utm",)
+
 _MIN_MACOS_VERSION = "13.0"  # Tart's floor (spec 01 §"Install")
 _MIN_FREE_DISK_GB = 60.0  # matches the preflight's ">> 60 GB free, OK" convention
 
@@ -57,6 +61,7 @@ class DoctorFacts:
     zsh_dotfiles_path: str | None = None
     zsh_dotfiles_path_exists: bool = False
     free_disk_space_gb: float = 0.0
+    optional_tool_versions: dict[str, str | None] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -142,6 +147,18 @@ def check(facts: DoctorFacts) -> list[CheckResult]:
             tool="fleet-ceiling", required="report-only", found=FLEET_CEILING_NOTICE, ok=True
         )
     )
+
+    # specs/utm-improvements.md step 6: optional rows never gate -- ok=True unconditionally, so a
+    # tart-only host with no UTM installed never fails `just doctor`.
+    for tool in OPTIONAL_TOOLS:
+        results.append(
+            CheckResult(
+                tool=tool,
+                required="optional",
+                found=facts.optional_tool_versions.get(tool),
+                ok=True,
+            )
+        )
 
     return results
 

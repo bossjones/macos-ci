@@ -1,0 +1,14 @@
+OVERVIEW: Clone an existing virtual machine.
+
+USAGE: utmctl clone [--debug] [--hide] <identifier> [--name <name>]
+
+ARGUMENTS:
+  <identifier>            Either the UUID or the complete name of the virtual
+                          machine.
+
+OPTIONS:
+  -d, --debug             Show debug logging.
+  --hide                  Hide the main UTM window.
+  --name <name>
+  -h, --help              Show help information.
+

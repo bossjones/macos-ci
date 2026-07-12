@@ -787,6 +787,19 @@ Tracked with reproduction evidence and claims-ledger entries (plus `images-cache
 
 ---
 
+## UTM Manual Lane (added after this reference's extraction)
+
+The Justfile has since grown a `utm-*` recipe group (lines 246+): `utm-doctor`, `utm-import-golden`,
+`utm-clone`, `utm-up`, `utm-gui`, `utm-bootstrap-dotfiles`, `utm-ip`, `utm-ssh`, `utm-exec`,
+`utm-serial`, `utm-status`, `utm-shot`, `utm-stop`, `utm-destroy`, `utm-verify-manual`. All are
+wired and working — including `utm-shot`, which (unlike the Tart-lane `just shot` above) really
+captures the UTM window host-side. The authoritative per-recipe table is the README's Recipe
+Reference ("UTM" section); the session walkthrough is
+[../tutorials/06-utm-testing-a-pr-branch.md](../tutorials/06-utm-testing-a-pr-branch.md). Not
+duplicated row-by-row here to avoid a third drifting copy.
+
+---
+
 ## Sourcing
 
 This reference is extracted from `/Users/bossjones/dev/bossjones/macos-ci/Justfile` (lines 1–226).
