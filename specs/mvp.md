@@ -8,9 +8,11 @@ restates [`enhance-readme.md`](enhance-readme.md) as a tight, self-contained che
 run end-to-end; that doc holds the rationale (why the UTM manual lane, why not the Tart VNC path), and
 this one does not contradict it.
 
-**Prerequisite**: Phase B needs a bootable `dotfiles-golden-utm`; creating one from the Tart golden
-hit a machine-identity boot hang (observed 2026-07-11) — recovery is specified in
-[`prereq-mvp.md`](prereq-mvp.md).
+**Prerequisite — now satisfied**: Phase B needs a bootable `dotfiles-golden-utm`. Creating one from
+the Tart golden hit a machine-identity boot hang (observed 2026-07-11); it was recovered the same day
+by transplanting tart's identity triple into the UTM bundle and disabling the drive's NVMe interface,
+per [`prereq-mvp.md`](prereq-mvp.md) §1. The golden now boots and answers SSH, and `utmctl clone`
+preserves the transplanted identity, so the `just utm-up` lane works. Phase B is unblocked.
 
 **Scope**: the README-screenshot MVP only — Phase A (code), Phase B (live capture), Phase C (README swap).
 It does **not** cover [`utm-improvements.md`](utm-improvements.md)'s live spikes A/B, the 7-item UX

@@ -329,6 +329,20 @@ Manual GUI import checklist (one-time; the Apple backend has no scriptable impor
   6. Add a serial (PTTY) device -- the `utm-serial` degraded path if IP discovery ever fails.
   7. Boot; log in as admin/admin; confirm SSH answers (`just utm-up` then `just utm-ssh`).
 Name the VM "{golden}" so `just utm-clone`/`just utm-up` find it by default.
+
+!! THE DISK ALONE IS NOT ENOUGH. Two more edits, or the VM will not boot:
+   a. Transplant tart's identity. The OS on that disk was personalized under tart's
+      (hardwareModel, ECID, NVRAM) triple; UTM generates its own, and the mismatch boots to a
+      BLACK SCREEN that hangs SILENTLY -- 0% CPU, no error anywhere. With UTM fully quit, copy
+      tart's config.json hardwareModel/ecid into the bundle's config.plist
+      System.MacPlatform HardwareModel/MachineIdentifier, and replace Data/AuxiliaryStorage
+      with tart's nvram.bin.
+   b. Set the drive's Nvme = false. NVMe is illegal on an Apple-backend macOS guest;
+      Virtualization.framework rejects the config and UTM reports only a misleading
+      "failed to restore ... invalid argument".
+   Scripted procedure, with backups: specs/prereq-mvp.md sect 1. Background: spec 06 sect 11.
+   After transplanting, NEVER boot the tart golden and the UTM golden at the same time --
+   they are the same machine (same ECID, same MAC) to Virtualization.framework.
 """.strip()
 
 

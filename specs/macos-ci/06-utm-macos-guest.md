@@ -266,21 +266,68 @@ what `just utm-import-golden` (`src/macos_ci/utm.py::import_golden_impl`) automa
 `disk.img` to `artifacts/utm-import/` → delete the scratch clone, leaving the golden untouched
 either way.
 
-What is still unverified: everything past staging the raw file is a **manual GUI step with no
-scriptable path** (§1's New VM wizard, drive Import dialog) — no amount of automation retires this,
-per the ADR (`10`). It has not yet been exercised on this host:
+Everything past staging the raw file is a **manual GUI step with no scriptable path** (§1's New VM
+wizard, drive Import dialog) — no amount of automation retires this, per the ADR (`10`).
 
-- The staged raw image's boot cleanliness once imported as an Apple-backend drive
-  <!-- UNVERIFIED: machine-identifier/NVRAM provenance is tart's, not UTM's -- a mismatch could
-  refuse to boot; settling it needs the GUI import + boot step. See specs/utm-improvements.md
-  Spike A. -->.
-- The one best-effort mitigation if it doesn't boot: transplanting tart's `config.json`
-  `hardwareModel`/`ECID` fields into the UTM bundle's `config.plist` `MacPlatform`
-  <!-- UNVERIFIED: untried; no claim exists for it. -->.
-- The documented fallback if both fail: hand-provision a one-time golden UTM VM from IPSW to golden
-  parity, name it `dotfiles-golden-utm`, and clone it per session — functionally identical to the
-  tart-reuse path from the downstream workflow's point of view, just without the golden-image
-  reuse.
+### Importing the disk alone does not work — you must transplant the identity too (observed 2026-07-11)
+
+**The raw disk on its own boots to a black screen and hangs.** This was the open question above; it
+is now settled by direct observation, and the fix is recorded here so nobody repeats the import and
+concludes the disk is corrupt.
+
+**Why.** Tart stores the guest's Virtualization.framework identity in
+`~/.tart/vms/<name>/config.json` as base64 `dataRepresentation` blobs, plus a 32 MB `nvram.bin`. UTM
+stores the same objects in the bundle's `config.plist` under `System.MacPlatform`, plus
+`Data/AuxiliaryStorage`. Importing only `disk.img` leaves UTM's **freshly generated** identity in
+place, so the OS — personalized at install time under tart's identity — is asked to boot as a
+different machine. Byte-compared on this host before the fix:
+
+| Artifact | tart (`dotfiles-golden`) | UTM bundle (wizard-created) | Equal? |
+|---|---|---|---|
+| hardware model | `hardwareModel`, 132 B decoded | `HardwareModel`, 132 B | **No** — same length, different bytes |
+| machine identifier (ECID) | `ecid`, 68 B decoded | `MachineIdentifier`, 60 B | **No** |
+| auxiliary storage (NVRAM) | `nvram.bin`, 33,579,164 B | `Data/AuxiliaryStorage`, 33,579,164 B | **No** — same size, different content |
+
+The hang signature: black screen, UTM at ~0.0 % CPU, and in the unified log the
+`com.apple.Virtualization.VirtualMachine` XPC connection activates and then goes silent — no error,
+no progress. The disk itself attaches fine (DiskImages2 logs "assuming RAW format"), which is what
+makes this misleading. Externally corroborated by
+[utmapp/UTM#3526](https://github.com/utmapp/UTM/issues/3526) (comment `issuecomment-1150351643`,
+2022-06-08 — spelled out rather than linked as a fragment because GitHub renders comment anchors
+client-side, where lychee cannot verify them): sharing a disk between two Virtualization.framework
+frontends works **only** when `hardwareModel` and `machineIdentifier` are set to the same values in
+both configs.
+
+**The fix, verified end-to-end on this host (2026-07-11):** with UTM fully quit, copy tart's identity
+into the bundle — decode `config.json`'s `hardwareModel`/`ecid` into `System.MacPlatform`'s
+`HardwareModel`/`MachineIdentifier`, and replace `Data/AuxiliaryStorage` with tart's `nvram.bin`.
+The golden then boots, takes a DHCP lease, and answers SSH. The scripted procedure, with backups and
+a read-back assertion, is [`specs/prereq-mvp.md`](../prereq-mvp.md) §1.
+
+**A second, independent blocker lives in the same file: `Drive.Nvme` must be `false`.** UTM's wizard
+can leave the drive on the NVMe interface, and **NVMe is illegal for an Apple-backend macOS guest** —
+Virtualization.framework rejects the configuration outright with *"NVM Express Controller device must
+be configured with a generic platform"*, which UTM surfaces only as the far less useful *"failed to
+restore … invalid argument"*. This was proven by building the bundle's own `VZMacPlatformConfiguration`
+in a signed Swift probe and calling `validate()`: identical config, `VZNVMExpressControllerDeviceConfiguration`
+→ rejected, `VZVirtioBlockDeviceConfiguration` → accepted. Note the two failures look nothing alike:
+a wrong identity hangs *silently*, a wrong drive interface fails *loudly*. Fixing one can just reveal
+the other.
+
+**`utmctl clone` preserves the transplanted identity** (byte-compared: `HardwareModel`,
+`MachineIdentifier`, and `AuxiliaryStorage` are all identical in the clone, and the clone boots to
+SSH). So the `just utm-up` clone-then-boot lane works as designed against a transplanted golden — no
+per-clone re-transplant is needed.
+
+**Caveat — never boot the tart golden and the UTM golden at the same time.** After the transplant they
+are the same machine to Virtualization.framework: same ECID, and `utmctl clone` copies the MAC too, so
+a clone and its golden are indistinguishable to `utm ip` (which resolves MAC → `dhcpd_leases`).
+Consequences of running them concurrently are unobserved; the rule is conservative.
+
+The pre-existing documented fallback, now unnecessary but retained: hand-provision a one-time golden
+UTM VM from IPSW to golden parity, name it `dotfiles-golden-utm`, and clone it per session —
+functionally identical from the downstream workflow's point of view, just without the golden-image
+reuse.
 
 `just utm-import-golden` prints the manual checklist for this step (create Apple-backend VM →
 delete its auto-created disk → Import the staged raw image → Network = Shared → add a VirtioFS

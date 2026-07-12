@@ -86,8 +86,9 @@ checklist test file, and the docs/spec/claims deliverables.
 - **Shared Network mode**: "Services running on the guest and the host can see each other" —
   [settings-apple/devices/network/#hardware](https://docs.getutm.app/settings-apple/devices/network/#hardware).
   SSH is reachable; host-side vmnet DHCP is what makes the `dhcpd_leases` approach plausible.
-  <!-- UNVERIFIED --> That UTM Shared-Network leases actually appear in `/var/db/dhcpd_leases` is
-  Spike B's job to prove.
+  **Proven 2026-07-11**: a Shared-Network UTM macOS guest does take a vmnet lease that lands in
+  `/var/db/dhcpd_leases` — `macos-ci utm ip --vm dotfiles-golden-utm` resolved the bundle's MAC to
+  `192.168.64.3` and SSH answered there. Spike B's core premise is settled.
 - Hard constraints reconfirmed (settled facts, see [CLAUDE.md](../CLAUDE.md) and
   [05-utm-automation.md](macos-ci/05-utm-automation.md)): no guest agent → no
   `utmctl exec/file/ip-address`; lifecycle + host-side serial only; `utmctl` requires UTM.app
@@ -154,6 +155,15 @@ baselined.
 
 ### 1. Spike A — tart golden disk → UTM import
 
+> **RESOLVED 2026-07-11 — Spike A succeeded; the fallback was not needed.** The plain import boots to
+> a silent black-screen hang, and the machine-identifier transplant below (the step this plan called
+> "best-effort, untried") is exactly what fixes it — plus a second, independent edit the plan did not
+> anticipate: the drive's `Nvme` flag must be `false`, because NVMe is illegal on an Apple-backend
+> macOS guest. With both applied the golden reaches loginwindow, answers SSH, and survives
+> `utmctl clone` with its identity intact. Full observed record: [`06-utm-macos-guest.md`](macos-ci/06-utm-macos-guest.md)
+> §11. Scripted procedure: [`prereq-mvp.md`](prereq-mvp.md) §1. The steps below are kept as the
+> original spike design.
+
 - Never touch the live golden: `tart clone dotfiles-golden utm-export-scratch`, then inspect
   `~/.tart/vms/utm-export-scratch/` — `file disk.img` and the `config.json` disk-format field.
 - If raw → copy `disk.img` aside. If ASIF → attempt conversion
@@ -165,10 +175,11 @@ baselined.
 - **Success criterion**: the guest reaches loginwindow in the UTM window, `admin`/`admin` logs in,
   and SSH answers on the discovered IP.
 - **Kill criteria**: boot failure after (a) a plain import and (b) one machine-identifier
-  transplant attempt (tart `config.json` hardwareModel/ECID → UTM `config.plist` `MacPlatform`
-  <!-- UNVERIFIED --> — best-effort, untried). Two dead attempts → **fallback**: build a one-time
-  golden UTM VM from IPSW, provision by hand to golden parity (Homebrew, chezmoi, sshd on,
-  admin/admin), keep it as `dotfiles-golden-utm`, clone per session.
+  transplant attempt (tart `config.json` hardwareModel/ECID → UTM `config.plist` `MacPlatform`).
+  Two dead attempts → **fallback**: build a one-time golden UTM VM from IPSW, provision by hand to
+  golden parity (Homebrew, chezmoi, sshd on, admin/admin), keep it as `dotfiles-golden-utm`, clone
+  per session. *(Outcome: (a) failed as predicted, (b) succeeded — the transplant is the fix, not a
+  best-effort guess. The fallback was never reached.)*
 - Record the outcome as dated prose in spec 06 (boot success is not machine-checkable); the
   raw-only doc sentence becomes ledger claim `utm-drive-import-raw-only`.
 
@@ -176,9 +187,11 @@ baselined.
 
 - `ls -l /var/db/dhcpd_leases` — confirm it is readable unprivileged (verify, don't assume).
 - `plutil -p "~/Library/Containers/com.utmapp.UTM/Data/Documents/<vm>.utm/config.plist" | grep -i mac`
-  — confirm the bundle path <!-- UNVERIFIED --> (documents dir varies App Store vs dmg install),
-  the plist format (XML vs binary), and the key path to `MacAddress`. Capture a redacted plist as a
-  unit-test fixture.
+  — confirm the bundle path, the plist format (XML vs binary), and the key path to `MacAddress`.
+  Capture a redacted plist as a unit-test fixture. **Confirmed 2026-07-11 on this host** (dmg
+  install): the bundle lives at exactly that path, `config.plist` is XML, and the MAC is at
+  `Network[0].MacAddress`. Caveat: `utmctl clone` copies the MAC, so a clone and its golden are
+  indistinguishable to a MAC→lease lookup — never run both at once.
 - Boot the VM (Shared Network); grep the normalized MAC in `/var/db/dhcpd_leases`; capture one full
   lease block verbatim as the `parse_dhcpd_leases` fixture.
 - Cross-check three ways: `ssh admin@<ip> true` succeeds; `ifconfig en0` typed in the guest window
