@@ -10,6 +10,7 @@ looked up against `/var/db/dhcpd_leases`, with `arp -an` as a fallback.
 
 from __future__ import annotations
 
+import json
 import plistlib
 import shlex
 from dataclasses import dataclass
@@ -255,6 +256,29 @@ def build_screencapture_argv(
         argv += ["-l", str(window_id)]
     argv.append(path)
     return argv
+
+
+def build_window_id_jxa_argv(vm: str) -> list[str]:
+    """`utm shot`'s window-id lookup (spec mvp.md A2's best-effort resolver). JXA + the ObjC
+    bridge, because System Events windows expose no usable CGWindowID -- `get id of window`
+    errors with -1728 (observed 2026-07-12), so the original AppleScript form could never
+    succeed. `CGWindowListCopyWindowInfo` returns the real `kCGWindowNumber` that
+    `screencapture -l` wants; reading `kCGWindowName` needs the same Screen Recording
+    permission `screencapture` itself needs, so any host that can capture can also resolve.
+    Prints `NOT_FOUND` (a non-int, parsed to `None` by the caller) when no UTM window matches.
+    """
+    needle = json.dumps(vm)
+    script = (
+        'ObjC.import("CoreGraphics");'
+        "const cf = $.CGWindowListCopyWindowInfo("
+        "$.kCGWindowListOptionOnScreenOnly | $.kCGWindowListExcludeDesktopElements,"
+        " $.kCGNullWindowID);"
+        "const arr = ObjC.deepUnwrap(ObjC.castRefToObject(cf));"
+        'const win = arr.find(w => w.kCGWindowOwnerName === "UTM"'
+        f' && (w.kCGWindowName || "").includes({needle}));'
+        'win ? win.kCGWindowNumber : "NOT_FOUND"'
+    )
+    return ["osascript", "-l", "JavaScript", "-e", script]
 
 
 def manual_apply_script(*, source: str, version_manager: str = "mise") -> str:

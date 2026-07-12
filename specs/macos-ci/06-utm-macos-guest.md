@@ -319,6 +319,12 @@ the other.
 SSH). So the `just utm-up` clone-then-boot lane works as designed against a transplanted golden — no
 per-clone re-transplant is needed.
 
+**Deviation from the golden contract, 2026-07-12:** the UTM golden gained the iTerm2 cask (3.6.11,
+`brew install --cask iterm2`), hand-installed in its console shortly before a shutdown. The tart
+golden is unaffected. Recorded rather than reverted: this lane's UX evaluation always needs iTerm2
+in the guest, so baking it into the UTM golden turns mvp.md Phase B's "install iTerm2 if missing"
+step into a no-op for every future clone.
+
 **Caveat — never boot the tart golden and the UTM golden at the same time.** After the transplant they
 are the same machine to Virtualization.framework: same ECID, and `utmctl clone` copies the MAC too, so
 a clone and its golden are indistinguishable to `utm ip` (which resolves MAC → `dhcpd_leases`).

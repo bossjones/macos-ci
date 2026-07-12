@@ -283,15 +283,18 @@ side instead: read every VM MAC address out of the `.utm` bundle's `config.plist
 
 #### 📸 Screenshot: iTerm2 inside the UTM guest
 
-> **Placeholder — not yet captured.** This README ships the walkthrough above without a real screenshot
-> of iTerm2 running inside a UTM guest window (glyph rendering, sheldon syntax highlighting, `Ctrl-R`
-> history search, 24-bit color). Capturing one for real means booting `just utm-up`, pasting the
-> bootstrap block, and screenshotting the window — genuine work, tracked as a **follow-up
-> `/agent-harness:plan` spec**, not fabricated here. In the meantime, here's the shape of the loop it'll
-> capture:
+Captured from a real UTM manual-lane session (2026-07-12): `just utm-up`, then over `just utm-ssh` a
+`chezmoi init --apply --branch <pr-branch> https://github.com/bossjones/zsh-dotfiles.git` against a
+dotfiles PR branch, then iTerm2 opened in the guest window. The frame shows the `zsh-dotfiles` pure
+prompt rendering the PR branch's name next to its git glyph, `ruby --version` proving the branch's
+Ruby 4.0.1 payload took effect, and the you-should-use plugin coloring `git status -sb` with alias
+tips — the live-render verdict a headless SSH run can't give you. The capture itself is the
+host-side `just utm-shot` (no VNC framebuffer and no in-guest screencapture exist for an
+Apple-backend guest). Full session walkthrough:
+[docs/tutorials/06-utm-testing-a-pr-branch.md](docs/tutorials/06-utm-testing-a-pr-branch.md).
 
 <p align="center">
-  <img src="specs/plans/macos-ci/solution.png" alt="Interim diagram: CLI-driven VM lifecycle to a verdict, standing in for the pending iTerm2 screenshot" width="480">
+  <img src="docs/images/iterm2-utm-guest.png" alt="iTerm2 inside a UTM macOS guest window: the zsh-dotfiles pure prompt showing a git branch glyph on a PR branch, ruby 4.0.1 version output, and you-should-use alias tips coloring a git status" width="720">
 </p>
 
 ## Recipe Reference
@@ -386,6 +389,7 @@ backed by a `.team/claims.jsonl` entry so `just verify-claims` catches it the mo
 | `utm-exec CMD` | One-shot remote command over the same SSH. |
 | `utm-serial` | Redirect serial I/O to this terminal — the only guest channel `utmctl` offers without a QEMU guest agent. |
 | `utm-status` | `utmctl list`. |
+| `utm-shot LABEL` | Host-side `screencapture` of the UTM window into `artifacts/<run-id>/screenshots/`. The only capture path for an Apple-backend guest — no VNC framebuffer, no in-guest screencapture over SSH. |
 | `utm-stop` | Graceful stop (request mode). |
 | `utm-destroy` | Delete the session clone; the golden VM is untouched. |
 | `utm-verify-manual` | The seven-item iTerm2 UX checklist, JSON-reported. Prompts on a TTY, skips cleanly off-TTY. |

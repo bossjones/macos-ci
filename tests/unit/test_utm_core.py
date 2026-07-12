@@ -24,6 +24,7 @@ from macos_ci._utm_core import (
     UtmVm,
     attach_argv,
     build_screencapture_argv,
+    build_window_id_jxa_argv,
     bundle_config_path,
     clone_argv,
     delete_argv,
@@ -286,3 +287,19 @@ def test_build_screencapture_argv_full() -> None:
         "-o",
         "/tmp/hero.png",
     ]
+
+
+def test_build_window_id_jxa_argv_shape() -> None:
+    argv = build_window_id_jxa_argv("dotfiles-utm")
+    assert argv[:4] == ["osascript", "-l", "JavaScript", "-e"]
+    assert len(argv) == 5
+    script = argv[4]
+    assert "CGWindowListCopyWindowInfo" in script
+    assert "kCGWindowNumber" in script
+    assert '"dotfiles-utm"' in script
+
+
+def test_build_window_id_jxa_argv_quotes_vm_name() -> None:
+    # A hostile VM name must land as a JS string literal, not injected syntax.
+    script = build_window_id_jxa_argv('x").includes("')[-1]
+    assert '"x\\").includes(\\""' in script

@@ -34,6 +34,7 @@ from macos_ci._utm_core import (
     StopMode,
     UtmVm,
     build_screencapture_argv,
+    build_window_id_jxa_argv,
     bundle_config_path,
     clone_argv,
     delete_argv,
@@ -251,17 +252,15 @@ def _foreground_utm() -> None:
 
 def _resolve_utm_window_id(vm: str) -> int | None:
     """Dependency-free CGWindowID lookup via `osascript` (no pyobjc/Quartz -- spec mvp.md A2's
-    honest design note: this repo values no-new-deps). Any failure -- osascript missing, UTM not
-    running, window not found, unparsable output -- degrades to `None`, and the caller falls back
-    to a whole-display capture rather than ever raising.
+    honest design note: this repo values no-new-deps). JXA/CGWindowList, not System Events --
+    see `build_window_id_jxa_argv`'s docstring for why the AppleScript `id` form never worked.
+    Any failure -- osascript missing, UTM not running, window not found, unparsable output --
+    degrades to `None`, and the caller falls back to a whole-display capture rather than ever
+    raising.
     """
-    script = (
-        'tell application "System Events" to tell process "UTM" '
-        f'to get id of first window whose name contains "{vm}"'
-    )
     try:
         result = subprocess.run(
-            ["osascript", "-e", script], capture_output=True, text=True, timeout=5
+            build_window_id_jxa_argv(vm), capture_output=True, text=True, timeout=5
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
