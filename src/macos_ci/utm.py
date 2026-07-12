@@ -252,7 +252,7 @@ def _foreground_utm() -> None:
 def _resolve_utm_window_id(vm: str) -> int | None:
     """Dependency-free CGWindowID lookup via `osascript` (no pyobjc/Quartz -- spec mvp.md A2's
     honest design note: this repo values no-new-deps). Any failure -- osascript missing, UTM not
-    running, window not found, unparseable output -- degrades to `None`, and the caller falls back
+    running, window not found, unparsable output -- degrades to `None`, and the caller falls back
     to a whole-display capture rather than ever raising.
     """
     script = (
